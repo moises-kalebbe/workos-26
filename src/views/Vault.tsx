@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Lock, Eye, EyeOff, Copy, Search, Trash2, Pencil, ChevronRight, Link2, UserRound, NotebookPen, X } from "lucide-react";
+import { Plus, Lock, Eye, EyeOff, Copy, Search, Trash2, Pencil, Link2, UserRound, NotebookPen, X, Building2, Clock3, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { DeleteConfirmDialog } from "@/components/system/delete-confirm-dialog";
 import { LoadingState } from "@/components/system/loading-state";
 import { PageHeader } from "@/components/system/page-header";
 import { FilterBar } from "@/components/system/filter-bar";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   GENERAL_PROJECT_VALUE,
@@ -37,9 +36,8 @@ export default function VaultPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<VaultEntry | null>(null);
   const [entryPendingDelete, setEntryPendingDelete] = useState<VaultEntry | null>(null);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
 
   // Form
   const [newProjectValue, setNewProjectValue] = useState(GENERAL_PROJECT_VALUE);
@@ -134,11 +132,7 @@ export default function VaultPage() {
     } else {
       toast.success("Credencial excluida!");
       setEntries((prev) => prev.filter((e) => e.id !== id));
-      setExpandedEntries((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
+      if (activeEntryId === id) setActiveEntryId(null);
     }
   }
 
@@ -198,36 +192,11 @@ export default function VaultPage() {
     return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
   }
 
-  function toggleGroup(client: string) {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(client)) {
-        next.delete(client);
-      } else {
-        next.add(client);
-      }
-      return next;
-    });
-  }
-
-  function toggleEntryDetails(id: string) {
-    setExpandedEntries((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
   function clearFilters() {
     setSearch("");
     setCompanyFilter("all");
     setMetaFilter("all");
     setSortBy("updated_desc");
-    setCollapsedGroups(new Set());
   }
 
   const projectMap = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
@@ -288,24 +257,24 @@ export default function VaultPage() {
     return list;
   }, [filtered, sortBy]);
 
-  const grouped = useMemo(
-    () =>
-      sorted.reduce<Record<string, VaultEntry[]>>((acc, entry) => {
-        const companyLabel = getCompanyLabel(entry);
-        if (!acc[companyLabel]) acc[companyLabel] = [];
-        acc[companyLabel].push(entry);
-        return acc;
-      }, {}),
-    [sorted, getCompanyLabel]
-  );
-
-  const groupedEntries = useMemo(
-    () => Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b, "pt-BR")),
-    [grouped]
-  );
-
   const hasActiveFilters =
     !!search.trim() || companyFilter !== "all" || metaFilter !== "all" || sortBy !== "updated_desc";
+
+  useEffect(() => {
+    if (sorted.length === 0) {
+      setActiveEntryId(null);
+      return;
+    }
+
+    if (!activeEntryId || !sorted.some((entry) => entry.id === activeEntryId)) {
+      setActiveEntryId(sorted[0].id);
+    }
+  }, [sorted, activeEntryId]);
+
+  const activeEntry = useMemo(
+    () => sorted.find((entry) => entry.id === activeEntryId) || null,
+    [sorted, activeEntryId]
+  );
 
   function renderCredentialForm(
     projectValue: string, setProjectValue: (v: string) => void,
@@ -466,41 +435,19 @@ export default function VaultPage() {
         </Button>
       </FilterBar>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="bg-secondary/70 text-secondary-foreground">
-            {sorted.length} credenciais
-          </Badge>
-          <Badge variant="secondary" className="bg-secondary/70 text-secondary-foreground">
-            {groupedEntries.length} empresas
-          </Badge>
-          {hasActiveFilters ? (
-            <Badge variant="outline" className="border-primary/30 text-primary">Filtros ativos</Badge>
-          ) : null}
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="border-border"
-            onClick={() => setCollapsedGroups(new Set(groupedEntries.map(([company]) => company)))}
-            disabled={groupedEntries.length === 0}
-          >
-            Recolher tudo
-          </Button>
-          <Button
-            variant="outline"
-            className="border-border"
-            onClick={() => setCollapsedGroups(new Set())}
-            disabled={groupedEntries.length === 0}
-          >
-            Expandir tudo
-          </Button>
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="secondary" className="bg-secondary/70 text-secondary-foreground">
+          {sorted.length} credenciais
+        </Badge>
+        <Badge variant="secondary" className="bg-secondary/70 text-secondary-foreground">
+          {companyOptions.length} empresas
+        </Badge>
+        {hasActiveFilters ? (
+          <Badge variant="outline" className="border-primary/30 text-primary">Filtros ativos</Badge>
+        ) : null}
       </div>
 
-      {/* Entries */}
-      {groupedEntries.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-lg font-medium text-foreground mb-1">Nenhuma credencial encontrada</p>
@@ -509,112 +456,176 @@ export default function VaultPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {groupedEntries.map(([client, clientEntries]) => {
-            const isCollapsed = collapsedGroups.has(client);
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+          <section className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="overflow-auto">
+              <div className="min-w-[860px]">
+                <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,1.4fr)_130px] border-b border-border bg-background/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span>Servico</span>
+                  <span>Empresa</span>
+                  <span>Usuario</span>
+                  <span>Senha</span>
+                  <span className="text-right">Acoes</span>
+                </div>
 
-            return (
-              <div key={client} className="rounded-xl border border-border bg-card overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(client)}
-                  className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-left hover:bg-background/60"
-                >
-                  <div className="flex items-center gap-2">
-                    <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !isCollapsed && "rotate-90")} />
-                    <h3 className="text-sm font-semibold text-foreground">{client}</h3>
-                  </div>
-                  <Badge variant="secondary" className="bg-primary/15 text-primary">{clientEntries.length}</Badge>
-                </button>
+                <div className="max-h-[64vh] overflow-auto divide-y divide-border">
+                  {sorted.map((entry) => {
+                    const companyLabel = getCompanyLabel(entry);
+                    const isVisible = visiblePasswords.has(entry.id);
+                    const password = decodePassword(entry.encrypted_password);
+                    const isActive = activeEntry?.id === entry.id;
 
-                {!isCollapsed ? (
-                  <div className="divide-y divide-border">
-                    {clientEntries.map((entry) => {
-                      const isVisible = visiblePasswords.has(entry.id);
-                      const isExpanded = expandedEntries.has(entry.id);
-                      const password = decodePassword(entry.encrypted_password);
-
-                      return (
-                        <div key={entry.id} className="px-4 py-3">
-                          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                            <div className="min-w-0 space-y-1">
-                              <p className="truncate text-sm font-medium text-foreground">{entry.service || "Sem servico"}</p>
-                              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                                {entry.url ? (
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-0.5">
-                                    <Link2 className="h-3 w-3" />
-                                    URL
-                                  </span>
-                                ) : null}
-                                {entry.username ? (
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-0.5">
-                                    <UserRound className="h-3 w-3" />
-                                    Usuario
-                                  </span>
-                                ) : null}
-                                {entry.notes ? (
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-0.5">
-                                    <NotebookPen className="h-3 w-3" />
-                                    Notas
-                                  </span>
-                                ) : null}
-                              </div>
-                              {entry.url ? (
-                                <a href={entry.url} target="_blank" rel="noopener noreferrer" className="block truncate text-xs text-primary hover:underline">
-                                  {entry.url}
-                                </a>
-                              ) : null}
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => togglePassword(entry.id)} className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => copyToClipboard(password)} className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <Copy className="h-3.5 w-3.5" />
-                              </Button>
-                              {entry.username ? (
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(entry.username)} className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                  <UserRound className="h-3.5 w-3.5" />
-                                </Button>
-                              ) : null}
-                              <Button variant="ghost" onClick={() => toggleEntryDetails(entry.id)} className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
-                                {isExpanded ? "Ocultar" : "Detalhes"}
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => openEditDialog(entry)} className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => setEntryPendingDelete(entry)} className="h-8 w-8 text-muted-foreground hover:text-danger">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => setActiveEntryId(entry.id)}
+                        className={`grid w-full grid-cols-[minmax(0,2.4fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,1.4fr)_130px] items-center gap-2 px-4 py-2 text-left transition-colors ${
+                          isActive ? "bg-primary/10" : "hover:bg-background/60"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">{entry.service || "Sem servico"}</p>
+                          <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                            {entry.url ? <Link2 className="h-3 w-3" /> : null}
+                            <span className="truncate">{entry.url || formatDate(entry.updated_at || entry.created_at)}</span>
                           </div>
-
-                          <div className="mt-2 rounded-lg bg-background px-3 py-2 text-xs text-muted-foreground">
-                            Senha: <span className="font-mono text-foreground">{isVisible ? password : "********"}</span>
-                          </div>
-
-                          {isExpanded ? (
-                            <div className="mt-2 grid gap-2 rounded-lg border border-border bg-background/60 p-3 text-xs text-muted-foreground">
-                              {entry.username ? (
-                                <div>
-                                  Usuario: <span className="font-mono text-foreground">{entry.username}</span>
-                                </div>
-                              ) : null}
-                              {entry.notes ? (
-                                <div>Notas: <span className="text-foreground">{entry.notes}</span></div>
-                              ) : null}
-                              <div>Atualizado: <span className="text-foreground">{formatDate(entry.updated_at || entry.created_at)}</span></div>
-                            </div>
-                          ) : null}
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
+
+                        <div className="truncate text-sm text-muted-foreground">{companyLabel}</div>
+
+                        <div className="truncate text-sm font-mono text-muted-foreground">
+                          {entry.username || "-"}
+                        </div>
+
+                        <div className="truncate text-sm font-mono text-foreground">
+                          {isVisible ? password : "********"}
+                        </div>
+
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              togglePassword(entry.id);
+                            }}
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          >
+                            {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              copyToClipboard(password);
+                            }}
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            );
-          })}
+            </div>
+          </section>
+
+          <aside className="h-fit rounded-xl border border-border bg-card p-4">
+            {activeEntry ? (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-foreground">
+                    {activeEntry.service || "Sem servico"}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="secondary" className="bg-secondary/70 text-secondary-foreground">
+                      <Building2 className="mr-1 h-3 w-3" />
+                      {getCompanyLabel(activeEntry)}
+                    </Badge>
+                    <Badge variant="outline" className="border-border">
+                      <Clock3 className="mr-1 h-3 w-3" />
+                      {formatDate(activeEntry.updated_at || activeEntry.created_at)}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 text-sm">
+                  <div className="rounded-lg bg-background px-3 py-2">
+                    <p className="text-[11px] text-muted-foreground">Usuario</p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="truncate font-mono text-foreground">{activeEntry.username || "-"}</p>
+                      {activeEntry.username ? (
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(activeEntry.username!)} className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-background px-3 py-2">
+                    <p className="text-[11px] text-muted-foreground">Senha</p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="truncate font-mono text-foreground">
+                        {visiblePasswords.has(activeEntry.id) ? decodePassword(activeEntry.encrypted_password) : "********"}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => togglePassword(activeEntry.id)} className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                          {visiblePasswords.has(activeEntry.id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(decodePassword(activeEntry.encrypted_password))} className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {activeEntry.url ? (
+                    <a
+                      href={activeEntry.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-primary hover:bg-background"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Abrir URL
+                    </a>
+                  ) : null}
+
+                  {activeEntry.notes ? (
+                    <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
+                      <p className="mb-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <NotebookPen className="h-3 w-3" />
+                        Notas
+                      </p>
+                      <p className="text-xs text-foreground">{activeEntry.notes}</p>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => openEditDialog(activeEntry)} className="flex-1 border-border">
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEntryPendingDelete(activeEntry)}
+                    className="border-danger/40 text-danger hover:bg-danger/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-[220px] items-center justify-center text-center">
+                <p className="text-sm text-muted-foreground">Selecione uma credencial para ver detalhes.</p>
+              </div>
+            )}
+          </aside>
         </div>
       )}
     </div>
