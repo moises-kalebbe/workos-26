@@ -113,7 +113,7 @@ export default function VaultPage() {
 
   function openEditDialog(entry: VaultEntry) {
     setEditingEntry(entry);
-    setEditClient(entry.client);
+    setEditClient(entry.client || "");
     setEditService(entry.service || "");
     setEditUrl(entry.url || "");
     setEditUsername(entry.username || "");
@@ -157,13 +157,14 @@ export default function VaultPage() {
 
   const filtered = entries.filter(
     (e) =>
-      e.client.toLowerCase().includes(search.toLowerCase()) ||
+      (e.client || "").toLowerCase().includes(search.toLowerCase()) ||
       (e.service || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const grouped = filtered.reduce<Record<string, VaultEntry[]>>((acc, entry) => {
-    if (!acc[entry.client]) acc[entry.client] = [];
-    acc[entry.client].push(entry);
+    const clientKey = entry.client || "Sem cliente";
+    if (!acc[clientKey]) acc[clientKey] = [];
+    acc[clientKey].push(entry);
     return acc;
   }, {});
 
