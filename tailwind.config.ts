@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        mono: ["JetBrains Mono", "Fira Code", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,6 +61,34 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        brand: {
+          DEFAULT: "hsl(var(--brand))",
+          hover: "hsl(var(--brand-hover))",
+          muted: "hsl(var(--brand-muted) / 0.15)",
+          text: "hsl(var(--brand-text))",
+        },
+        surface: {
+          base: "hsl(var(--surface-base))",
+          card: "hsl(var(--surface-card))",
+          hover: "hsl(var(--surface-hover))",
+          elevated: "hsl(var(--surface-elevated))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          muted: "hsl(var(--success) / 0.12)",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          muted: "hsl(var(--warning) / 0.12)",
+        },
+        danger: {
+          DEFAULT: "hsl(var(--danger))",
+          muted: "hsl(var(--danger) / 0.12)",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          muted: "hsl(var(--info) / 0.12)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,25 +97,32 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(4px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-up": {
+          from: { opacity: "0", transform: "translateY(8px) scale(0.95)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "pulse-dot": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.4" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 300ms ease-out",
+        "slide-up": "slide-up 200ms ease-out",
+        "pulse-dot": "pulse-dot 2s ease-in-out infinite",
       },
     },
   },
