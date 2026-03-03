@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Loader2, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Plus, Loader2, ChevronLeft, ChevronRight, Check, Trash2, Pencil, X } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors,
-  closestCenter,
+  useDroppable,
+  rectIntersection,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -21,10 +23,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import type { Task, Subtask } from "@/types";
+import type { Task, Subtask, Project } from "@/types";
 
 const COLUMNS = [
   { index: 0, title: "📋 A Fazer", color: "border-t-warning" },
@@ -39,11 +42,28 @@ const PRIORITIES = [
   { value: "low", label: "Baixa", className: "bg-secondary text-muted-foreground" },
 ];
 
-function TaskCard({ task, onMove, onToggleSubtask, onAddSubtask }: {
+function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "space-y-3 min-h-[100px] rounded-lg p-1 transition-colors",
+        isOver && "bg-primary/5 ring-1 ring-primary/20"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TaskCard({ task, onMove, onToggleSubtask, onAddSubtask, onDelete, onEdit }: {
   task: Task;
   onMove: (id: string, direction: -1 | 1) => void;
   onToggleSubtask: (subtaskId: string, completed: boolean) => void;
   onAddSubtask: (taskId: string, title: string) => void;
+  onDelete: (id: string) => void;
+  onEdit: (task: Task) => void;
 }) {
   const [newSubtask, setNewSubtask] = useState("");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -54,7 +74,7 @@ function TaskCard({ task, onMove, onToggleSubtask, onAddSubtask }: {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
   };
 
   const priority = PRIORITIES.find((p) => p.value === task.priority);
@@ -67,10 +87,18 @@ function TaskCard({ task, onMove, onToggleSubtask, onAddSubtask }: {
       style={style}
       {...attributes}
       {...listeners}
-      className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-muted-foreground/20 cursor-grab active:cursor-grabbing"
+      className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-muted-foreground/20 cursor-grab active:cursor-grabbing group"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-medium text-foreground">{task.title}</p>
+        <p className="text-sm font-medium text-foreground flex-1">{task.title}</p>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onPointerDown={(e) => e.stopPropagation()}>
+          <button onClick={() => onEdit(task)} className="p-1 text-muted-foreground hover:text-foreground">
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button onClick={() => onDelete(task.id)} className="p-1 text-muted-foreground hover:text-danger">
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
         {priority && (
           <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", priority.className)}>
             {priority.label}
@@ -107,7 +135,7 @@ function TaskCard({ task, onMove, onToggleSubtask, onAddSubtask }: {
           {subtasks.map((st) => (
             <label
               key={st.id}
-              className="flex items-center gap-2 cursor-pointer group"
+              className="flex items-center gap-2 cursor-pointer group/sub"
               onPointerDown={(e) => e.stopPropagation()}
             >
               <button
@@ -116,7 +144,7 @@ function TaskCard({ task, onMove, onToggleSubtask, onAddSubtask }: {
                   "h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors",
                   st.completed
                     ? "bg-primary border-primary"
-                    : "border-border group-hover:border-muted-foreground"
+                    : "border-border group-hover/sub:border-muted-foreground"
                 )}
               >
                 {st.completed && <Check className="h-3 w-3 text-primary-foreground" />}
@@ -156,22 +184,12 @@ function TaskCard({ task, onMove, onToggleSubtask, onAddSubtask }: {
       {/* Mobile Move Buttons */}
       <div className="flex gap-2 mt-3 md:hidden" onPointerDown={(e) => e.stopPropagation()}>
         {task.column_index > 0 && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onMove(task.id, -1)}
-            className="h-7 text-xs flex-1 border-border"
-          >
+          <Button size="sm" variant="outline" onClick={() => onMove(task.id, -1)} className="h-7 text-xs flex-1 border-border">
             <ChevronLeft className="h-3 w-3 mr-1" /> Voltar
           </Button>
         )}
         {task.column_index < 2 && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onMove(task.id, 1)}
-            className="h-7 text-xs flex-1 border-border"
-          >
+          <Button size="sm" variant="outline" onClick={() => onMove(task.id, 1)} className="h-7 text-xs flex-1 border-border">
             Avançar <ChevronRight className="h-3 w-3 ml-1" />
           </Button>
         )}
@@ -183,8 +201,11 @@ function TaskCard({ task, onMove, onToggleSubtask, onAddSubtask }: {
 export default function KanbanPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mobileColumn, setMobileColumn] = useState(0);
 
@@ -194,22 +215,28 @@ export default function KanbanPage() {
   const [newPriority, setNewPriority] = useState("normal");
   const [newDueDate, setNewDueDate] = useState("");
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // Edit form
+  const [editTitle, setEditTitle] = useState("");
+  const [editClient, setEditClient] = useState("");
+  const [editPriority, setEditPriority] = useState("normal");
+  const [editDueDate, setEditDueDate] = useState("");
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
-    if (user) loadTasks();
+    if (user) loadData();
   }, [user]);
 
-  async function loadTasks() {
+  async function loadData() {
     setLoading(true);
-    const { data: tasksData } = await supabase
-      .from("tasks")
-      .select("*")
-      .order("position");
+    const [tasksRes, projRes] = await Promise.all([
+      supabase.from("tasks").select("*").order("position"),
+      supabase.from("projects").select("*").order("name"),
+    ]);
 
-    const tasksList = (tasksData || []) as unknown as Task[];
+    const tasksList = (tasksRes.data || []) as unknown as Task[];
+    setProjects((projRes.data || []) as unknown as Project[]);
 
-    // Load subtasks for each task
     if (tasksList.length > 0) {
       const taskIds = tasksList.map((t) => t.id);
       const { data: subtasksData } = await supabase
@@ -251,8 +278,48 @@ export default function KanbanPage() {
       setNewClient("");
       setNewPriority("normal");
       setNewDueDate("");
-      loadTasks();
+      loadData();
     }
+  }
+
+  async function updateTask() {
+    if (!editingTask || !editTitle) return;
+    const { error } = await supabase.from("tasks").update({
+      title: editTitle,
+      client: editClient || null,
+      priority: editPriority,
+      due_date: editDueDate || null,
+    }).eq("id", editingTask.id);
+
+    if (error) {
+      toast.error("Erro ao atualizar tarefa");
+    } else {
+      toast.success("Tarefa atualizada!");
+      setEditDialogOpen(false);
+      setEditingTask(null);
+      loadData();
+    }
+  }
+
+  async function deleteTask(taskId: string) {
+    // Delete subtasks first
+    await supabase.from("subtasks").delete().eq("task_id", taskId);
+    const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+    if (error) {
+      toast.error("Erro ao excluir tarefa");
+    } else {
+      toast.success("Tarefa excluída!");
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    }
+  }
+
+  function openEditDialog(task: Task) {
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditClient(task.client || "");
+    setEditPriority(task.priority);
+    setEditDueDate(task.due_date || "");
+    setEditDialogOpen(true);
   }
 
   async function moveTask(taskId: string, direction: -1 | 1) {
@@ -261,11 +328,9 @@ export default function KanbanPage() {
     const newCol = task.column_index + direction;
     if (newCol < 0 || newCol > 2) return;
 
-    // Optimistic
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, column_index: newCol } : t))
     );
-
     await supabase.from("tasks").update({ column_index: newCol }).eq("id", taskId);
   }
 
@@ -308,33 +373,47 @@ export default function KanbanPage() {
     setActiveId(event.active.id as string);
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
-    setActiveId(null);
+  async function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
     if (!over) return;
 
     const activeTask = tasks.find((t) => t.id === active.id);
     if (!activeTask) return;
 
-    // Check if dropped on a column
-    const overColumnIndex = COLUMNS.findIndex((c) => `column-${c.index}` === String(over.id));
-    if (overColumnIndex >= 0 && activeTask.column_index !== overColumnIndex) {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === String(active.id) ? { ...t, column_index: overColumnIndex } : t))
-      );
-      await supabase.from("tasks").update({ column_index: overColumnIndex }).eq("id", String(active.id));
-      return;
+    // Determine target column
+    let targetColumn: number | null = null;
+
+    // Check if over a column droppable
+    const overId = String(over.id);
+    if (overId.startsWith("column-")) {
+      targetColumn = parseInt(overId.replace("column-", ""));
+    } else {
+      // Over a task - get its column
+      const overTask = tasks.find((t) => t.id === over.id);
+      if (overTask) {
+        targetColumn = overTask.column_index;
+      }
     }
 
-    // Dropped on another task
-    const overTask = tasks.find((t) => t.id === over.id);
-    if (overTask && activeTask.column_index !== overTask.column_index) {
+    if (targetColumn !== null && activeTask.column_index !== targetColumn) {
       setTasks((prev) =>
-        prev.map((t) => (t.id === String(active.id) ? { ...t, column_index: overTask.column_index } : t))
+        prev.map((t) => (t.id === String(active.id) ? { ...t, column_index: targetColumn! } : t))
       );
-      await supabase.from("tasks").update({ column_index: overTask.column_index }).eq("id", String(active.id));
     }
   }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
+    const { active } = event;
+    const activeTask = tasks.find((t) => t.id === active.id);
+    if (!activeTask) return;
+
+    // Persist final column
+    await supabase.from("tasks").update({ column_index: activeTask.column_index }).eq("id", String(active.id));
+  }
+
+  // Unique clients from projects
+  const clientOptions = [...new Set(projects.map((p) => p.client).filter(Boolean))] as string[];
 
   if (loading) {
     return (
@@ -365,21 +444,20 @@ export default function KanbanPage() {
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Título</Label>
-                <Input
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="O que precisa ser feito?"
-                  className="bg-background border-border"
-                />
+                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="O que precisa ser feito?" className="bg-background border-border" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Cliente</Label>
-                <Input
-                  value={newClient}
-                  onChange={(e) => setNewClient(e.target.value)}
-                  placeholder="Nome do cliente"
-                  className="bg-background border-border"
-                />
+                <Label className="text-xs text-muted-foreground">Empresa</Label>
+                <Select value={newClient} onValueChange={setNewClient}>
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder="Selecione a empresa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Prioridade</Label>
@@ -400,12 +478,7 @@ export default function KanbanPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Prazo</Label>
-                <Input
-                  type="date"
-                  value={newDueDate}
-                  onChange={(e) => setNewDueDate(e.target.value)}
-                  className="bg-background border-border"
-                />
+                <Input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="bg-background border-border" />
               </div>
               <Button onClick={createTask} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                 Criar Tarefa
@@ -414,6 +487,58 @@ export default function KanbanPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Editar Tarefa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Título</Label>
+              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="bg-background border-border" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Empresa</Label>
+              <Select value={editClient} onValueChange={setEditClient}>
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Selecione a empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Prioridade</Label>
+              <div className="flex gap-2">
+                {PRIORITIES.map((p) => (
+                  <button
+                    key={p.value}
+                    onClick={() => setEditPriority(p.value)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium transition-all",
+                      editPriority === p.value ? p.className + " ring-1 ring-foreground/20" : "bg-secondary text-muted-foreground"
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Prazo</Label>
+              <Input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className="bg-background border-border" />
+            </div>
+            <Button onClick={updateTask} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile Column Selector */}
       <div className="flex gap-2 md:hidden">
@@ -436,8 +561,9 @@ export default function KanbanPage() {
       {/* Kanban Board */}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -450,7 +576,6 @@ export default function KanbanPage() {
             return (
               <div
                 key={col.index}
-                id={`column-${col.index}`}
                 className={cn(
                   "rounded-xl border border-border bg-card/50 p-4 border-t-[3px]",
                   col.color
@@ -467,7 +592,7 @@ export default function KanbanPage() {
                   items={columnTasks.map((t) => t.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="space-y-3 min-h-[100px]">
+                  <DroppableColumn id={`column-${col.index}`}>
                     {columnTasks.length === 0 ? (
                       <div className="rounded-lg border-2 border-dashed border-border p-6 text-center">
                         <p className="text-xs text-muted-foreground">Arraste aqui</p>
@@ -480,10 +605,12 @@ export default function KanbanPage() {
                           onMove={moveTask}
                           onToggleSubtask={toggleSubtask}
                           onAddSubtask={addSubtask}
+                          onDelete={deleteTask}
+                          onEdit={openEditDialog}
                         />
                       ))
                     )}
-                  </div>
+                  </DroppableColumn>
                 </SortableContext>
               </div>
             );

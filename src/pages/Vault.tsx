@@ -1,20 +1,24 @@
 import { useState, useEffect } from "react";
-import { Plus, Lock, Eye, EyeOff, Copy, Search, Loader2 } from "lucide-react";
+import { Plus, Lock, Eye, EyeOff, Copy, Search, Loader2, Trash2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import type { VaultEntry } from "@/types";
+import type { VaultEntry, Project } from "@/types";
 
 export default function VaultPage() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<VaultEntry[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<VaultEntry | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
 
   // Form
@@ -25,24 +29,31 @@ export default function VaultPage() {
   const [newPassword, setNewPassword] = useState("");
   const [newNotes, setNewNotes] = useState("");
 
+  // Edit form
+  const [editClient, setEditClient] = useState("");
+  const [editService, setEditService] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [editUsername, setEditUsername] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
   useEffect(() => {
-    if (user) loadEntries();
+    if (user) loadData();
   }, [user]);
 
-  async function loadEntries() {
+  async function loadData() {
     setLoading(true);
-    const { data } = await supabase
-      .from("vault_entries")
-      .select("*")
-      .order("client");
-    setEntries((data || []) as unknown as VaultEntry[]);
+    const [entriesRes, projRes] = await Promise.all([
+      supabase.from("vault_entries").select("*").order("client"),
+      supabase.from("projects").select("*").order("name"),
+    ]);
+    setEntries((entriesRes.data || []) as unknown as VaultEntry[]);
+    setProjects((projRes.data || []) as unknown as Project[]);
     setLoading(false);
   }
 
   async function createEntry() {
     if (!newClient || !newPassword || !user) return;
-
-    // Simple client-side encoding (in production, encrypt server-side)
     const encoded = btoa(newPassword);
     const iv = crypto.randomUUID();
 
@@ -62,14 +73,62 @@ export default function VaultPage() {
     } else {
       toast.success("Credencial salva!");
       setDialogOpen(false);
-      setNewClient("");
-      setNewService("");
-      setNewUrl("");
-      setNewUsername("");
-      setNewPassword("");
-      setNewNotes("");
-      loadEntries();
+      resetForm();
+      loadData();
     }
+  }
+
+  async function updateEntry() {
+    if (!editingEntry || !editClient || !editPassword) return;
+    const encoded = btoa(editPassword);
+
+    const { error } = await supabase.from("vault_entries").update({
+      client: editClient,
+      service: editService || null,
+      url: editUrl || null,
+      username: editUsername || null,
+      encrypted_password: encoded,
+      notes: editNotes || null,
+    }).eq("id", editingEntry.id);
+
+    if (error) {
+      toast.error("Erro ao atualizar credencial");
+    } else {
+      toast.success("Credencial atualizada!");
+      setEditDialogOpen(false);
+      setEditingEntry(null);
+      loadData();
+    }
+  }
+
+  async function deleteEntry(id: string) {
+    const { error } = await supabase.from("vault_entries").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir credencial");
+    } else {
+      toast.success("Credencial excluída!");
+      setEntries((prev) => prev.filter((e) => e.id !== id));
+    }
+  }
+
+  function openEditDialog(entry: VaultEntry) {
+    setEditingEntry(entry);
+    setEditClient(entry.client);
+    setEditService(entry.service || "");
+    setEditUrl(entry.url || "");
+    setEditUsername(entry.username || "");
+    setEditPassword(decodePassword(entry.encrypted_password));
+    setEditNotes(entry.notes || "");
+    setEditDialogOpen(true);
+  }
+
+  function resetForm() {
+    setNewClient("");
+    setNewService("");
+    setNewUrl("");
+    setNewUsername("");
+    setNewPassword("");
+    setNewNotes("");
   }
 
   function togglePassword(id: string) {
@@ -79,13 +138,8 @@ export default function VaultPage() {
         next.delete(id);
       } else {
         next.add(id);
-        // Auto-hide after 30s
         setTimeout(() => {
-          setVisiblePasswords((p) => {
-            const n = new Set(p);
-            n.delete(id);
-            return n;
-          });
+          setVisiblePasswords((p) => { const n = new Set(p); n.delete(id); return n; });
         }, 30000);
       }
       return next;
@@ -98,11 +152,7 @@ export default function VaultPage() {
   }
 
   function decodePassword(encoded: string) {
-    try {
-      return atob(encoded);
-    } catch {
-      return "***";
-    }
+    try { return atob(encoded); } catch { return "***"; }
   }
 
   const filtered = entries.filter(
@@ -111,12 +161,65 @@ export default function VaultPage() {
       (e.service || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  // Group by client
   const grouped = filtered.reduce<Record<string, VaultEntry[]>>((acc, entry) => {
     if (!acc[entry.client]) acc[entry.client] = [];
     acc[entry.client].push(entry);
     return acc;
   }, {});
+
+  function renderCredentialForm(
+    client: string, setClient: (v: string) => void,
+    service: string, setService: (v: string) => void,
+    url: string, setUrl: (v: string) => void,
+    username: string, setUsername: (v: string) => void,
+    password: string, setPassword: (v: string) => void,
+    notes: string, setNotes: (v: string) => void,
+    onSubmit: () => void,
+    buttonLabel: string
+  ) {
+    return (
+      <div className="space-y-4 pt-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Empresa *</Label>
+            <Select value={client} onValueChange={setClient}>
+              <SelectTrigger className="bg-background border-border">
+                <SelectValue placeholder="Selecione a empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Serviço</Label>
+            <Input value={service} onChange={(e) => setService(e.target.value)} placeholder="Gmail, AWS..." className="bg-background border-border" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">URL</Label>
+          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." className="bg-background border-border" />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Usuário</Label>
+          <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="usuario@email.com" className="bg-background border-border" />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Senha *</Label>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="bg-background border-border" />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Notas</Label>
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações..." className="bg-background border-border" />
+        </div>
+        <Button onClick={onSubmit} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+          {buttonLabel}
+        </Button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -144,50 +247,25 @@ export default function VaultPage() {
             <DialogHeader>
               <DialogTitle>Nova Credencial</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Cliente *</Label>
-                  <Input value={newClient} onChange={(e) => setNewClient(e.target.value)} placeholder="Empresa" className="bg-background border-border" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Serviço</Label>
-                  <Input value={newService} onChange={(e) => setNewService(e.target.value)} placeholder="Gmail, AWS..." className="bg-background border-border" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">URL</Label>
-                <Input value={newUrl} onChange={(e) => setNewUrl(e.target.value)} placeholder="https://..." className="bg-background border-border" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Usuário</Label>
-                <Input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="usuario@email.com" className="bg-background border-border" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Senha *</Label>
-                <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" className="bg-background border-border" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Notas</Label>
-                <Input value={newNotes} onChange={(e) => setNewNotes(e.target.value)} placeholder="Observações..." className="bg-background border-border" />
-              </div>
-              <Button onClick={createEntry} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                Salvar Credencial
-              </Button>
-            </div>
+            {renderCredentialForm(newClient, setNewClient, newService, setNewService, newUrl, setNewUrl, newUsername, setNewUsername, newPassword, setNewPassword, newNotes, setNewNotes, createEntry, "Salvar Credencial")}
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Editar Credencial</DialogTitle>
+          </DialogHeader>
+          {renderCredentialForm(editClient, setEditClient, editService, setEditService, editUrl, setEditUrl, editUsername, setEditUsername, editPassword, setEditPassword, editNotes, setEditNotes, updateEntry, "Salvar Alterações")}
+        </DialogContent>
+      </Dialog>
+
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por cliente ou serviço..."
-          className="pl-10 bg-card border-border"
-        />
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por cliente ou serviço..." className="pl-10 bg-card border-border" />
       </div>
 
       {/* Entries */}
@@ -213,7 +291,7 @@ export default function VaultPage() {
                   const password = decodePassword(entry.encrypted_password);
 
                   return (
-                    <div key={entry.id} className="px-5 py-4 space-y-2">
+                    <div key={entry.id} className="px-5 py-4 space-y-2 group">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-foreground">{entry.service || "Sem serviço"}</p>
@@ -222,6 +300,14 @@ export default function VaultPage() {
                               {entry.url}
                             </a>
                           )}
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => openEditDialog(entry)} className="p-1.5 text-muted-foreground hover:text-foreground">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => deleteEntry(entry.id)} className="p-1.5 text-muted-foreground hover:text-danger">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </div>
 
