@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Play, Square, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Play, Square, Loader2, ChevronDown, ChevronRight, Trash2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimer } from "@/hooks/useTimer";
@@ -18,6 +18,8 @@ export default function TrackerPage() {
   const [sessions, setSessions] = useState<TimeSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
 
   // New project form
@@ -25,6 +27,12 @@ export default function TrackerPage() {
   const [newClient, setNewClient] = useState("");
   const [newRate, setNewRate] = useState("");
   const [newColor, setNewColor] = useState("#8b5cf6");
+
+  // Edit form
+  const [editName, setEditName] = useState("");
+  const [editClient, setEditClient] = useState("");
+  const [editRate, setEditRate] = useState("");
+  const [editColor, setEditColor] = useState("#8b5cf6");
 
   useEffect(() => {
     if (user) loadData();
@@ -55,11 +63,59 @@ export default function TrackerPage() {
     } else {
       toast.success("Projeto criado!");
       setDialogOpen(false);
-      setNewName("");
-      setNewClient("");
-      setNewRate("");
+      setNewName(""); setNewClient(""); setNewRate("");
       loadData();
     }
+  }
+
+  async function updateProject() {
+    if (!editingProject || !editName) return;
+    const { error } = await supabase.from("projects").update({
+      name: editName,
+      client: editClient || null,
+      hourly_rate: parseFloat(editRate) || 0,
+      color: editColor,
+    }).eq("id", editingProject.id);
+
+    if (error) {
+      toast.error("Erro ao atualizar projeto");
+    } else {
+      toast.success("Projeto atualizado!");
+      setEditDialogOpen(false);
+      setEditingProject(null);
+      loadData();
+    }
+  }
+
+  async function deleteProject(projectId: string) {
+    // Delete related sessions first
+    await supabase.from("time_sessions").delete().eq("project_id", projectId);
+    const { error } = await supabase.from("projects").delete().eq("id", projectId);
+    if (error) {
+      toast.error("Erro ao excluir projeto");
+    } else {
+      toast.success("Projeto excluído!");
+      loadData();
+    }
+  }
+
+  async function deleteSession(sessionId: string) {
+    const { error } = await supabase.from("time_sessions").delete().eq("id", sessionId);
+    if (error) {
+      toast.error("Erro ao excluir sessão");
+    } else {
+      toast.success("Sessão excluída!");
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    }
+  }
+
+  function openEditDialog(project: Project) {
+    setEditingProject(project);
+    setEditName(project.name);
+    setEditClient(project.client || "");
+    setEditRate(String(project.hourly_rate));
+    setEditColor(project.color);
+    setEditDialogOpen(true);
   }
 
   async function handleStart(projectId: string) {
@@ -75,6 +131,51 @@ export default function TrackerPage() {
   }
 
   const activeProject = projects.find((p) => p.id === timer.activeProjectId);
+  const COLORS = ["#8b5cf6", "#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#ec4899"];
+
+  function renderProjectForm(
+    name: string, setName: (v: string) => void,
+    client: string, setClient: (v: string) => void,
+    rate: string, setRate: (v: string) => void,
+    color: string, setColor: (v: string) => void,
+    onSubmit: () => void,
+    buttonLabel: string
+  ) {
+    return (
+      <div className="space-y-4 pt-4">
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Nome do projeto</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Website Redesign" className="bg-background border-border" />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Cliente</Label>
+          <Input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Ex: Empresa X" className="bg-background border-border" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">R$/hora</Label>
+            <Input type="number" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="150" className="bg-background border-border font-mono" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Cor</Label>
+            <div className="flex gap-2">
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`h-8 w-8 rounded-lg transition-all ${color === c ? "ring-2 ring-foreground scale-110" : ""}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+        <Button onClick={onSubmit} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+          {buttonLabel}
+        </Button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -102,57 +203,20 @@ export default function TrackerPage() {
             <DialogHeader>
               <DialogTitle>Novo Projeto</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Nome do projeto</Label>
-                <Input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Ex: Website Redesign"
-                  className="bg-background border-border"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Cliente</Label>
-                <Input
-                  value={newClient}
-                  onChange={(e) => setNewClient(e.target.value)}
-                  placeholder="Ex: Empresa X"
-                  className="bg-background border-border"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">R$/hora</Label>
-                  <Input
-                    type="number"
-                    value={newRate}
-                    onChange={(e) => setNewRate(e.target.value)}
-                    placeholder="150"
-                    className="bg-background border-border font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Cor</Label>
-                  <div className="flex gap-2">
-                    {["#8b5cf6", "#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#ec4899"].map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => setNewColor(c)}
-                        className={`h-8 w-8 rounded-lg transition-all ${newColor === c ? "ring-2 ring-foreground scale-110" : ""}`}
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <Button onClick={createProject} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                Criar Projeto
-              </Button>
-            </div>
+            {renderProjectForm(newName, setNewName, newClient, setNewClient, newRate, setNewRate, newColor, setNewColor, createProject, "Criar Projeto")}
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Edit Project Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Editar Projeto</DialogTitle>
+          </DialogHeader>
+          {renderProjectForm(editName, setEditName, editClient, setEditClient, editRate, setEditRate, editColor, setEditColor, updateProject, "Salvar Alterações")}
+        </DialogContent>
+      </Dialog>
 
       {/* Active Timer Banner */}
       {timer.isRunning && activeProject && (
@@ -178,10 +242,7 @@ export default function TrackerPage() {
                 {formatMoney((timer.elapsed / 3600) * activeProject.hourly_rate)}
               </div>
             </div>
-            <Button
-              onClick={handleStop}
-              className="bg-danger-muted text-danger hover:bg-danger/20"
-            >
+            <Button onClick={handleStop} className="bg-danger-muted text-danger hover:bg-danger/20">
               <Square className="mr-2 h-4 w-4" />
               Finalizar
             </Button>
@@ -215,10 +276,7 @@ export default function TrackerPage() {
                 <div className="p-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: project.color }}
-                      />
+                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: project.color }} />
                       <div>
                         <p className="text-sm font-semibold text-foreground">{project.name}</p>
                         <p className="text-xs text-muted-foreground">
@@ -227,7 +285,7 @@ export default function TrackerPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <div className="text-right hidden sm:block">
                         <p className="font-mono text-sm tabular-nums text-muted-foreground">
                           {formatDuration(totalSeconds)}
@@ -238,24 +296,21 @@ export default function TrackerPage() {
                       </div>
 
                       {!isActive ? (
-                        <Button
-                          onClick={() => handleStart(project.id)}
-                          size="sm"
-                          className="bg-success-muted text-success hover:bg-success/20"
-                        >
-                          <Play className="mr-1 h-3 w-3" />
-                          Iniciar
+                        <Button onClick={() => handleStart(project.id)} size="sm" className="bg-success-muted text-success hover:bg-success/20">
+                          <Play className="mr-1 h-3 w-3" /> Iniciar
                         </Button>
                       ) : (
-                        <Button
-                          onClick={handleStop}
-                          size="sm"
-                          className="bg-danger-muted text-danger hover:bg-danger/20"
-                        >
-                          <Square className="mr-1 h-3 w-3" />
-                          Parar
+                        <Button onClick={handleStop} size="sm" className="bg-danger-muted text-danger hover:bg-danger/20">
+                          <Square className="mr-1 h-3 w-3" /> Parar
                         </Button>
                       )}
+
+                      <button onClick={() => openEditDialog(project)} className="p-1.5 text-muted-foreground hover:text-foreground">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => deleteProject(project.id)} className="p-1.5 text-muted-foreground hover:text-danger">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
 
                       {projectSessions.length > 0 && (
                         <button
@@ -277,10 +332,7 @@ export default function TrackerPage() {
                     </p>
                     <div className="space-y-2 max-h-48 overflow-auto">
                       {projectSessions.slice(0, 10).map((session) => (
-                        <div
-                          key={session.id}
-                          className="flex items-center justify-between rounded-lg bg-background p-2 text-xs"
-                        >
+                        <div key={session.id} className="flex items-center justify-between rounded-lg bg-background p-2 text-xs group">
                           <span className="text-muted-foreground">
                             {new Date(session.started_at).toLocaleDateString("pt-BR")}
                           </span>
@@ -297,6 +349,12 @@ export default function TrackerPage() {
                           <span className="font-mono tabular-nums text-success">
                             {formatMoney(((session.duration_seconds || 0) / 3600) * project.hourly_rate)}
                           </span>
+                          <button
+                            onClick={() => deleteSession(session.id)}
+                            className="p-1 text-muted-foreground hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
                       ))}
                     </div>
