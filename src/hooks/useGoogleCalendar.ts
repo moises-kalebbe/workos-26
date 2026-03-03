@@ -54,6 +54,10 @@ export interface CreateMeetingPayload {
 }
 
 const DEFAULT_PRIORITY: AgendaPriority = "normal";
+const GOOGLE_CALENDAR_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar",
+].join(" ");
 
 export const DEFAULT_AGENDA_PREFERENCES: AgendaPreferences = {
   sortMode: "priority_then_time",
@@ -239,7 +243,7 @@ export function useGoogleCalendar() {
           setConnected(true);
           setEvents([]);
           setInsufficientScope(true);
-          setError("Permissao insuficiente do Google Calendar. Reconecte para habilitar escrita.");
+          setError("Permissao insuficiente do Google Calendar. Reconecte e aceite permissoes de edicao.");
           return;
         }
 
@@ -268,10 +272,11 @@ export function useGoogleCalendar() {
       provider: "google",
       options: {
         redirectTo: window.location.origin + "/agenda",
-        scopes: "https://www.googleapis.com/auth/calendar.events",
+        scopes: GOOGLE_CALENDAR_SCOPES,
         queryParams: {
           access_type: "offline",
           prompt: "consent",
+          include_granted_scopes: "true",
         },
       },
     });
