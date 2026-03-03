@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 34% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 34% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 193 90% 52%;
+    --primary-foreground: 222 47% 7%;
+
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 220 20% 18%;
+    --muted-foreground: 215 20% 70%;
+
+    --accent: 190 95% 43%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 16% 20%;
+    --input: 220 16% 20%;
+    --ring: 193 90% 52%;
+
+    --radius: 0.9rem;
+
+    --surface-base: 222 47% 7%;
+    --surface-card: 222 34% 11%;
+    --surface-hover: 222 24% 16%;
+    --surface-elevated: 220 23% 22%;
+
+    --brand: 193 90% 52%;
+    --brand-hover: 193 95% 44%;
+    --brand-muted: 193 90% 52%;
+    --brand-text: 190 88% 80%;
+
+    --success: 142 72% 45%;
+    --warning: 38 92% 50%;
+    --danger: 0 84% 60%;
+    --info: 199 89% 48%;
+
+    --sidebar-background: 223 40% 9%;
+    --sidebar-foreground: 215 22% 70%;
+    --sidebar-primary: 193 90% 52%;
+    --sidebar-primary-foreground: 222 47% 7%;
+    --sidebar-accent: 220 20% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 220 16% 20%;
+    --sidebar-ring: 193 90% 52%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    @apply min-h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-image:
+      radial-gradient(circle at 0% 0%, hsl(var(--primary) / 0.08), transparent 38%),
+      radial-gradient(circle at 100% 0%, hsl(var(--info) / 0.06), transparent 42%);
+    background-attachment: fixed;
+  }
+
+  code,
+  kbd,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-brand {
+    color: hsl(var(--brand));
+  }
+
+  .text-brand-text {
+    color: hsl(var(--brand-text));
+  }
+
+  .bg-brand {
+    background-color: hsl(var(--brand));
+  }
+
+  .bg-brand-muted {
+    background-color: hsl(var(--brand-muted) / 0.15);
+  }
+
+  .text-success {
+    color: hsl(var(--success));
+  }
+
+  .bg-success-muted {
+    background-color: hsl(var(--success) / 0.12);
+  }
+
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+
+  .bg-warning-muted {
+    background-color: hsl(var(--warning) / 0.12);
+  }
+
+  .text-danger {
+    color: hsl(var(--danger));
+  }
+
+  .bg-danger-muted {
+    background-color: hsl(var(--danger) / 0.12);
+  }
+
+  .text-info {
+    color: hsl(var(--info));
+  }
+
+  .bg-info-muted {
+    background-color: hsl(var(--info) / 0.12);
+  }
+}
+
