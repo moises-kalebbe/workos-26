@@ -18,6 +18,11 @@ const fontMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "WorkOS",
   description: "Sistema de produtividade premium",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

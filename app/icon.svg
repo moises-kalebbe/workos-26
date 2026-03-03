@@ -1,0 +1,22 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="workos-wordmark" x1="14" y1="18" x2="50" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A5F3FC"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <radialGradient id="workos-glow-a" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(17 14) rotate(53.1301) scale(43.2666)">
+      <stop stop-color="#22D3EE" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="workos-glow-b" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(49 50) rotate(-133.532) scale(38.1838)">
+      <stop stop-color="#3B82F6" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#3B82F6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#061022"/>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#workos-glow-a)"/>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#workos-glow-b)"/>
+
+  <path d="M14 18H22L27 37L32 24H36L41 37L46 18H54L48 46H41L34 29L27 46H20L14 18Z" fill="url(#workos-wordmark)"/>
+</svg>

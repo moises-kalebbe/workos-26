@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Zap } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_NAV_ITEMS, SETTINGS_NAV_ITEM } from "@/config/navigation";
 import { APP_NAME } from "@/content/labels";
+import { LogoMark } from "@/components/brand/logo-mark";
 
 function isPathActive(pathname: string, itemPath: string) {
   if (itemPath === "/") return pathname === "/";
@@ -27,10 +28,8 @@ export function Sidebar() {
   return (
     <>
       <aside className="hidden h-screen w-72 flex-col border-r border-border/80 bg-card/70 md:flex md:sticky md:top-0">
-        <div className="flex items-center gap-2 px-5 py-5">
-          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
-            <Zap className="h-4 w-4 text-primary" />
-          </div>
+        <div className="flex items-center gap-3 px-5 py-5">
+          <LogoMark />
           <span className="bg-gradient-to-r from-cyan-300 to-sky-500 bg-clip-text text-lg font-bold text-transparent">
             {APP_NAME}
           </span>
