@@ -507,7 +507,7 @@ export function MeetingTopicsDialog({
             </section>
           )}
 
-          {isLoadingTopics ? (
+          {isLoadingTopics && topics.length === 0 ? (
             <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
               Carregando topicos...
             </div>

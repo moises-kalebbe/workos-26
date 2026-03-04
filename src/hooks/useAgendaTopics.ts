@@ -66,23 +66,18 @@ export function useAgendaTopics() {
   const [error, setError] = useState<string | null>(null);
   const inFlightByMeetingIdRef = useRef<Record<string, Promise<MeetingTopic[]>>>({});
   const topicsByMeetingIdRef = useRef<Record<string, MeetingTopic[]>>({});
-  const loadingByMeetingIdRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     topicsByMeetingIdRef.current = topicsByMeetingId;
   }, [topicsByMeetingId]);
 
-  useEffect(() => {
-    loadingByMeetingIdRef.current = loadingByMeetingId;
-  }, [loadingByMeetingId]);
-
   const getTopics = useCallback((meetingEventId: string) => {
-    return topicsByMeetingIdRef.current[meetingEventId] || [];
-  }, []);
+    return topicsByMeetingId[meetingEventId] || [];
+  }, [topicsByMeetingId]);
 
   const isMeetingLoading = useCallback((meetingEventId: string) => {
-    return loadingByMeetingIdRef.current[meetingEventId] === true;
-  }, []);
+    return loadingByMeetingId[meetingEventId] === true;
+  }, [loadingByMeetingId]);
 
   const setMeetingLoadingState = useCallback((meetingId: string, isLoading: boolean) => {
     setLoadingByMeetingId((prev) => {
@@ -97,7 +92,7 @@ export function useAgendaTopics() {
   const loadTopics = useCallback(async (meeting: MeetingSnapshot | null, force = false) => {
     if (!meeting) return [];
     if (!force && loadedMeetingsRef.current.has(meeting.id)) {
-      return getTopics(meeting.id);
+      return topicsByMeetingIdRef.current[meeting.id] || [];
     }
 
     const inFlightRequest = inFlightByMeetingIdRef.current[meeting.id];
@@ -141,7 +136,7 @@ export function useAgendaTopics() {
 
     inFlightByMeetingIdRef.current[meeting.id] = request;
     return request;
-  }, [getTopics, setMeetingLoadingState]);
+  }, [setMeetingLoadingState]);
 
   const createTopic = useCallback(async (meeting: MeetingSnapshot, input: CreateMeetingTopicInput) => {
     setError(null);
