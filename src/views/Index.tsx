@@ -34,7 +34,7 @@ const shortcuts = [
 ];
 
 export default function IndexPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [projects, setProjects] = useState<Project[]>([]);
@@ -47,47 +47,58 @@ export default function IndexPage() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    if (!user) {
+      // Avoid infinite loading if client session is temporarily unavailable.
+      setLoading(false);
+      return;
+    }
     void loadDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, authLoading]);
 
   async function loadDashboardData() {
     if (!user) return;
     setLoading(true);
 
-    const recentWindowIso = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
+    try {
+      const recentWindowIso = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
 
-    const [profileRes, projectRes, sessionRes] = await Promise.all([
-      supabase.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
-      supabase.from("projects").select("*").order("name"),
-      supabase
-        .from("time_sessions")
-        .select("id, project_id, started_at, ended_at, project:projects(name, client, hourly_rate, color)")
-        .gte("started_at", recentWindowIso)
-        .order("started_at", { ascending: false })
-        .limit(250),
-    ]);
+      const [profileRes, projectRes, sessionRes] = await Promise.all([
+        supabase.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
+        supabase.from("projects").select("*").order("name"),
+        supabase
+          .from("time_sessions")
+          .select("id, project_id, started_at, ended_at, project:projects(name, client, hourly_rate, color)")
+          .gte("started_at", recentWindowIso)
+          .order("started_at", { ascending: false })
+          .limit(250),
+      ]);
 
-    if (profileRes.error) {
-      toast.error("Nao foi possivel carregar o timezone do perfil.");
-    } else if (profileRes.data?.timezone) {
-      setTimezone(profileRes.data.timezone);
+      if (profileRes.error) {
+        toast.error("Nao foi possivel carregar o timezone do perfil.");
+      } else if (profileRes.data?.timezone) {
+        setTimezone(profileRes.data.timezone);
+      }
+
+      if (projectRes.error) {
+        toast.error("Nao foi possivel carregar as empresas.");
+      } else {
+        setProjects((projectRes.data || []) as unknown as Project[]);
+      }
+
+      if (sessionRes.error) {
+        toast.error("Nao foi possivel carregar a linha do tempo.");
+      } else {
+        setSessions((sessionRes.data || []) as unknown as DashboardSessionRow[]);
+      }
+    } catch {
+      toast.error("Falha de conexao ao carregar o painel.");
+      setProjects([]);
+      setSessions([]);
+    } finally {
+      setLoading(false);
     }
-
-    if (projectRes.error) {
-      toast.error("Nao foi possivel carregar as empresas.");
-    } else {
-      setProjects((projectRes.data || []) as unknown as Project[]);
-    }
-
-    if (sessionRes.error) {
-      toast.error("Nao foi possivel carregar a linha do tempo.");
-    } else {
-      setSessions((sessionRes.data || []) as unknown as DashboardSessionRow[]);
-    }
-
-    setLoading(false);
   }
 
   const timelineBlocks = useMemo(() => {
