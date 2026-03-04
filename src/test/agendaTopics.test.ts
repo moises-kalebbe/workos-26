@@ -11,6 +11,8 @@ function makeTopic(partial: Partial<MeetingTopic>): MeetingTopic {
     meeting_series_key: partial.meeting_series_key || "series-1",
     meeting_start_at: partial.meeting_start_at || "2026-03-04T10:00:00",
     meeting_summary: partial.meeting_summary || "Reuniao semanal",
+    project_id: partial.project_id || null,
+    tags: partial.tags || [],
     title: partial.title || "Topico",
     detail: partial.detail || "",
     conclusion: partial.conclusion || "",
