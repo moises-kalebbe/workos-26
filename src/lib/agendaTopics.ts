@@ -25,8 +25,16 @@ function formatMeetingWhen(meeting: Pick<CalendarEvent, "start" | "end" | "allDa
   const start = parseISO(meeting.start);
   const end = parseISO(meeting.end);
 
+  if (Number.isNaN(start.getTime())) {
+    return "Data invalida";
+  }
+
   if (meeting.allDay) {
     return format(start, "dd/MM/yyyy", { locale: ptBR });
+  }
+
+  if (Number.isNaN(end.getTime())) {
+    return format(start, "dd/MM/yyyy HH:mm", { locale: ptBR });
   }
 
   return `${format(start, "dd/MM/yyyy HH:mm", { locale: ptBR })} - ${format(end, "HH:mm", { locale: ptBR })}`;

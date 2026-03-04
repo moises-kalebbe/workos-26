@@ -34,8 +34,14 @@ type MeetingTopicsDialogProps = {
   topicsApi: ReturnType<typeof useAgendaTopics>;
 };
 
+const NO_TARGET_MEETING_VALUE = "__no_target_meeting__";
+
 function formatMeetingLabel(meeting: Pick<CalendarEvent, "summary" | "start" | "allDay">) {
   const start = parseISO(meeting.start);
+  if (Number.isNaN(start.getTime())) {
+    return meeting.summary;
+  }
+
   const when = meeting.allDay
     ? format(start, "dd/MM/yyyy", { locale: ptBR })
     : format(start, "dd/MM HH:mm", { locale: ptBR });
@@ -104,7 +110,13 @@ export function MeetingTopicsDialog({
   const targetMeetings = useMemo(() => {
     if (!meeting) return [];
 
-    return candidateMeetings
+    const uniqueById = new Map<string, CalendarEvent>();
+    for (const candidate of candidateMeetings) {
+      if (!candidate?.id || uniqueById.has(candidate.id)) continue;
+      uniqueById.set(candidate.id, candidate);
+    }
+
+    return [...uniqueById.values()]
       .filter((candidate) => candidate.id !== meeting.id)
       .sort((a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime());
   }, [candidateMeetings, meeting]);
@@ -234,6 +246,7 @@ export function MeetingTopicsDialog({
     const isDeleting = deletingTopicId === topic.id;
     const isCopying = copyingTopicId === topic.id;
     const selectedTargetId = copyTargetByTopicId[topic.id] || "";
+    const selectValue = selectedTargetId || NO_TARGET_MEETING_VALUE;
 
     return (
       <div key={topic.id} className="space-y-3 rounded-lg border border-border bg-background p-3">
@@ -345,15 +358,19 @@ export function MeetingTopicsDialog({
             {targetMeetings.length > 0 ? (
               <div className="grid gap-2 md:grid-cols-[1fr_auto]">
                 <Select
-                  value={selectedTargetId || undefined}
-                  onValueChange={(value) =>
-                    setCopyTargetByTopicId((prev) => ({ ...prev, [topic.id]: value }))
-                  }
+                  value={selectValue}
+                  onValueChange={(value) => {
+                    const normalized = value === NO_TARGET_MEETING_VALUE ? "" : value;
+                    setCopyTargetByTopicId((prev) => ({ ...prev, [topic.id]: normalized }));
+                  }}
                 >
                   <SelectTrigger className="h-8">
                     <SelectValue placeholder="Copiar para outra reuniao" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={NO_TARGET_MEETING_VALUE}>
+                      Selecionar reuniao alvo
+                    </SelectItem>
                     {targetMeetings.map((targetMeeting) => (
                       <SelectItem key={targetMeeting.id} value={targetMeeting.id}>
                         {formatMeetingLabel(targetMeeting)}
