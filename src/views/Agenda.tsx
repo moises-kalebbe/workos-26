@@ -307,8 +307,11 @@ export default function AgendaPage() {
   const { user } = useAuth();
   const {
     events,
-    loading,
-    connected,
+    connectionState,
+    isInitialLoading,
+    isRefreshing,
+    cacheState,
+    lastSyncedAt,
     error,
     insufficientScope,
     connectGoogle,
@@ -574,7 +577,7 @@ export default function AgendaPage() {
     }
   };
 
-  if (!connected && !loading) {
+  if (connectionState === "disconnected" && !isInitialLoading) {
     return (
       <div className="space-y-6">
         <div>
@@ -703,9 +706,10 @@ export default function AgendaPage() {
             variant="ghost"
             size="icon"
             onClick={() => void fetchEvents(weekRange.weekStartIso, weekRange.weekEndIso)}
+            disabled={isRefreshing}
             className="h-8 w-8"
           >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
           <Button variant="ghost" size="sm" onClick={disconnect} className="gap-1 text-xs text-muted-foreground">
             <Link2Off className="h-3 w-3" />
@@ -726,176 +730,191 @@ export default function AgendaPage() {
         </div>
       )}
 
-      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-[180px]">
-            <Select
-              value={preferences.statusFilter}
-              onValueChange={(value) =>
-                persistPreferences({
-                  ...preferences,
-                  statusFilter: value as AgendaPreferences["statusFilter"],
-                })
-              }
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="pending">Pendentes</SelectItem>
-                <SelectItem value="accepted">Aceitos</SelectItem>
-                <SelectItem value="declined">Recusados</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="min-w-[180px]">
-            <Select
-              value={preferences.sortMode}
-              onValueChange={(value) =>
-                persistPreferences({
-                  ...preferences,
-                  sortMode: value as AgendaPreferences["sortMode"],
-                })
-              }
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Ordenacao" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="priority_then_time">Prioridade e horario</SelectItem>
-                <SelectItem value="time_only">Somente horario</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1">
-            <Switch
-              checked={preferences.showDeclined}
-              onCheckedChange={(checked) =>
-                persistPreferences({
-                  ...preferences,
-                  showDeclined: checked,
-                })
-              }
-            />
-            <span className="text-xs text-muted-foreground">Mostrar recusados</span>
-          </div>
-
-          <Button variant="outline" size="sm" onClick={() => persistPreferences(DEFAULT_AGENDA_PREFERENCES)}>
-            Limpar filtros
-          </Button>
+      {isRefreshing && events.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+          <span>Atualizando agenda...</span>
+          {cacheState === "stale" && (
+            <Badge variant="secondary">Mostrando cache temporario</Badge>
+          )}
+          {lastSyncedAt && !Number.isNaN(parseISO(lastSyncedAt).getTime()) && (
+            <span>Ultima sincronizacao: {format(parseISO(lastSyncedAt), "HH:mm:ss")}</span>
+          )}
         </div>
+      )}
 
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Prioridade</p>
-          <div className="flex flex-wrap gap-2">
-            {priorityOptions.map((priority) => {
-              const priorityItem = PRIORITIES.find((item) => item.value === priority);
-              const active = preferences.priorityFilter.includes(priority);
-              return (
-                <button
-                  key={priority}
-                  className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                    active
-                      ? priorityItem?.badgeClass
-                      : "border-border bg-background text-muted-foreground hover:text-foreground",
-                  )}
-                  onClick={() => togglePriorityFilter(priority)}
-                  type="button"
-                >
-                  {priorityItem?.label}
-                </button>
-              );
-            })}
+      <div className={cn("space-y-6 transition-opacity duration-200", isRefreshing && events.length > 0 && "opacity-95")}>
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-[180px]">
+              <Select
+                value={preferences.statusFilter}
+                onValueChange={(value) =>
+                  persistPreferences({
+                    ...preferences,
+                    statusFilter: value as AgendaPreferences["statusFilter"],
+                  })
+                }
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="pending">Pendentes</SelectItem>
+                  <SelectItem value="accepted">Aceitos</SelectItem>
+                  <SelectItem value="declined">Recusados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="min-w-[180px]">
+              <Select
+                value={preferences.sortMode}
+                onValueChange={(value) =>
+                  persistPreferences({
+                    ...preferences,
+                    sortMode: value as AgendaPreferences["sortMode"],
+                  })
+                }
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Ordenacao" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="priority_then_time">Prioridade e horario</SelectItem>
+                  <SelectItem value="time_only">Somente horario</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1">
+              <Switch
+                checked={preferences.showDeclined}
+                onCheckedChange={(checked) =>
+                  persistPreferences({
+                    ...preferences,
+                    showDeclined: checked,
+                  })
+                }
+              />
+              <span className="text-xs text-muted-foreground">Mostrar recusados</span>
+            </div>
+
+            <Button variant="outline" size="sm" onClick={() => persistPreferences(DEFAULT_AGENDA_PREFERENCES)}>
+              Limpar filtros
+            </Button>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Tags</p>
-          {availableTags.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Nenhuma tag cadastrada nesta semana.</p>
-          ) : (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Prioridade</p>
             <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => {
-                const active = preferences.tagFilter.includes(tag);
+              {priorityOptions.map((priority) => {
+                const priorityItem = PRIORITIES.find((item) => item.value === priority);
+                const active = preferences.priorityFilter.includes(priority);
                 return (
                   <button
-                    key={tag}
-                    type="button"
+                    key={priority}
                     className={cn(
                       "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                       active
-                        ? "border-primary bg-primary/10 text-primary"
+                        ? priorityItem?.badgeClass
                         : "border-border bg-background text-muted-foreground hover:text-foreground",
                     )}
-                    onClick={() => toggleTagFilter(tag)}
+                    onClick={() => togglePriorityFilter(priority)}
+                    type="button"
                   >
-                    #{tag}
+                    {priorityItem?.label}
                   </button>
                 );
               })}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {!preferencesReady && (
-        <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-          Carregando preferencias da agenda...
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Tags</p>
+            {availableTags.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhuma tag cadastrada nesta semana.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {availableTags.map((tag) => {
+                  const active = preferences.tagFilter.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                        active
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background text-muted-foreground hover:text-foreground",
+                      )}
+                      onClick={() => toggleTagFilter(tag)}
+                    >
+                      #{tag}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((item) => (
-            <div key={item} className="h-20 animate-pulse rounded-lg bg-muted/50" />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {days.map(({ date, events: dayEvents }) => (
-            <div key={date.toISOString()}>
-              <div className="mb-3 flex items-center gap-2">
-                <span
-                  className={cn(
-                    "text-sm font-semibold",
-                    isToday(date) ? "text-primary" : "text-muted-foreground",
-                  )}
-                >
-                  {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                </span>
-                {isToday(date) && (
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
-                    Hoje
+        {!preferencesReady && (
+          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+            Carregando preferencias da agenda...
+          </div>
+        )}
+
+        {isInitialLoading && events.length === 0 ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="h-20 animate-pulse rounded-lg bg-muted/50" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {days.map(({ date, events: dayEvents }) => (
+              <div key={date.toISOString()}>
+                <div className="mb-3 flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "text-sm font-semibold",
+                      isToday(date) ? "text-primary" : "text-muted-foreground",
+                    )}
+                  >
+                    {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                   </span>
+                  {isToday(date) && (
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
+                      Hoje
+                    </span>
+                  )}
+                </div>
+
+                {dayEvents.length > 0 ? (
+                  <div className="space-y-3">
+                    {dayEvents.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        projects={projects}
+                        respondingEventId={respondingEventId}
+                        savingSeriesKey={savingSeriesKey}
+                        onRespond={handleRespond}
+                        onSaveMetadata={handleSaveMetadata}
+                        onOpenTopics={openTopicsDialog}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="pl-1 text-xs italic text-muted-foreground/60">Nenhum evento</p>
                 )}
               </div>
-
-              {dayEvents.length > 0 ? (
-                <div className="space-y-3">
-                  {dayEvents.map((event) => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      projects={projects}
-                      respondingEventId={respondingEventId}
-                      savingSeriesKey={savingSeriesKey}
-                      onRespond={handleRespond}
-                      onSaveMetadata={handleSaveMetadata}
-                      onOpenTopics={openTopicsDialog}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="pl-1 text-xs italic text-muted-foreground/60">Nenhum evento</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       <MeetingTopicsDialog
         open={topicsDialogOpen}

@@ -420,7 +420,7 @@ export function MeetingTopicsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden">
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden">
         <DialogHeader className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <DialogTitle>Topicos da reuniao</DialogTitle>
@@ -437,7 +437,7 @@ export function MeetingTopicsDialog({
           )}
         </DialogHeader>
 
-        <div className="space-y-4 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
           {meeting && (
             <section className="space-y-3 rounded-lg border border-border bg-card p-3">
               <p className="text-sm font-semibold text-foreground">Novo topico</p>

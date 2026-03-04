@@ -1,9 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, supabase } from "@/lib/supabase/client";
+import {
+  buildAgendaCacheKey,
+  clearAgendaCacheForUser,
+  isCacheFresh,
+  readAgendaCache,
+  writeAgendaCache,
+} from "@/lib/agendaCache";
 
 export type AgendaPriority = "urgent" | "high" | "normal" | "low";
 export type AgendaSortMode = "priority_then_time" | "time_only";
 export type AgendaStatusFilter = "all" | "pending" | "accepted" | "declined";
+export type CalendarConnectionState =
+  | "unknown"
+  | "connected"
+  | "disconnected"
+  | "insufficient_scope";
+export type AgendaCacheState = "none" | "fresh" | "stale";
 export type CalendarResponseStatus =
   | "needsAction"
   | "accepted"
@@ -54,6 +67,7 @@ export interface CreateMeetingPayload {
 }
 
 const DEFAULT_PRIORITY: AgendaPriority = "normal";
+const AGENDA_CACHE_TTL_MS = 15 * 60 * 1000;
 const GOOGLE_CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar",
@@ -145,13 +159,19 @@ async function getSessionOrThrow() {
 export function useGoogleCalendar() {
   const db = supabase as any;
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [connected, setConnected] = useState(false);
+  const [connectionState, setConnectionState] = useState<CalendarConnectionState>("unknown");
   const [error, setError] = useState<string | null>(null);
   const [insufficientScope, setInsufficientScope] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [cacheState, setCacheState] = useState<AgendaCacheState>("none");
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   const lastRangeRef = useRef<{ timeMin?: string; timeMax?: string }>({});
   const eventsRef = useRef<CalendarEvent[]>([]);
+  const fetchRequestRef = useRef(0);
+  const tokenStoreCompletedRef = useRef(false);
+  const tokenStorePromiseRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     eventsRef.current = events;
@@ -195,30 +215,109 @@ export function useGoogleCalendar() {
     [],
   );
 
+  const storeTokenFromSession = useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    const providerToken = session.provider_token;
+    const providerRefreshToken = session.provider_refresh_token;
+
+    if (providerToken) {
+      await fetch(`${SUPABASE_URL}/functions/v1/google-calendar?action=store-token`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          access_token: providerToken,
+          refresh_token: providerRefreshToken,
+          expires_at: session.expires_at,
+        }),
+      });
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  const ensureTokenStored = useCallback(async () => {
+    if (tokenStoreCompletedRef.current) {
+      return true;
+    }
+
+    if (!tokenStorePromiseRef.current) {
+      tokenStorePromiseRef.current = storeTokenFromSession()
+        .catch(() => false)
+        .finally(() => {
+          tokenStoreCompletedRef.current = true;
+          tokenStorePromiseRef.current = null;
+        });
+    }
+
+    return tokenStorePromiseRef.current;
+  }, [storeTokenFromSession]);
+
   const fetchEvents = useCallback(
     async (timeMin?: string, timeMax?: string) => {
-      setLoading(true);
-      setError(null);
+      const requestId = fetchRequestRef.current + 1;
+      fetchRequestRef.current = requestId;
 
-      if (timeMin || timeMax) {
-        lastRangeRef.current = { timeMin, timeMax };
-      }
+      const now = new Date();
+      const resolvedTimeMin = timeMin || lastRangeRef.current.timeMin || now.toISOString();
+      const resolvedTimeMax =
+        timeMax ||
+        lastRangeRef.current.timeMax ||
+        new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      lastRangeRef.current = { timeMin: resolvedTimeMin, timeMax: resolvedTimeMax };
+
+      setError(null);
+      setIsRefreshing(true);
 
       try {
+        await ensureTokenStored();
+
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
+        if (fetchRequestRef.current !== requestId) return;
+
         if (!session) {
-          setConnected(false);
+          setConnectionState("disconnected");
+          setInsufficientScope(false);
           setEvents([]);
-          setLoading(false);
+          setCacheState("none");
+          setLastSyncedAt(null);
+          setIsInitialLoading(false);
           return;
         }
 
+        const cacheKey = buildAgendaCacheKey(
+          session.user.id,
+          resolvedTimeMin,
+          resolvedTimeMax,
+        );
+        const cached = readAgendaCache<CalendarEvent>(cacheKey);
+
+        if (cached) {
+          const fresh = isCacheFresh(cached.fetchedAt, AGENDA_CACHE_TTL_MS);
+          setEvents(cached.events);
+          setConnectionState("connected");
+          setCacheState(fresh ? "fresh" : "stale");
+          setLastSyncedAt(cached.fetchedAt);
+          setIsInitialLoading(false);
+        } else {
+          setCacheState("none");
+        }
+
         const params = new URLSearchParams({ action: "events" });
-        if (timeMin) params.set("timeMin", timeMin);
-        if (timeMax) params.set("timeMax", timeMax);
+        params.set("timeMin", resolvedTimeMin);
+        params.set("timeMax", resolvedTimeMax);
 
         const res = await fetch(
           `${SUPABASE_URL}/functions/v1/google-calendar?${params}`,
@@ -232,26 +331,41 @@ export function useGoogleCalendar() {
 
         const result = (await res.json()) as FetchEventsResult;
 
+        if (fetchRequestRef.current !== requestId) return;
+
         if (result.error === "not_connected") {
-          setConnected(false);
-          setEvents([]);
+          clearAgendaCacheForUser(session.user.id);
+          setConnectionState("disconnected");
           setInsufficientScope(false);
+          setEvents([]);
+          setCacheState("none");
+          setLastSyncedAt(null);
+          setIsInitialLoading(false);
           return;
         }
 
         if (result.error === "insufficient_scope") {
-          setConnected(true);
-          setEvents([]);
+          setConnectionState("insufficient_scope");
           setInsufficientScope(true);
           setError("Permissao insuficiente do Google Calendar. Reconecte e aceite permissoes de edicao.");
+          setIsInitialLoading(false);
           return;
         }
 
         if (result.events) {
-          setConnected(true);
+          setConnectionState("connected");
           setInsufficientScope(false);
           const merged = await mergeEventsWithMetadata(result.events, session.user.id);
+          if (fetchRequestRef.current !== requestId) return;
           setEvents(merged);
+          const fetchedAt = new Date().toISOString();
+          setCacheState("fresh");
+          setLastSyncedAt(fetchedAt);
+          writeAgendaCache(cacheKey, {
+            events: merged,
+            fetchedAt,
+          });
+          setIsInitialLoading(false);
           return;
         }
 
@@ -260,11 +374,15 @@ export function useGoogleCalendar() {
         }
       } catch (err) {
         setError((err as Error).message);
+        setConnectionState((prev) => (prev === "unknown" ? "disconnected" : prev));
       } finally {
-        setLoading(false);
+        if (fetchRequestRef.current === requestId) {
+          setIsRefreshing(false);
+          setIsInitialLoading(false);
+        }
       }
     },
-    [mergeEventsWithMetadata],
+    [ensureTokenStored, mergeEventsWithMetadata],
   );
 
   const connectGoogle = useCallback(async () => {
@@ -301,8 +419,12 @@ export function useGoogleCalendar() {
       },
     });
 
-    setConnected(false);
+    clearAgendaCacheForUser(session.user.id);
+    setConnectionState("disconnected");
+    setInsufficientScope(false);
     setEvents([]);
+    setCacheState("none");
+    setLastSyncedAt(null);
   }, []);
 
   const respondToInvite = useCallback(
@@ -343,6 +465,7 @@ export function useGoogleCalendar() {
 
         if (result.error) {
           if (result.error === "insufficient_scope") {
+            setConnectionState("insufficient_scope");
             setInsufficientScope(true);
           }
           setEvents(previousEvents);
@@ -396,6 +519,7 @@ export function useGoogleCalendar() {
 
       if (result.error) {
         if (result.error === "insufficient_scope") {
+          setConnectionState("insufficient_scope");
           setInsufficientScope(true);
         }
         throw new Error(result.message || result.error);
@@ -494,48 +618,23 @@ export function useGoogleCalendar() {
     }
   }, []);
 
-  const storeTokenFromSession = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) return false;
-
-    const providerToken = session.provider_token;
-    const providerRefreshToken = session.provider_refresh_token;
-
-    if (providerToken) {
-      await fetch(`${SUPABASE_URL}/functions/v1/google-calendar?action=store-token`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          access_token: providerToken,
-          refresh_token: providerRefreshToken,
-          expires_at: session.expires_at,
-        }),
-      });
-      return true;
-    }
-
-    return false;
-  }, []);
-
   useEffect(() => {
-    const init = async () => {
-      await storeTokenFromSession();
-      setLoading(false);
-    };
+    void ensureTokenStored();
+  }, [ensureTokenStored]);
 
-    void init();
-  }, [storeTokenFromSession]);
+  const connected =
+    connectionState === "connected" || connectionState === "insufficient_scope";
+  const loading = isInitialLoading || isRefreshing;
 
   return {
     events,
     loading,
     connected,
+    connectionState,
+    isInitialLoading,
+    isRefreshing,
+    cacheState,
+    lastSyncedAt,
     error,
     insufficientScope,
     connectGoogle,
