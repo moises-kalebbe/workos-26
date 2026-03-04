@@ -67,6 +67,8 @@ import {
   AGENDA_PRIORITY_ORDER as PRIORITY_ORDER,
   RESPONSE_STATUS_LABEL,
 } from "@/config/priorities";
+import { MeetingTopicsDialog } from "@/components/agenda/meeting-topics-dialog";
+import { useAgendaTopics } from "@/hooks/useAgendaTopics";
 import type { Project } from "@/types";
 
 function sanitizeDescription(value: string | null) {
@@ -99,6 +101,7 @@ function EventCard({
   savingSeriesKey,
   onRespond,
   onSaveMetadata,
+  onOpenTopics,
 }: {
   event: CalendarEvent;
   projects: Project[];
@@ -112,6 +115,7 @@ function EventCard({
     projectId: string | null,
     projectName: string | null,
   ) => Promise<void>;
+  onOpenTopics: (meeting: CalendarEvent) => void;
 }) {
   const startDate = parseISO(event.start);
   const endDate = parseISO(event.end);
@@ -258,6 +262,14 @@ function EventCard({
             <ExternalLink className="h-3 w-3" />
           </a>
 
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onOpenTopics(event)}
+          >
+            Topicos
+          </Button>
+
           {event.canRespond && (
             <div className="flex gap-2">
               <Button
@@ -291,6 +303,7 @@ function EventCard({
 }
 
 export default function AgendaPage() {
+  const topicsApi = useAgendaTopics();
   const { user } = useAuth();
   const {
     events,
@@ -326,6 +339,8 @@ export default function AgendaPage() {
   const [createMeetLink, setCreateMeetLink] = useState(true);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [topicsMeeting, setTopicsMeeting] = useState<CalendarEvent | null>(null);
+  const [topicsDialogOpen, setTopicsDialogOpen] = useState(false);
 
   const weekRange = useMemo(() => {
     const currentDate = addWeeks(new Date(), weekOffset);
@@ -444,6 +459,12 @@ export default function AgendaPage() {
     return result;
   }, [filteredEvents, weekStart]);
 
+  const candidateMeetings = useMemo(() => {
+    return [...events].sort(
+      (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime(),
+    );
+  }, [events]);
+
   const handleWeekChange = (direction: -1 | 1) => {
     setWeekOffset((current) => current + direction);
   };
@@ -538,6 +559,18 @@ export default function AgendaPage() {
       toast.error((err as Error).message || "Erro ao criar reuniao");
     } finally {
       setCreatingMeeting(false);
+    }
+  };
+
+  const openTopicsDialog = (meeting: CalendarEvent) => {
+    setTopicsMeeting(meeting);
+    setTopicsDialogOpen(true);
+  };
+
+  const handleTopicsDialogChange = (open: boolean) => {
+    setTopicsDialogOpen(open);
+    if (!open) {
+      setTopicsMeeting(null);
     }
   };
 
@@ -852,6 +885,7 @@ export default function AgendaPage() {
                       savingSeriesKey={savingSeriesKey}
                       onRespond={handleRespond}
                       onSaveMetadata={handleSaveMetadata}
+                      onOpenTopics={openTopicsDialog}
                     />
                   ))}
                 </div>
@@ -862,6 +896,14 @@ export default function AgendaPage() {
           ))}
         </div>
       )}
+
+      <MeetingTopicsDialog
+        open={topicsDialogOpen}
+        onOpenChange={handleTopicsDialogChange}
+        meeting={topicsMeeting}
+        candidateMeetings={candidateMeetings}
+        topicsApi={topicsApi}
+      />
     </div>
   );
 }
