@@ -60,6 +60,17 @@ export function MeetingTopicsDialog({
   candidateMeetings,
   topicsApi,
 }: MeetingTopicsDialogProps) {
+  const {
+    error: topicsError,
+    getTopics,
+    isMeetingLoading,
+    loadTopics,
+    createTopic,
+    updateTopic,
+    deleteTopic: removeTopic,
+    copyTopicToMeeting,
+  } = topicsApi;
+
   const [newTitle, setNewTitle] = useState("");
   const [newDetail, setNewDetail] = useState("");
   const [newConclusion, setNewConclusion] = useState("");
@@ -77,13 +88,23 @@ export function MeetingTopicsDialog({
   const [copyingTopicId, setCopyingTopicId] = useState<string | null>(null);
   const [copyTargetByTopicId, setCopyTargetByTopicId] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (!open || !meeting) return;
+  const meetingSnapshot = useMemo(() => {
+    if (!meeting) return null;
+    return {
+      id: meeting.id,
+      seriesKey: meeting.seriesKey,
+      start: meeting.start,
+      summary: meeting.summary,
+    };
+  }, [meeting]);
 
-    void topicsApi.loadTopics(meeting).catch((error) => {
+  useEffect(() => {
+    if (!open || !meetingSnapshot) return;
+
+    void loadTopics(meetingSnapshot).catch((error) => {
       toast.error((error as Error).message || "Nao foi possivel carregar topicos");
     });
-  }, [open, meeting, topicsApi]);
+  }, [open, meetingSnapshot, loadTopics]);
 
   useEffect(() => {
     if (open) return;
@@ -93,19 +114,17 @@ export function MeetingTopicsDialog({
     setNewDetail("");
     setNewConclusion("");
     setNewStatus("pending");
+    setCopyTargetByTopicId({});
   }, [open]);
 
   const topics = useMemo(() => {
-    if (!meeting) return [];
-    return topicsApi.getTopics(meeting.id);
-  }, [meeting, topicsApi]);
+    if (!meeting?.id) return [];
+    return getTopics(meeting.id);
+  }, [meeting?.id, getTopics]);
 
   const groupedTopics = useMemo(() => groupTopicsByStatus(topics), [topics]);
 
-  const isLoadingTopics = useMemo(() => {
-    if (!meeting) return false;
-    return topicsApi.isMeetingLoading(meeting.id);
-  }, [meeting, topicsApi]);
+  const isLoadingTopics = meeting?.id ? isMeetingLoading(meeting.id) : false;
 
   const targetMeetings = useMemo(() => {
     if (!meeting) return [];
@@ -141,7 +160,7 @@ export function MeetingTopicsDialog({
   };
 
   const handleCreateTopic = async () => {
-    if (!meeting) return;
+    if (!meetingSnapshot) return;
     if (!newTitle.trim()) {
       toast.error("Titulo do topico e obrigatorio");
       return;
@@ -149,7 +168,7 @@ export function MeetingTopicsDialog({
 
     setCreatingTopic(true);
     try {
-      await topicsApi.createTopic(meeting, {
+      await createTopic(meetingSnapshot, {
         title: newTitle,
         detail: newDetail,
         conclusion: newConclusion,
@@ -189,7 +208,7 @@ export function MeetingTopicsDialog({
 
     setSavingEdit(true);
     try {
-      await topicsApi.updateTopic(editingTopicId, {
+      await updateTopic(editingTopicId, {
         title: editingTitle,
         detail: editingDetail,
         conclusion: editingConclusion,
@@ -208,7 +227,7 @@ export function MeetingTopicsDialog({
     setDeletingTopicId(topicId);
 
     try {
-      await topicsApi.deleteTopic(topicId);
+      await removeTopic(topicId);
       toast.success("Topico removido");
       if (editingTopicId === topicId) {
         cancelEditing();
@@ -231,7 +250,7 @@ export function MeetingTopicsDialog({
 
     setCopyingTopicId(topic.id);
     try {
-      await topicsApi.copyTopicToMeeting(topic, targetMeeting);
+      await copyTopicToMeeting(topic, targetMeeting);
       toast.success("Topico copiado para a reuniao alvo");
       setCopyTargetByTopicId((prev) => ({ ...prev, [topic.id]: "" }));
     } catch (error) {
@@ -413,8 +432,8 @@ export function MeetingTopicsDialog({
           <DialogDescription>
             {meeting ? formatMeetingLabel(meeting) : "Selecione uma reuniao para gerenciar topicos."}
           </DialogDescription>
-          {topicsApi.error && (
-            <p className="text-xs text-danger">{topicsApi.error}</p>
+          {topicsError && (
+            <p className="text-xs text-danger">{topicsError}</p>
           )}
         </DialogHeader>
 

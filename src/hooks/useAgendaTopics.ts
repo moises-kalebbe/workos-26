@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { CalendarEvent } from "@/hooks/useGoogleCalendar";
 import type { Tables } from "@/integrations/supabase/types";
@@ -24,6 +24,8 @@ export type UpdateMeetingTopicInput = {
   conclusion?: string;
   status?: MeetingTopicStatus;
 };
+
+type MeetingSnapshot = Pick<CalendarEvent, "id" | "seriesKey" | "start" | "summary">;
 
 function normalizeStatus(value: string | null | undefined): MeetingTopicStatus {
   if (value === "pending" || value === "in_progress" || value === "resolved") {
@@ -62,56 +64,86 @@ export function useAgendaTopics() {
   const [topicsByMeetingId, setTopicsByMeetingId] = useState<Record<string, MeetingTopic[]>>({});
   const [loadingByMeetingId, setLoadingByMeetingId] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const inFlightByMeetingIdRef = useRef<Record<string, Promise<MeetingTopic[]>>>({});
+  const topicsByMeetingIdRef = useRef<Record<string, MeetingTopic[]>>({});
+  const loadingByMeetingIdRef = useRef<Record<string, boolean>>({});
 
-  const getTopics = useCallback(
-    (meetingEventId: string) => topicsByMeetingId[meetingEventId] || [],
-    [topicsByMeetingId],
-  );
+  useEffect(() => {
+    topicsByMeetingIdRef.current = topicsByMeetingId;
+  }, [topicsByMeetingId]);
 
-  const isMeetingLoading = useCallback(
-    (meetingEventId: string) => loadingByMeetingId[meetingEventId] === true,
-    [loadingByMeetingId],
-  );
+  useEffect(() => {
+    loadingByMeetingIdRef.current = loadingByMeetingId;
+  }, [loadingByMeetingId]);
 
-  const loadTopics = useCallback(async (meeting: CalendarEvent | null, force = false) => {
+  const getTopics = useCallback((meetingEventId: string) => {
+    return topicsByMeetingIdRef.current[meetingEventId] || [];
+  }, []);
+
+  const isMeetingLoading = useCallback((meetingEventId: string) => {
+    return loadingByMeetingIdRef.current[meetingEventId] === true;
+  }, []);
+
+  const setMeetingLoadingState = useCallback((meetingId: string, isLoading: boolean) => {
+    setLoadingByMeetingId((prev) => {
+      const previousValue = prev[meetingId] === true;
+      if (previousValue === isLoading) {
+        return prev;
+      }
+      return { ...prev, [meetingId]: isLoading };
+    });
+  }, []);
+
+  const loadTopics = useCallback(async (meeting: MeetingSnapshot | null, force = false) => {
     if (!meeting) return [];
     if (!force && loadedMeetingsRef.current.has(meeting.id)) {
       return getTopics(meeting.id);
     }
 
-    setLoadingByMeetingId((prev) => ({ ...prev, [meeting.id]: true }));
-    setError(null);
-
-    try {
-      const { data, error: queryError } = await supabase
-        .from("agenda_meeting_topics")
-        .select("*")
-        .eq("meeting_event_id", meeting.id)
-        .order("created_at", { ascending: true });
-
-      if (queryError) {
-        throw queryError;
-      }
-
-      const normalized = ((data || []) as MeetingTopicRow[]).map(normalizeTopic);
-      loadedMeetingsRef.current.add(meeting.id);
-
-      setTopicsByMeetingId((prev) => ({
-        ...prev,
-        [meeting.id]: normalized,
-      }));
-
-      return normalized;
-    } catch (loadError) {
-      const message = (loadError as Error).message || "Falha ao carregar topicos";
-      setError(message);
-      throw loadError;
-    } finally {
-      setLoadingByMeetingId((prev) => ({ ...prev, [meeting.id]: false }));
+    const inFlightRequest = inFlightByMeetingIdRef.current[meeting.id];
+    if (inFlightRequest) {
+      return inFlightRequest;
     }
-  }, [getTopics]);
 
-  const createTopic = useCallback(async (meeting: CalendarEvent, input: CreateMeetingTopicInput) => {
+    const request = (async () => {
+      setMeetingLoadingState(meeting.id, true);
+      setError(null);
+
+      try {
+        const { data, error: queryError } = await supabase
+          .from("agenda_meeting_topics")
+          .select("*")
+          .eq("meeting_event_id", meeting.id)
+          .order("created_at", { ascending: true });
+
+        if (queryError) {
+          throw queryError;
+        }
+
+        const normalized = ((data || []) as MeetingTopicRow[]).map(normalizeTopic);
+        loadedMeetingsRef.current.add(meeting.id);
+
+        setTopicsByMeetingId((prev) => ({
+          ...prev,
+          [meeting.id]: normalized,
+        }));
+
+        return normalized;
+      } catch (loadError) {
+        const message = (loadError as Error).message || "Falha ao carregar topicos";
+        setError(message);
+        throw loadError;
+      } finally {
+        delete inFlightByMeetingIdRef.current[meeting.id];
+        setMeetingLoadingState(meeting.id, false);
+      }
+    })();
+
+    inFlightByMeetingIdRef.current[meeting.id] = request;
+    return request;
+  }, [getTopics, setMeetingLoadingState]);
+
+  const createTopic = useCallback(async (meeting: MeetingSnapshot, input: CreateMeetingTopicInput) => {
     setError(null);
     const session = await getSessionOrThrow();
 
@@ -219,7 +251,7 @@ export function useAgendaTopics() {
   }, []);
 
   const copyTopicToMeeting = useCallback(
-    async (topic: MeetingTopic, targetMeeting: CalendarEvent) => {
+    async (topic: MeetingTopic, targetMeeting: MeetingSnapshot) => {
       setError(null);
       const session = await getSessionOrThrow();
 
@@ -246,6 +278,7 @@ export function useAgendaTopics() {
       }
 
       const copied = normalizeTopic(data as MeetingTopicRow);
+      loadedMeetingsRef.current.add(targetMeeting.id);
 
       setTopicsByMeetingId((prev) => {
         const nextTopics = sortTopicsByCreatedAt([...(prev[targetMeeting.id] || []), copied]);
