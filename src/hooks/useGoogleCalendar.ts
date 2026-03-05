@@ -147,6 +147,7 @@ export function useGoogleCalendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [hasResolvedConnection, setHasResolvedConnection] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [insufficientScope, setInsufficientScope] = useState(false);
 
@@ -212,6 +213,8 @@ export function useGoogleCalendar() {
         if (!session) {
           setConnected(false);
           setEvents([]);
+          setInsufficientScope(false);
+          setHasResolvedConnection(true);
           setLoading(false);
           return;
         }
@@ -236,6 +239,7 @@ export function useGoogleCalendar() {
           setConnected(false);
           setEvents([]);
           setInsufficientScope(false);
+          setHasResolvedConnection(true);
           return;
         }
 
@@ -243,6 +247,7 @@ export function useGoogleCalendar() {
           setConnected(true);
           setEvents([]);
           setInsufficientScope(true);
+          setHasResolvedConnection(true);
           setError("Permissao insuficiente do Google Calendar. Reconecte e aceite permissoes de edicao.");
           return;
         }
@@ -250,15 +255,18 @@ export function useGoogleCalendar() {
         if (result.events) {
           setConnected(true);
           setInsufficientScope(false);
+          setHasResolvedConnection(true);
           const merged = await mergeEventsWithMetadata(result.events, session.user.id);
           setEvents(merged);
           return;
         }
 
         if (result.error) {
+          setHasResolvedConnection(true);
           setError(result.message || result.error);
         }
       } catch (err) {
+        setHasResolvedConnection(true);
         setError((err as Error).message);
       } finally {
         setLoading(false);
@@ -303,6 +311,7 @@ export function useGoogleCalendar() {
 
     setConnected(false);
     setEvents([]);
+    setHasResolvedConnection(true);
   }, []);
 
   const respondToInvite = useCallback(
@@ -525,6 +534,15 @@ export function useGoogleCalendar() {
 
   useEffect(() => {
     const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        setConnected(false);
+        setHasResolvedConnection(true);
+      }
+
       await storeTokenFromSession();
       setLoading(false);
     };
@@ -536,6 +554,7 @@ export function useGoogleCalendar() {
     events,
     loading,
     connected,
+    hasResolvedConnection,
     error,
     insufficientScope,
     connectGoogle,

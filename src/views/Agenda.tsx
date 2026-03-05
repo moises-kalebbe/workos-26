@@ -296,6 +296,7 @@ export default function AgendaPage() {
     events,
     loading,
     connected,
+    hasResolvedConnection,
     error,
     insufficientScope,
     connectGoogle,
@@ -541,7 +542,7 @@ export default function AgendaPage() {
     }
   };
 
-  if (!connected && !loading) {
+  if (!connected && !loading && hasResolvedConnection) {
     return (
       <div className="space-y-6">
         <div>

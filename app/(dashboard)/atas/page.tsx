@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+"use client";
 
-export default function MeetingMinutesRoute() {
-  redirect("/agenda");
+import AgendaPage from "@/views/Agenda";
+
+export default function AtasRoute() {
+  return <AgendaPage />;
 }
