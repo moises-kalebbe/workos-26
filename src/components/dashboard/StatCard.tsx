@@ -49,23 +49,23 @@ export function StatCard({ title, value, icon: Icon, color, subtitle }: StatCard
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card p-5 transition-colors hover:border-muted-foreground/20 border-l-[3px]",
+        "surface-card rounded-xl border border-border/80 p-5 transition-colors hover:border-muted-foreground/35 border-l-[3px]",
         colors.border
       )}
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {title}
           </p>
-          <p className={cn("mt-2 font-mono text-2xl font-bold tabular-nums", colors.text)}>
+          <p className={cn("mt-2 font-mono text-2xl font-bold tabular-nums md:text-[1.85rem]", colors.text)}>
             {value}
           </p>
           {subtitle && (
-            <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           )}
         </div>
-        <div className={cn("rounded-lg p-2.5", colors.bg)}>
+        <div className={cn("rounded-xl border border-border/70 p-2.5", colors.bg)}>
           <Icon className={cn("h-5 w-5", colors.icon)} />
         </div>
       </div>

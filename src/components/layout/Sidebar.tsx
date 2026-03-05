@@ -18,6 +18,7 @@ export function Sidebar() {
   const pathname = usePathname() || "/";
   const router = useRouter();
   const { signOut, user } = useAuth();
+  const mobileItems = [...DASHBOARD_NAV_ITEMS, SETTINGS_NAV_ITEM];
 
   async function handleSignOut() {
     await signOut();
@@ -27,86 +28,101 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="hidden h-screen w-72 flex-col border-r border-border/80 bg-card/70 md:flex md:sticky md:top-0">
-        <div className="flex items-center gap-3 px-5 py-5">
-          <LogoMark />
-          <span className="bg-gradient-to-r from-cyan-300 to-sky-500 bg-clip-text text-lg font-bold text-transparent">
-            {APP_NAME}
-          </span>
+      <aside className="hidden h-dvh w-80 shrink-0 flex-col border-r border-border/80 bg-sidebar/90 md:sticky md:top-0 md:flex">
+        <div className="border-b border-border/80 px-5 py-5">
+          <div className="flex items-center gap-3">
+            <LogoMark className="h-9 w-9" />
+            <div>
+              <p className="text-base font-semibold text-foreground">{APP_NAME}</p>
+              <p className="text-xs text-muted-foreground">Workspace de produtividade</p>
+            </div>
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3">
-          {DASHBOARD_NAV_ITEMS.map((item) => {
-            const isActive = isPathActive(pathname, item.path);
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "border border-primary/30 bg-primary/15 text-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Modulos</p>
+          <div className="space-y-1.5">
+            {DASHBOARD_NAV_ITEMS.map((item) => {
+              const isActive = isPathActive(pathname, item.path);
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors",
+                    isActive
+                      ? "border-primary/45 bg-primary/12 text-foreground"
+                      : "border-transparent text-muted-foreground hover:border-border hover:bg-card/80 hover:text-foreground",
+                  )}
+                >
+                  <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{item.label}</p>
+                    {item.description ? <p className="truncate text-xs text-muted-foreground">{item.description}</p> : null}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
-        <div className="space-y-1 border-t border-border px-3 pb-4 pt-3">
+        <div className="space-y-2 border-t border-border/80 px-3 py-3">
           <Link
             href={SETTINGS_NAV_ITEM.path}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+              "flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors",
               isPathActive(pathname, SETTINGS_NAV_ITEM.path)
-                ? "border border-primary/30 bg-primary/15 text-foreground"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                ? "border-primary/45 bg-primary/12 text-foreground"
+                : "border-transparent text-muted-foreground hover:border-border hover:bg-card/80 hover:text-foreground",
             )}
           >
-            <SETTINGS_NAV_ITEM.icon className="h-4 w-4" />
-            {SETTINGS_NAV_ITEM.label}
+            <SETTINGS_NAV_ITEM.icon className="h-4 w-4 shrink-0" />
+            <div className="min-w-0">
+              <p className="truncate font-medium">{SETTINGS_NAV_ITEM.label}</p>
+              {SETTINGS_NAV_ITEM.description ? <p className="truncate text-xs text-muted-foreground">{SETTINGS_NAV_ITEM.description}</p> : null}
+            </div>
           </Link>
 
           <button
+            type="button"
             onClick={() => {
               void handleSignOut();
             }}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:border-border hover:bg-card/80 hover:text-foreground"
           >
-            <LogOut className="h-4 w-4" />
-            Sair
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Sair</span>
           </button>
 
-          <div className="flex items-center gap-3 px-3 pt-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
+          <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-card/65 px-3 py-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-semibold text-primary">
               {user?.email?.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-foreground">{user?.email}</p>
-              <p className="text-[10px] text-muted-foreground">Plano Free</p>
+              <p className="truncate text-sm font-medium text-foreground">{user?.email}</p>
+              <p className="text-xs text-muted-foreground">Plano Free</p>
             </div>
           </div>
         </div>
       </aside>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm md:hidden">
-        <div className="flex items-center gap-1 overflow-x-auto px-2 py-2">
-          {DASHBOARD_NAV_ITEMS.map((item) => {
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/95 backdrop-blur-md md:hidden">
+        <div className="mx-auto flex max-w-screen-sm items-center gap-2 overflow-x-auto px-3 py-2">
+          {mobileItems.map((item) => {
             const isActive = isPathActive(pathname, item.path);
             return (
               <Link
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "flex min-w-[64px] shrink-0 flex-col items-center gap-1 rounded-md px-2 py-1 text-[10px] transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground",
+                  "flex min-h-[44px] min-w-[84px] shrink-0 flex-col items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs transition-colors",
+                  isActive
+                    ? "border-primary/45 bg-primary/12 text-primary"
+                    : "border-transparent text-muted-foreground hover:border-border hover:bg-card/80 hover:text-foreground",
                 )}
               >
-                <item.icon className="h-5 w-5" />
-                {(item.shortLabel || item.label).split(" ")[0]}
+                <item.icon className="h-4 w-4" />
+                <span className="max-w-[72px] truncate">{item.shortLabel || item.label}</span>
               </Link>
             );
           })}
@@ -115,4 +131,3 @@ export function Sidebar() {
     </>
   );
 }
-

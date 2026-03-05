@@ -4,59 +4,59 @@
 
 @layer base {
   :root {
-    --background: 222 47% 7%;
-    --foreground: 210 40% 98%;
+    --background: 220 48% 9%;
+    --foreground: 210 40% 96%;
 
-    --card: 222 34% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 40% 12%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 222 34% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 40% 12%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 193 90% 52%;
-    --primary-foreground: 222 47% 7%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 220 48% 9%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 215 28% 18%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 220 20% 18%;
-    --muted-foreground: 215 20% 70%;
+    --muted: 215 28% 18%;
+    --muted-foreground: 214 18% 69%;
 
-    --accent: 190 95% 43%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 24 95% 53%;
+    --accent-foreground: 220 48% 9%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 74% 56%;
+    --destructive-foreground: 210 40% 96%;
 
-    --border: 220 16% 20%;
-    --input: 220 16% 20%;
-    --ring: 193 90% 52%;
+    --border: 216 21% 24%;
+    --input: 216 21% 24%;
+    --ring: 217 91% 60%;
 
-    --radius: 0.9rem;
+    --radius: 1rem;
 
-    --surface-base: 222 47% 7%;
-    --surface-card: 222 34% 11%;
-    --surface-hover: 222 24% 16%;
-    --surface-elevated: 220 23% 22%;
+    --surface-base: 220 48% 9%;
+    --surface-card: 220 40% 12%;
+    --surface-hover: 217 33% 17%;
+    --surface-elevated: 216 30% 20%;
 
-    --brand: 193 90% 52%;
-    --brand-hover: 193 95% 44%;
-    --brand-muted: 193 90% 52%;
-    --brand-text: 190 88% 80%;
+    --brand: 217 91% 60%;
+    --brand-hover: 217 91% 54%;
+    --brand-muted: 217 91% 60%;
+    --brand-text: 213 94% 78%;
 
-    --success: 142 72% 45%;
+    --success: 142 70% 45%;
     --warning: 38 92% 50%;
-    --danger: 0 84% 60%;
-    --info: 199 89% 48%;
+    --danger: 0 74% 56%;
+    --info: 200 89% 51%;
 
-    --sidebar-background: 223 40% 9%;
-    --sidebar-foreground: 215 22% 70%;
-    --sidebar-primary: 193 90% 52%;
-    --sidebar-primary-foreground: 222 47% 7%;
-    --sidebar-accent: 220 20% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 220 16% 20%;
-    --sidebar-ring: 193 90% 52%;
+    --sidebar-background: 220 45% 10%;
+    --sidebar-foreground: 214 18% 73%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 220 48% 9%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 216 21% 24%;
+    --sidebar-ring: 217 91% 60%;
   }
 
   * {
@@ -68,13 +68,30 @@
     @apply min-h-full;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
     background-image:
-      radial-gradient(circle at 0% 0%, hsl(var(--primary) / 0.08), transparent 38%),
-      radial-gradient(circle at 100% 0%, hsl(var(--info) / 0.06), transparent 42%);
+      radial-gradient(circle at 0% 0%, hsl(var(--primary) / 0.2), transparent 36%),
+      radial-gradient(circle at 100% 0%, hsl(var(--accent) / 0.12), transparent 40%),
+      radial-gradient(circle at 50% 110%, hsl(var(--info) / 0.12), transparent 45%);
     background-attachment: fixed;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.35);
+    color: hsl(var(--foreground));
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 
   code,
@@ -82,6 +99,15 @@
   pre,
   .font-mono {
     font-family: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -136,6 +162,18 @@
 
   .bg-info-muted {
     background-color: hsl(var(--info) / 0.12);
+  }
+
+  .surface-card {
+    background:
+      linear-gradient(160deg, hsl(var(--card) / 0.95), hsl(var(--card) / 0.86)),
+      hsl(var(--card));
+  }
+
+  .surface-outline {
+    box-shadow:
+      inset 0 0 0 1px hsl(var(--border) / 0.9),
+      0 20px 50px -35px hsl(var(--background) / 0.9);
   }
 }
 
