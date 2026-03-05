@@ -55,6 +55,75 @@ export type Database = {
           },
         ]
       }
+      agenda_meeting_topics: {
+        Row: {
+          carried_from_topic_id: string | null
+          conclusion: string
+          created_at: string
+          detail: string
+          id: string
+          meeting_event_id: string
+          meeting_series_key: string
+          meeting_start_at: string
+          meeting_summary: string
+          project_id: string | null
+          status: string
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          carried_from_topic_id?: string | null
+          conclusion?: string
+          created_at?: string
+          detail?: string
+          id?: string
+          meeting_event_id: string
+          meeting_series_key: string
+          meeting_start_at: string
+          meeting_summary: string
+          project_id?: string | null
+          status?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          carried_from_topic_id?: string | null
+          conclusion?: string
+          created_at?: string
+          detail?: string
+          id?: string
+          meeting_event_id?: string
+          meeting_series_key?: string
+          meeting_start_at?: string
+          meeting_summary?: string
+          project_id?: string | null
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_meeting_topics_carried_from_topic_id_fkey"
+            columns: ["carried_from_topic_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_meeting_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_meeting_topics_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agenda_preferences: {
         Row: {
           priority_filter: string[]

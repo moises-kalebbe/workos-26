@@ -1,7 +1,7 @@
 "use client";
 
-import AgendaPage from "@/views/Agenda";
+import MeetingMinutesPage from "@/views/MeetingMinutes";
 
 export default function AtasRoute() {
-  return <AgendaPage />;
+  return <MeetingMinutesPage />;
 }
