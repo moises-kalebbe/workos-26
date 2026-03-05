@@ -12,6 +12,7 @@ import { LoadingState } from "@/components/system/loading-state";
 import { PageHeader } from "@/components/system/page-header";
 import { formatDuration, formatMoney } from "@/lib/utils";
 import { PROJECT_COLORS } from "@/lib/projectColors";
+import { executeQuickStartFlow } from "@/features/tracker/quickStart";
 import { toast } from "sonner";
 import type { Project, TimeSession } from "@/types";
 
@@ -25,6 +26,7 @@ export default function TrackerPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
+  const [quickStartPending, setQuickStartPending] = useState(false);
 
   // New project form
   const [newName, setNewName] = useState("");
@@ -134,6 +136,30 @@ export default function TrackerPage() {
     loadData();
   }
 
+  async function handleQuickStart() {
+    if (!user) return;
+    setQuickStartPending(true);
+
+    try {
+      const result = await executeQuickStartFlow({
+        db: supabase,
+        userId: user.id,
+        timer,
+      });
+
+      if (!result.ok) {
+        toast.info("Nenhuma tarefa elegivel para inicio rapido. Atualize o Kanban e tente novamente.");
+        return;
+      }
+
+      toast.success(`Sessao iniciada em: ${result.suggestion.task.title}`);
+    } catch {
+      toast.error("Nao foi possivel iniciar o foco rapido agora.");
+    } finally {
+      setQuickStartPending(false);
+    }
+  }
+
   const activeProject = projects.find((p) => p.id === timer.activeProjectId);
   function renderProjectForm(
     name: string, setName: (v: string) => void,
@@ -191,20 +217,36 @@ export default function TrackerPage() {
           title="Time Tracker"
           description="Gerencie projetos e controle o tempo com visao de faturamento."
         />
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Projeto
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle>Novo Projeto</DialogTitle>
-            </DialogHeader>
-            {renderProjectForm(newName, setNewName, newClient, setNewClient, newRate, setNewRate, newColor, setNewColor, createProject, "Criar Projeto")}
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleQuickStart}
+            disabled={!user || quickStartPending}
+            variant="outline"
+            className="border-border"
+          >
+            {quickStartPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="mr-2 h-4 w-4" />
+            )}
+            Iniciar agora
+          </Button>
+
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Projeto
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border">
+              <DialogHeader>
+                <DialogTitle>Novo Projeto</DialogTitle>
+              </DialogHeader>
+              {renderProjectForm(newName, setNewName, newClient, setNewClient, newRate, setNewRate, newColor, setNewColor, createProject, "Criar Projeto")}
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Edit Project Dialog */}
