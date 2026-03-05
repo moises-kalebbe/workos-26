@@ -11,17 +11,25 @@ import {
   ListChecks,
   Loader2,
   Lock,
+  Play,
   CircleDollarSign,
   Timer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/system/page-header";
 import { SectionCard } from "@/components/system/section-card";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTimer } from "@/hooks/useTimer";
+import { getQuickStartWeeklyMetrics, type QuickStartWeeklyMetrics } from "@/features/tracker/metrics";
+import { useQuickStart } from "@/features/tracker/useQuickStart";
 import {
   buildTimelineBlocks,
   buildTimelineHourLabels,
@@ -75,10 +83,17 @@ const shortcuts = [
 
 export default function IndexPage() {
   const { user, loading: authLoading } = useAuth();
+  const timer = useTimer();
   const [loading, setLoading] = useState(true);
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<DashboardSessionRow[]>([]);
+  const [quickStartMetrics, setQuickStartMetrics] = useState<QuickStartWeeklyMetrics>({
+    totalStarted: 0,
+    averagePerDay: 0,
+    activeDays: 0,
+    daily: [],
+  });
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -103,7 +118,7 @@ export default function IndexPage() {
     try {
       const recentWindowIso = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
 
-      const [profileRes, projectRes, sessionRes] = await Promise.all([
+      const [profileRes, projectRes, sessionRes, quickMetrics] = await Promise.all([
         supabase.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
         supabase.from("projects").select("*").order("name"),
         supabase
@@ -112,6 +127,11 @@ export default function IndexPage() {
           .gte("started_at", recentWindowIso)
           .order("started_at", { ascending: false })
           .limit(250),
+        getQuickStartWeeklyMetrics({
+          db: supabase,
+          userId: user.id,
+          days: 7,
+        }).catch(() => null),
       ]);
 
       if (profileRes.error) {
@@ -130,6 +150,10 @@ export default function IndexPage() {
         toast.error("Nao foi possivel carregar a linha do tempo.");
       } else {
         setSessions((sessionRes.data || []) as unknown as DashboardSessionRow[]);
+      }
+
+      if (quickMetrics) {
+        setQuickStartMetrics(quickMetrics);
       }
     } catch {
       toast.error("Falha de conexao ao carregar o painel.");
@@ -215,6 +239,14 @@ export default function IndexPage() {
     return Math.round(total / timelineBlocks.length);
   }, [timelineBlocks]);
 
+  const quickStart = useQuickStart({
+    db: supabase,
+    userId: user?.id,
+    timer,
+    projects: projects.map((project) => ({ id: project.id, name: project.name })),
+    onSessionStarted: loadDashboardData,
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -223,12 +255,28 @@ export default function IndexPage() {
         title="Painel principal"
         description="Resumo de operacao do dia com atalhos, progresso de horas e leitura rapida de atividade por empresa."
         actions={(
-          <Button asChild className="gap-2">
-            <Link href="/second-brain">
-              Abrir Second Brain
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={quickStart.triggerQuickStart}
+              disabled={!user || quickStart.isStarting}
+              variant="outline"
+              className="gap-2"
+            >
+              {quickStart.isStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Iniciar agora
+            </Button>
+            {quickStart.showRetry ? (
+              <Button variant="ghost" onClick={quickStart.retryQuickStart} className="text-xs">
+                Tentar novamente
+              </Button>
+            ) : null}
+            <Button asChild className="gap-2">
+              <Link href="/second-brain">
+                Abrir Second Brain
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         )}
       />
 
@@ -262,6 +310,45 @@ export default function IndexPage() {
           color="info"
         />
       </div>
+
+      <SectionCard
+        title="Quick Start (7 dias)"
+        subtitle="Visibilidade semanal da metrica de sessoes iniciadas por usuario por dia."
+        actions={<Badge variant="secondary">{quickStartMetrics.totalStarted} inicios</Badge>}
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-lg border border-border/70 bg-card/60 p-3">
+            <p className="text-xs text-muted-foreground">Media diaria</p>
+            <p className="font-mono text-xl font-semibold text-foreground tabular-nums">
+              {quickStartMetrics.averagePerDay.toFixed(2)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-card/60 p-3">
+            <p className="text-xs text-muted-foreground">Dias ativos</p>
+            <p className="font-mono text-xl font-semibold text-foreground tabular-nums">
+              {quickStartMetrics.activeDays}/7
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-card/60 p-3">
+            <p className="text-xs text-muted-foreground">Meta de habito</p>
+            <p className="text-sm font-medium text-foreground">
+              {quickStartMetrics.averagePerDay >= 1 ? "Ritmo sustentavel" : "Abaixo da meta"}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-7">
+          {quickStartMetrics.daily.map((item) => (
+            <div key={item.date} className="rounded-md border border-border/60 bg-background/60 px-2 py-2 text-center">
+              <p className="text-[10px] text-muted-foreground">
+                {new Date(`${item.date}T00:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+              </p>
+              <p className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                {item.startedCount}
+              </p>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
 
       <SectionCard
         title="Atalhos rapidos"
@@ -411,6 +498,49 @@ export default function IndexPage() {
           </div>
         )}
       </SectionCard>
+
+      <Dialog open={quickStart.isFallbackDialogOpen} onOpenChange={quickStart.setFallbackDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Criar tarefa rapida</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Titulo da tarefa</Label>
+              <Input
+                value={quickStart.fallbackTitle}
+                onChange={(event) => quickStart.setFallbackTitle(event.target.value)}
+                placeholder="Foco rapido 09:00"
+                className="bg-background border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Projeto</Label>
+              <Select value={quickStart.fallbackProjectId} onValueChange={quickStart.setFallbackProjectId}>
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Escolher automaticamente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Escolher automaticamente</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={quickStart.submitFallbackTask}
+              disabled={quickStart.isFallbackStarting}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {quickStart.isFallbackStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Criar e iniciar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

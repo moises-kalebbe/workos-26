@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { QUICK_START_SCORING_PROFILE } from "@/features/tracker/scoringProfile";
 
 type TrackerTaskCandidateRow = {
   id: string;
@@ -39,16 +40,9 @@ type QuickStartScoringContext = {
   heavilyFocusedProjectIds: Set<string>;
 };
 
-const SCORE = {
-  inProgress: 40,
-  dueToday: 25,
-  recentlyUpdated: 15,
-  mostActiveProject: 10,
-  heavilyFocusedPenalty: -20,
-} as const;
-
-const HEAVY_FOCUS_THRESHOLD_SECONDS = 45 * 60;
-const DEFAULT_MIN_SCORE = 20;
+const SCORE = QUICK_START_SCORING_PROFILE.weights;
+const HEAVY_FOCUS_THRESHOLD_SECONDS = QUICK_START_SCORING_PROFILE.heavyFocusThresholdSeconds;
+const DEFAULT_MIN_SCORE = QUICK_START_SCORING_PROFILE.minScore;
 
 function toDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -240,4 +234,3 @@ export async function getQuickStartSuggestion(params: {
   const ranked = rankQuickStartTasks(tasks, sessions, now);
   return selectQuickStartSuggestion(ranked, params.minScore);
 }
-

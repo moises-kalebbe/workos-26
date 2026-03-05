@@ -50,5 +50,45 @@ test.describe("workos smoke", () => {
     await page.getByRole("button", { name: /salvar credencial/i }).click();
     await expect(page.getByText(`Servico E2E ${stamp}`)).toBeVisible();
   });
+
+  test("quick start com sugestao e fallback", async ({ page }) => {
+    await login(page);
+
+    const stamp = Date.now();
+    const projectName = `Projeto QS E2E ${stamp}`;
+    const taskName = `Tarefa QS E2E ${stamp}`;
+    const fallbackTaskName = `Fallback QS E2E ${stamp}`;
+    const today = new Date().toISOString().slice(0, 10);
+
+    await page.goto("/tracker");
+    await page.getByRole("button", { name: /novo projeto/i }).click();
+    await page.getByPlaceholder(/website redesign/i).fill(projectName);
+    await page.getByRole("button", { name: /criar projeto/i }).click();
+    await expect(page.getByText(projectName)).toBeVisible();
+
+    await page.goto("/kanban");
+    await page.getByRole("button", { name: /nova tarefa/i }).click();
+    await page.getByPlaceholder(/o que precisa ser feito/i).fill(taskName);
+    await page.getByRole("combobox").first().click();
+    await page.getByRole("option", { name: projectName }).click();
+    await page.locator('input[type="date"]').first().fill(today);
+    await page.getByRole("button", { name: /criar tarefa/i }).click();
+    await expect(page.getByText(taskName)).toBeVisible();
+
+    await page.goto("/tracker");
+    await page.getByRole("button", { name: /iniciar agora/i }).click();
+    await expect(page.getByText(/trabalhando agora/i)).toBeVisible();
+    await page.getByRole("button", { name: /finalizar/i }).click();
+
+    await page.goto("/tracker?quickStartMinScore=999");
+    await page.getByRole("button", { name: /iniciar agora/i }).click();
+    await expect(page.getByRole("heading", { name: /criar tarefa rapida/i })).toBeVisible();
+    await page.getByPlaceholder(/foco rapido/i).fill(fallbackTaskName);
+    await page.getByRole("button", { name: /criar e iniciar/i }).click();
+    await expect(page.getByText(/trabalhando agora/i)).toBeVisible();
+
+    await page.goto("/kanban");
+    await expect(page.getByText(fallbackTaskName)).toBeVisible();
+  });
 });
 

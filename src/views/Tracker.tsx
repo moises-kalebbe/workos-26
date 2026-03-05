@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/system/empty-state";
 import { LoadingState } from "@/components/system/loading-state";
 import { PageHeader } from "@/components/system/page-header";
 import { formatDuration, formatMoney } from "@/lib/utils";
 import { PROJECT_COLORS } from "@/lib/projectColors";
-import { executeQuickStartFlow } from "@/features/tracker/quickStart";
+import { useQuickStart } from "@/features/tracker/useQuickStart";
 import { toast } from "sonner";
 import type { Project, TimeSession } from "@/types";
 
@@ -26,7 +27,6 @@ export default function TrackerPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
-  const [quickStartPending, setQuickStartPending] = useState(false);
 
   // New project form
   const [newName, setNewName] = useState("");
@@ -136,29 +136,13 @@ export default function TrackerPage() {
     loadData();
   }
 
-  async function handleQuickStart() {
-    if (!user) return;
-    setQuickStartPending(true);
-
-    try {
-      const result = await executeQuickStartFlow({
-        db: supabase,
-        userId: user.id,
-        timer,
-      });
-
-      if (!result.ok) {
-        toast.info("Nenhuma tarefa elegivel para inicio rapido. Atualize o Kanban e tente novamente.");
-        return;
-      }
-
-      toast.success(`Sessao iniciada em: ${result.suggestion.task.title}`);
-    } catch {
-      toast.error("Nao foi possivel iniciar o foco rapido agora.");
-    } finally {
-      setQuickStartPending(false);
-    }
-  }
+  const quickStart = useQuickStart({
+    db: supabase,
+    userId: user?.id,
+    timer,
+    projects: projects.map((project) => ({ id: project.id, name: project.name })),
+    onSessionStarted: loadData,
+  });
 
   const activeProject = projects.find((p) => p.id === timer.activeProjectId);
   function renderProjectForm(
@@ -219,18 +203,23 @@ export default function TrackerPage() {
         />
         <div className="flex items-center gap-2">
           <Button
-            onClick={handleQuickStart}
-            disabled={!user || quickStartPending}
+            onClick={quickStart.triggerQuickStart}
+            disabled={!user || quickStart.isStarting}
             variant="outline"
             className="border-border"
           >
-            {quickStartPending ? (
+            {quickStart.isStarting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Play className="mr-2 h-4 w-4" />
             )}
             Iniciar agora
           </Button>
+          {quickStart.showRetry ? (
+            <Button variant="ghost" onClick={quickStart.retryQuickStart} className="text-xs">
+              Tentar novamente
+            </Button>
+          ) : null}
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -256,6 +245,49 @@ export default function TrackerPage() {
             <DialogTitle>Editar Projeto</DialogTitle>
           </DialogHeader>
           {renderProjectForm(editName, setEditName, editClient, setEditClient, editRate, setEditRate, editColor, setEditColor, updateProject, "Salvar Alteracoes")}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quickStart.isFallbackDialogOpen} onOpenChange={quickStart.setFallbackDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Criar tarefa rapida</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Titulo da tarefa</Label>
+              <Input
+                value={quickStart.fallbackTitle}
+                onChange={(event) => quickStart.setFallbackTitle(event.target.value)}
+                placeholder="Foco rapido 09:00"
+                className="bg-background border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Projeto</Label>
+              <Select value={quickStart.fallbackProjectId} onValueChange={quickStart.setFallbackProjectId}>
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Escolher automaticamente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Escolher automaticamente</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={quickStart.submitFallbackTask}
+              disabled={quickStart.isFallbackStarting}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {quickStart.isFallbackStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Criar e iniciar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -2,8 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type QuickStartEventName =
   | "quick_start_clicked"
+  | "quick_start_retry_clicked"
   | "quick_start_no_suggestion"
   | "quick_start_suggestion_accepted"
+  | "quick_start_fallback_created_task"
   | "focus_session_started";
 
 export async function trackQuickStartEvent(params: {
@@ -46,4 +48,3 @@ export async function trackQuickStartEvent(params: {
     console.warn("[quick-start:event] persist failed", error.message);
   }
 }
-
