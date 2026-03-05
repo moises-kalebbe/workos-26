@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
+import { addDays, endOfWeek, format, isWithinInterval, parseISO, startOfDay, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, Link2, Pencil, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 type MeetingTopicStatus = "pending" | "in_progress" | "resolved";
 type MeetingTopicRow = Tables<"agenda_meeting_topics">;
@@ -48,6 +49,12 @@ const STATUS_LABEL: Record<MeetingTopicStatus, string> = {
   pending: "Pendente",
   in_progress: "Em andamento",
   resolved: "Resolvido",
+};
+
+const STATUS_COLOR: Record<MeetingTopicStatus, string> = {
+  pending: "#f59e0b",
+  in_progress: "#38bdf8",
+  resolved: "#22c55e",
 };
 
 const NO_MEETING_VALUE = "__no_meeting__";
@@ -247,6 +254,84 @@ export default function MeetingMinutesPage() {
     () => new Map(meetingOptions.map((meeting) => [meeting.id, meeting])),
     [meetingOptions],
   );
+
+  const statusCountsAll = useMemo(() => {
+    return topics.reduce(
+      (acc, topic) => {
+        acc[topic.status] += 1;
+        return acc;
+      },
+      { pending: 0, in_progress: 0, resolved: 0 } as Record<MeetingTopicStatus, number>,
+    );
+  }, [topics]);
+
+  const weekRange = useMemo(() => {
+    const now = new Date();
+    return {
+      start: startOfWeek(now, { weekStartsOn: 1 }),
+      end: endOfWeek(now, { weekStartsOn: 1 }),
+    };
+  }, []);
+
+  const weeklyTopics = useMemo(() => {
+    return topics.filter((topic) => {
+      const date = parseISO(topic.meeting_start_at);
+      if (Number.isNaN(date.getTime())) return false;
+      return isWithinInterval(date, { start: weekRange.start, end: weekRange.end });
+    });
+  }, [topics, weekRange.end, weekRange.start]);
+
+  const weeklyStatusCounts = useMemo(() => {
+    return weeklyTopics.reduce(
+      (acc, topic) => {
+        acc[topic.status] += 1;
+        return acc;
+      },
+      { pending: 0, in_progress: 0, resolved: 0 } as Record<MeetingTopicStatus, number>,
+    );
+  }, [weeklyTopics]);
+
+  const weeklyTotal = weeklyTopics.length;
+  const weeklyResolvedRate = weeklyTotal > 0
+    ? Math.round((weeklyStatusCounts.resolved / weeklyTotal) * 100)
+    : 0;
+  const staleOpenCount = useMemo(() => {
+    return topics.filter((topic) => {
+      if (topic.status === "resolved") return false;
+      const date = parseISO(topic.meeting_start_at);
+      if (Number.isNaN(date.getTime())) return false;
+      return date < startOfDay(weekRange.start);
+    }).length;
+  }, [topics, weekRange.start]);
+
+  const weeklyPieData = useMemo(
+    () => [
+      { key: "pending", label: STATUS_LABEL.pending, value: weeklyStatusCounts.pending, color: STATUS_COLOR.pending },
+      { key: "in_progress", label: STATUS_LABEL.in_progress, value: weeklyStatusCounts.in_progress, color: STATUS_COLOR.in_progress },
+      { key: "resolved", label: STATUS_LABEL.resolved, value: weeklyStatusCounts.resolved, color: STATUS_COLOR.resolved },
+    ],
+    [weeklyStatusCounts.in_progress, weeklyStatusCounts.pending, weeklyStatusCounts.resolved],
+  );
+
+  const weeklyBarData = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, index) => addDays(startOfDay(weekRange.start), index));
+
+    return days.map((day) => {
+      const dayStats = { pending: 0, in_progress: 0, resolved: 0 };
+
+      for (const topic of weeklyTopics) {
+        const topicDate = parseISO(topic.meeting_start_at);
+        if (Number.isNaN(topicDate.getTime())) continue;
+        if (format(topicDate, "yyyy-MM-dd") !== format(day, "yyyy-MM-dd")) continue;
+        dayStats[topic.status] += 1;
+      }
+
+      return {
+        day: format(day, "EEE", { locale: ptBR }).toUpperCase(),
+        ...dayStats,
+      };
+    });
+  }, [weeklyTopics, weekRange.start]);
 
   const filteredTopics = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -542,6 +627,115 @@ export default function MeetingMinutesPage() {
           Atualizar
         </Button>
       </div>
+
+      <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Dashboard de status</p>
+            <p className="text-xs text-muted-foreground">
+              Semana atual: {format(weekRange.start, "dd/MM")} - {format(weekRange.end, "dd/MM")}
+            </p>
+          </div>
+          <Badge variant="outline">{weeklyTotal} ata(s) na semana</Badge>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-border bg-background p-3">
+            <p className="text-[11px] font-semibold uppercase text-muted-foreground">Pendentes semana</p>
+            <p className="mt-1 text-2xl font-bold" style={{ color: STATUS_COLOR.pending }}>
+              {weeklyStatusCounts.pending}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-background p-3">
+            <p className="text-[11px] font-semibold uppercase text-muted-foreground">Em andamento semana</p>
+            <p className="mt-1 text-2xl font-bold" style={{ color: STATUS_COLOR.in_progress }}>
+              {weeklyStatusCounts.in_progress}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-background p-3">
+            <p className="text-[11px] font-semibold uppercase text-muted-foreground">Resolvidos semana</p>
+            <p className="mt-1 text-2xl font-bold" style={{ color: STATUS_COLOR.resolved }}>
+              {weeklyStatusCounts.resolved}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-background p-3">
+            <p className="text-[11px] font-semibold uppercase text-muted-foreground">Taxa de resolucao</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">{weeklyResolvedRate}%</p>
+            <p className="text-xs text-muted-foreground">{staleOpenCount} aberto(s) de semanas anteriores</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-lg border border-border bg-background p-3">
+            <p className="mb-3 text-xs font-semibold uppercase text-muted-foreground">Volume diario por status</p>
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyBarData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(240 6% 10%)",
+                      border: "1px solid hsl(240 6% 18%)",
+                      borderRadius: "8px",
+                      color: "hsl(0 0% 98%)",
+                    }}
+                  />
+                  <Bar dataKey="pending" name={STATUS_LABEL.pending} fill={STATUS_COLOR.pending} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="in_progress" name={STATUS_LABEL.in_progress} fill={STATUS_COLOR.in_progress} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="resolved" name={STATUS_LABEL.resolved} fill={STATUS_COLOR.resolved} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-background p-3">
+            <p className="mb-3 text-xs font-semibold uppercase text-muted-foreground">Distribuicao semanal</p>
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={weeklyPieData}
+                    dataKey="value"
+                    nameKey="label"
+                    outerRadius={90}
+                    innerRadius={52}
+                    paddingAngle={4}
+                  >
+                    {weeklyPieData.map((entry) => (
+                      <Cell key={entry.key} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number, name: string) => [`${value}`, name]}
+                    contentStyle={{
+                      backgroundColor: "hsl(240 6% 10%)",
+                      border: "1px solid hsl(240 6% 18%)",
+                      borderRadius: "8px",
+                      color: "hsl(0 0% 98%)",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {weeklyPieData.map((item) => (
+                <Badge key={item.key} variant="outline">
+                  <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+                  {item.label}: {item.value}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary">Pendentes totais: {statusCountsAll.pending}</Badge>
+          <Badge variant="secondary">Em andamento totais: {statusCountsAll.in_progress}</Badge>
+          <Badge variant="secondary">Resolvidos totais: {statusCountsAll.resolved}</Badge>
+        </div>
+      </section>
 
       <section className="space-y-4 rounded-xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
