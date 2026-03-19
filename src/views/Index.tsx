@@ -268,11 +268,11 @@ export default function IndexPage() {
         description="Veja o que esta aberto, o que vence primeiro e a ordem recomendada para executar seu dia."
       />
 
-      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
+      <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Agenda de hoje</p>
-            <h2 className="mt-1 text-2xl font-semibold text-foreground">Reuniões do dia</h2>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Reuniões do dia</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Atualiza com os compromissos do dia e já deixa o atalho para entrar na call.
             </p>
@@ -299,9 +299,18 @@ export default function IndexPage() {
               Nenhuma reuniao para hoje.
             </div>
           ) : (
-            <div className="grid gap-3 xl:grid-cols-2">
-              {todayMeetings.map((meeting) => (
-                <div key={meeting.id} className="rounded-xl border border-border bg-background/25 p-4">
+            <div className="grid gap-2 xl:grid-cols-2">
+              {todayMeetings.map((meeting) => {
+                const meetingEnded = !meeting.allDay && new Date(meeting.end).getTime() < now.getTime();
+
+                return (
+                <div
+                  key={meeting.id}
+                  className={cn(
+                    "rounded-xl border border-border bg-background/25 p-3",
+                    meetingEnded && "opacity-70"
+                  )}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -310,37 +319,43 @@ export default function IndexPage() {
                             ? "Dia inteiro"
                             : `${new Date(meeting.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} - ${new Date(meeting.end).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
                         </Badge>
+                        <Badge variant="secondary" className={cn(meetingEnded && "bg-secondary text-muted-foreground")}>
+                          {meetingEnded ? "Finalizada" : "Hoje"}
+                        </Badge>
                         <span className="text-xs text-muted-foreground">{meeting.projectName || "Conhecimento geral"}</span>
                       </div>
-                      <p className="mt-2 truncate text-sm font-semibold text-foreground">{meeting.summary}</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-foreground">{meeting.summary}</p>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                         <CalendarClock className="h-3.5 w-3.5" />
                         <span>
-                          {meeting.allDay
+                          {meetingEnded
+                            ? "Reuniao encerrada"
+                            : meeting.allDay
                             ? "Compromisso do dia"
                             : `Comeca ${new Date(meeting.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
                         </span>
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                      {meeting.meetLink ? (
-                        <Button asChild size="sm" className="gap-2">
+                      {meeting.meetLink && !meetingEnded ? (
+                        <Button asChild size="sm" className="h-8 gap-2 px-3">
                           <a href={meeting.meetLink} target="_blank" rel="noopener noreferrer">
                             <Video className="h-4 w-4" />
                             Entrar no Meet
                           </a>
                         </Button>
                       ) : null}
-                      <Button asChild size="sm" variant="outline" className="gap-2">
+                      <Button asChild size="sm" variant="outline" className="h-8 gap-2 px-3">
                         <a href={meeting.htmlLink} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-4 w-4" />
-                          Abrir no Google
+                          {meetingEnded ? "Ver no Google" : "Abrir no Google"}
                         </a>
                       </Button>
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
