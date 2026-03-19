@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BrainCircuit, Building2, Calendar, Columns3, Loader2, Lock, Timer } from "lucide-react";
+import { ArrowRight, BrainCircuit, Building2, Calendar, Columns3, Loader2, Lock, Timer, AlertTriangle, Flag, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/system/page-header";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getQuadrant, sortTasksForMatrix } from "@/lib/eisenhower";
 import {
   buildTimelineBlocks,
   buildTimelineHourLabels,
@@ -15,7 +16,8 @@ import {
   getSessionOverlapSecondsForDate,
 } from "@/lib/timeline";
 import { cn, formatDuration, formatMoney } from "@/lib/utils";
-import type { Project } from "@/types";
+import { KANBAN_PRIORITIES } from "@/config/priorities";
+import type { Project, Task } from "@/types";
 
 type DashboardSessionRow = {
   id: string;
@@ -24,6 +26,21 @@ type DashboardSessionRow = {
   ended_at: string | null;
   project: Pick<Project, "name" | "client" | "hourly_rate" | "color"> | null;
 };
+
+type DashboardTaskRow = Pick<
+  Task,
+  | "id"
+  | "title"
+  | "project_id"
+  | "skill_document_id"
+  | "column_index"
+  | "priority"
+  | "urgency"
+  | "importance"
+  | "due_date"
+  | "client"
+  | "created_at"
+>;
 
 const shortcuts = [
   { label: "Second Brain", path: "/second-brain", icon: BrainCircuit, description: "Capture notas e conecte ideias." },
@@ -39,6 +56,7 @@ export default function IndexPage() {
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<DashboardSessionRow[]>([]);
+  const [tasks, setTasks] = useState<DashboardTaskRow[]>([]);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -58,9 +76,10 @@ export default function IndexPage() {
 
     const recentWindowIso = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
 
-    const [profileRes, projectRes, sessionRes] = await Promise.all([
+    const [profileRes, projectRes, taskRes, sessionRes] = await Promise.all([
       supabase.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
       supabase.from("projects").select("*").order("name"),
+      supabase.from("tasks").select("id, title, project_id, skill_document_id, column_index, priority, urgency, importance, due_date, client, created_at").lt("column_index", 2).order("position"),
       supabase
         .from("time_sessions")
         .select("id, project_id, started_at, ended_at, project:projects(name, client, hourly_rate, color)")
@@ -79,6 +98,12 @@ export default function IndexPage() {
       toast.error("Nao foi possivel carregar as empresas.");
     } else {
       setProjects((projectRes.data || []) as unknown as Project[]);
+    }
+
+    if (taskRes.error) {
+      toast.error("Nao foi possivel carregar as tarefas do Kanban.");
+    } else {
+      setTasks((taskRes.data || []) as unknown as DashboardTaskRow[]);
     }
 
     if (sessionRes.error) {
@@ -144,12 +169,218 @@ export default function IndexPage() {
       });
   }, [now, projects, sessions, timezone]);
 
+  const projectMap = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
+
+  const kanbanFocus = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const enriched = sortTasksForMatrix(
+      tasks.map((task) => {
+        const dueTime = task.due_date ? new Date(task.due_date).getTime() : null;
+        const dueDate = dueTime ? new Date(task.due_date as string) : null;
+        const dayDiff =
+          dueDate === null
+            ? null
+            : Math.floor((new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime() - today.getTime()) / 86400000);
+
+        return {
+          ...task,
+          projectName: task.project_id ? projectMap.get(task.project_id)?.name || task.client || "Conhecimento geral" : task.client || "Conhecimento geral",
+          dueTime,
+          dayDiff,
+          quadrant: getQuadrant(task),
+        };
+      })
+    );
+
+    const timeline = enriched.slice(0, 6).map((task, index) => {
+      const priority = KANBAN_PRIORITIES.find((item) => item.value === task.priority);
+      let dueLabel = "Sem prazo";
+      let dueTone = "text-muted-foreground";
+
+      if (task.dayDiff !== null) {
+        if (task.dayDiff < 0) {
+          dueLabel = `Atrasada ${Math.abs(task.dayDiff)}d`;
+          dueTone = "text-danger";
+        } else if (task.dayDiff === 0) {
+          dueLabel = "Prazo hoje";
+          dueTone = "text-warning";
+        } else if (task.dayDiff === 1) {
+          dueLabel = "Prazo amanha";
+        } else {
+          dueLabel = `Prazo em ${task.dayDiff}d`;
+        }
+      }
+
+      const stageLabel = task.column_index === 1 ? "Em andamento" : index === 0 ? "Agora" : index < 3 ? "Proximo" : "Depois";
+
+      return {
+        ...task,
+        rank: index + 1,
+        stageLabel,
+        priorityLabel: priority?.label || "Normal",
+        priorityClassName: priority?.className || "bg-secondary text-muted-foreground",
+        dueLabel,
+        dueTone,
+      };
+    });
+
+    return {
+      openCount: enriched.length,
+      inProgressCount: enriched.filter((task) => task.column_index === 1).length,
+      overdueCount: enriched.filter((task) => task.dayDiff !== null && task.dayDiff < 0).length,
+      dueTodayCount: enriched.filter((task) => task.dayDiff === 0).length,
+      timeline,
+    };
+  }, [projectMap, tasks]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Painel principal"
-        description="Escolha um modulo para continuar. Timeline e empresas em acompanhamento rapido do dia."
+        description="Veja o que esta aberto, o que vence primeiro e a ordem recomendada para executar seu dia."
       />
+
+      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
+        <div className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar do dia</p>
+                <h2 className="mt-1 text-2xl font-semibold text-foreground">Linha de execucao das tarefas abertas</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ordem sugerida baseada em prioridade, urgencia, importancia e prazo do Kanban.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="gap-2">
+                <Link href="/kanban">
+                  Abrir Kanban
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-border bg-background/30 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Abertas</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">{kanbanFocus.openCount}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-background/30 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Em andamento</p>
+                <p className="mt-2 text-2xl font-semibold text-info">{kanbanFocus.inProgressCount}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-background/30 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Prazo hoje</p>
+                <p className="mt-2 text-2xl font-semibold text-warning">{kanbanFocus.dueTodayCount}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-background/30 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Atrasadas</p>
+                <p className="mt-2 text-2xl font-semibold text-danger">{kanbanFocus.overdueCount}</p>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="flex h-28 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : kanbanFocus.timeline.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
+                Nenhuma tarefa aberta no Kanban. Quando voce criar tarefas, a ordem recomendada aparece aqui.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {kanbanFocus.timeline.map((task) => (
+                  <div key={task.id} className="rounded-xl border border-border bg-background/25 p-4 transition-colors hover:border-primary/40">
+                    <div className="flex flex-wrap items-start gap-3 md:flex-nowrap">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-sm font-semibold text-primary">
+                        {task.rank}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
+                            {task.stageLabel}
+                          </Badge>
+                          <span className={cn("text-xs font-medium", task.dueTone)}>{task.dueLabel}</span>
+                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", task.priorityClassName)}>
+                            {task.priorityLabel}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-foreground">{task.title}</p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span>{task.projectName}</span>
+                          <span>
+                            {task.due_date ? new Date(task.due_date).toLocaleDateString("pt-BR") : "Sem data definida"}
+                          </span>
+                          <span>
+                            {task.quadrant === "do_now"
+                              ? "Fazer agora"
+                              : task.quadrant === "schedule"
+                                ? "Agendar"
+                                : task.quadrant === "delegate"
+                                  ? "Delegar"
+                                  : "Eliminar"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-xl border border-border bg-background/25 p-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <h3 className="text-sm font-semibold text-foreground">Alertas de prazo</h3>
+              </div>
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                  <span className="text-muted-foreground">Atrasadas</span>
+                  <span className="font-semibold text-danger">{kanbanFocus.overdueCount}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                  <span className="text-muted-foreground">Vencem hoje</span>
+                  <span className="font-semibold text-warning">{kanbanFocus.dueTodayCount}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                  <span className="text-muted-foreground">Em andamento</span>
+                  <span className="font-semibold text-info">{kanbanFocus.inProgressCount}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-background/25 p-4">
+              <div className="flex items-center gap-2">
+                <Flag className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Como seguir</h3>
+              </div>
+              <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <p>1. Comece pela primeira tarefa da linha de execucao.</p>
+                <p>2. Resolva antes as atrasadas e as que vencem hoje.</p>
+                <p>3. Mantenha poucas tarefas em andamento ao mesmo tempo.</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-background/25 p-4">
+              <div className="flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Atalhos</h3>
+              </div>
+              <div className="mt-3 grid gap-2">
+                <Button asChild variant="outline" className="justify-between">
+                  <Link href="/kanban">Reorganizar prioridades<ArrowRight className="h-4 w-4" /></Link>
+                </Button>
+                <Button asChild variant="outline" className="justify-between">
+                  <Link href="/agenda">Cruzar com agenda<ArrowRight className="h-4 w-4" /></Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {shortcuts.map((shortcut) => (
