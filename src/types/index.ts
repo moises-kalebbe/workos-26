@@ -31,6 +31,7 @@ export interface Task {
   id: string;
   user_id: string;
   project_id: string | null;
+  skill_document_id: string | null;
   title: string;
   description: string | null;
   column_index: number;

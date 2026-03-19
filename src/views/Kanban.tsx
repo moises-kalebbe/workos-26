@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Loader2, ChevronLeft, ChevronRight, Check, Trash2, Pencil, X } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
   DragOverEvent,
-  DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
@@ -41,13 +40,15 @@ import {
   KANBAN_PRIORITIES as PRIORITIES,
   KANBAN_URGENCY_OPTIONS as URGENCY_OPTIONS,
 } from "@/config/priorities";
-import type { Task, Subtask, Project, EisenhowerQuadrant } from "@/types";
+import type { Task, Subtask, Project, SkillDocument, EisenhowerQuadrant } from "@/types";
 
 const COLUMNS = [
   { index: 0, title: "A Fazer", color: "border-t-warning" },
   { index: 1, title: "Em Andamento", color: "border-t-info" },
   { index: 2, title: "Concluido", color: "border-t-success" },
 ];
+
+const NO_SKILL_VALUE = "__no_skill__";
 
 const QUADRANT_BADGE: Record<EisenhowerQuadrant, { label: string; className: string }> = {
   do_now: { label: "Fazer Agora", className: "bg-danger-muted text-danger" },
@@ -72,9 +73,11 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
 }
 
 
-const TaskCard = React.memo(({ task, companyLabel, onMove, onToggleSubtask, onAddSubtask, onDelete, onEdit }: {
+const TaskCard = React.memo(({ task, companyLabel, skillLabel, skillSummary, onMove, onToggleSubtask, onAddSubtask, onDelete, onEdit }: {
   task: Task;
   companyLabel: string | null;
+  skillLabel: string | null;
+  skillSummary: string | null;
   onMove: (id: string, direction: -1 | 1) => void;
   onToggleSubtask: (subtaskId: string, completed: boolean) => void;
   onAddSubtask: (taskId: string, title: string) => void;
@@ -132,6 +135,16 @@ const TaskCard = React.memo(({ task, companyLabel, onMove, onToggleSubtask, onAd
         <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground mb-2">
           {companyLabel}
         </span>
+      ) : null}
+
+      {skillLabel ? (
+        <div className="mb-2 rounded-lg border border-border/70 bg-background/70 px-2.5 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Skill vinculada</p>
+          <p className="mt-1 text-xs font-medium text-foreground">{skillLabel}</p>
+          {skillSummary ? (
+            <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{skillSummary}</p>
+          ) : null}
+        </div>
       ) : null}
 
       {task.due_date ? (
@@ -225,6 +238,7 @@ export default function KanbanPage() {
   const isMobile = useIsMobile();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [skills, setSkills] = useState<SkillDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -239,6 +253,7 @@ export default function KanbanPage() {
   const [newUrgency, setNewUrgency] = useState<Task["urgency"]>("not_urgent");
   const [newImportance, setNewImportance] = useState<Task["importance"]>("important");
   const [newDueDate, setNewDueDate] = useState("");
+  const [newSkillValue, setNewSkillValue] = useState(NO_SKILL_VALUE);
 
   // Edit form
   const [editTitle, setEditTitle] = useState("");
@@ -247,6 +262,7 @@ export default function KanbanPage() {
   const [editUrgency, setEditUrgency] = useState<Task["urgency"]>("not_urgent");
   const [editImportance, setEditImportance] = useState<Task["importance"]>("important");
   const [editDueDate, setEditDueDate] = useState("");
+  const [editSkillValue, setEditSkillValue] = useState(NO_SKILL_VALUE);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -257,13 +273,15 @@ export default function KanbanPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [tasksRes, projRes] = await Promise.all([
+      const [tasksRes, projRes, skillsRes] = await Promise.all([
         supabase.from("tasks").select("*").order("position"),
         supabase.from("projects").select("*").order("name"),
+        supabase.from("skill_documents").select("*").order("title"),
       ]);
 
       const tasksList = (tasksRes.data || []) as unknown as Task[];
       setProjects((projRes.data || []) as unknown as Project[]);
+      setSkills((skillsRes.data || []) as unknown as SkillDocument[]);
 
       if (tasksList.length > 0) {
         const taskIds = tasksList.map((t) => t.id);
@@ -293,11 +311,13 @@ export default function KanbanPage() {
     if (!newTitle || !user) return;
     const projectId = projectIdFromSelectValue(newProjectValue);
     const selectedProject = projects.find((project) => project.id === projectId) || null;
+    const skillDocumentId = newSkillValue === NO_SKILL_VALUE ? null : newSkillValue;
     const maxPos = Math.max(0, ...tasks.filter((t) => t.column_index === 0).map((t) => t.position));
     const { error } = await supabase.from("tasks").insert({
       user_id: user.id,
       title: newTitle,
       project_id: projectId,
+      skill_document_id: skillDocumentId,
       client: selectedProject?.name || null,
       priority: newPriority,
       urgency: newUrgency,
@@ -317,6 +337,7 @@ export default function KanbanPage() {
       setNewUrgency("not_urgent");
       setNewImportance("important");
       setNewDueDate("");
+      setNewSkillValue(NO_SKILL_VALUE);
       loadData();
     }
   }
@@ -325,9 +346,11 @@ export default function KanbanPage() {
     if (!editingTask || !editTitle) return;
     const projectId = projectIdFromSelectValue(editProjectValue);
     const selectedProject = projects.find((project) => project.id === projectId) || null;
+    const skillDocumentId = editSkillValue === NO_SKILL_VALUE ? null : editSkillValue;
     const { error } = await supabase.from("tasks").update({
       title: editTitle,
       project_id: projectId,
+      skill_document_id: skillDocumentId,
       client: selectedProject?.name || null,
       priority: editPriority,
       urgency: editUrgency,
@@ -371,6 +394,7 @@ export default function KanbanPage() {
     setEditUrgency(task.urgency || fallbackFields.urgency);
     setEditImportance(task.importance || fallbackFields.importance);
     setEditDueDate(task.due_date || "");
+    setEditSkillValue(task.skill_document_id || NO_SKILL_VALUE);
     setEditDialogOpen(true);
   }
 
@@ -465,6 +489,27 @@ export default function KanbanPage() {
   }
 
   const projectMap = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
+  const skillMap = useMemo(() => new Map(skills.map((skill) => [skill.id, skill])), [skills]);
+  const newProjectId = projectIdFromSelectValue(newProjectValue);
+  const editProjectId = projectIdFromSelectValue(editProjectValue);
+
+  const newSkillOptions = useMemo(
+    () => skills.filter((skill) => {
+      if (newSkillValue !== NO_SKILL_VALUE && skill.id === newSkillValue) return true;
+      return skill.project_id === null || skill.project_id === newProjectId;
+    }),
+    [newProjectId, newSkillValue, skills]
+  );
+  const editSkillOptions = useMemo(
+    () => skills.filter((skill) => {
+      if (editSkillValue !== NO_SKILL_VALUE && skill.id === editSkillValue) return true;
+      return skill.project_id === null || skill.project_id === editProjectId;
+    }),
+    [editProjectId, editSkillValue, skills]
+  );
+
+  const selectedNewSkill = newSkillValue === NO_SKILL_VALUE ? null : skillMap.get(newSkillValue) || null;
+  const selectedEditSkill = editSkillValue === NO_SKILL_VALUE ? null : skillMap.get(editSkillValue) || null;
 
   if (loading) {
     return <LoadingState message="Carregando quadro Kanban..." />;
@@ -503,6 +548,28 @@ export default function KanbanPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Skill de apoio</Label>
+                <Select value={newSkillValue} onValueChange={setNewSkillValue}>
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder="Nenhuma skill" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_SKILL_VALUE}>Nenhuma skill</SelectItem>
+                    {newSkillOptions.map((skill) => (
+                      <SelectItem key={skill.id} value={skill.id}>{skill.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedNewSkill ? (
+                  <div className="rounded-lg border border-border/70 bg-background/70 px-3 py-2">
+                    <p className="text-xs font-medium text-foreground">{selectedNewSkill.title}</p>
+                    {selectedNewSkill.summary ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{selectedNewSkill.summary}</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Prioridade</Label>
@@ -593,6 +660,28 @@ export default function KanbanPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Skill de apoio</Label>
+              <Select value={editSkillValue} onValueChange={setEditSkillValue}>
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Nenhuma skill" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_SKILL_VALUE}>Nenhuma skill</SelectItem>
+                  {editSkillOptions.map((skill) => (
+                    <SelectItem key={skill.id} value={skill.id}>{skill.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedEditSkill ? (
+                <div className="rounded-lg border border-border/70 bg-background/70 px-3 py-2">
+                  <p className="text-xs font-medium text-foreground">{selectedEditSkill.title}</p>
+                  {selectedEditSkill.summary ? (
+                    <p className="mt-1 text-xs text-muted-foreground">{selectedEditSkill.summary}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Prioridade</Label>
@@ -716,18 +805,23 @@ export default function KanbanPage() {
                         <p className="text-xs text-muted-foreground">Arraste aqui</p>
                       </div>
                     ) : (
-                      columnTasks.map((task) => (
+                      columnTasks.map((task) => {
+                        const skill = task.skill_document_id ? skillMap.get(task.skill_document_id) || null : null;
+                        return (
                         <TaskCard
                           key={task.id}
                           task={task}
                           companyLabel={task.project_id ? projectMap.get(task.project_id)?.name || task.client : task.client}
+                          skillLabel={skill?.title || null}
+                          skillSummary={skill?.summary || null}
                           onMove={moveTask}
                           onToggleSubtask={toggleSubtask}
                           onAddSubtask={addSubtask}
                           onDelete={deleteTask}
                           onEdit={openEditDialog}
                         />
-                      ))
+                        );
+                      })
                     )}
                   </DroppableColumn>
                 </SortableContext>

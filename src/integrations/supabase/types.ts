@@ -432,6 +432,7 @@ export type Database = {
           position: number
           priority: string | null
           project_id: string | null
+          skill_document_id: string | null
           title: string
           urgency: string
           updated_at: string | null
@@ -449,6 +450,7 @@ export type Database = {
           position?: number
           priority?: string | null
           project_id?: string | null
+          skill_document_id?: string | null
           title: string
           urgency?: string
           updated_at?: string | null
@@ -466,6 +468,7 @@ export type Database = {
           position?: number
           priority?: string | null
           project_id?: string | null
+          skill_document_id?: string | null
           title?: string
           urgency?: string
           updated_at?: string | null
@@ -477,6 +480,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_skill_document_id_fkey"
+            columns: ["skill_document_id"]
+            isOneToOne: false
+            referencedRelation: "skill_documents"
             referencedColumns: ["id"]
           },
         ]
