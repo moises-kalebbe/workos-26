@@ -23,6 +23,7 @@ export interface CalendarEvent {
   end: string;
   allDay: boolean;
   htmlLink: string;
+  meetLink: string | null;
   status: string;
   colorId: string | null;
   priority: AgendaPriority;
@@ -450,7 +451,7 @@ export function useGoogleCalendar() {
         ),
       );
     },
-    [],
+    [db],
   );
 
   const loadPreferences = useCallback(async (): Promise<AgendaPreferences> => {
@@ -492,7 +493,7 @@ export function useGoogleCalendar() {
       setError(prefError.message);
       throw prefError;
     }
-  }, []);
+  }, [db]);
 
   const storeTokenFromSession = useCallback(async () => {
     const {

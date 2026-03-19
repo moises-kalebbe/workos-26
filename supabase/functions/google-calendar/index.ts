@@ -26,10 +26,17 @@ type GoogleEvent = {
     date?: string;
   };
   htmlLink?: string;
+  hangoutLink?: string;
   status?: string;
   colorId?: string;
   recurringEventId?: string;
   iCalUID?: string;
+  conferenceData?: {
+    entryPoints?: Array<{
+      uri?: string;
+      entryPointType?: string;
+    }>;
+  };
   attendees?: GoogleAttendee[];
   organizer?: {
     self?: boolean;
@@ -67,6 +74,8 @@ function mapGoogleEvent(event: GoogleEvent) {
     | "tentative"
     | "none";
 
+  const meetEntryPoint = event.conferenceData?.entryPoints?.find((entryPoint) => entryPoint.entryPointType === "video")?.uri;
+
   return {
     id: event.id,
     seriesKey: event.recurringEventId || event.id,
@@ -79,6 +88,7 @@ function mapGoogleEvent(event: GoogleEvent) {
     end,
     allDay: !event.start?.dateTime,
     htmlLink: event.htmlLink || "",
+    meetLink: event.hangoutLink || meetEntryPoint || null,
     status: event.status || "confirmed",
     colorId: event.colorId || null,
     selfResponseStatus,

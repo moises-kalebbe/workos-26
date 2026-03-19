@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BrainCircuit, Building2, Calendar, Columns3, Loader2, Lock, Timer, AlertTriangle, Flag, ListChecks } from "lucide-react";
+import { ArrowRight, BrainCircuit, Building2, Calendar, Columns3, Loader2, Lock, Timer, AlertTriangle, Flag, ListChecks, Video, ExternalLink, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/system/page-header";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { getQuadrant, sortTasksForMatrix } from "@/lib/eisenhower";
 import {
   buildTimelineBlocks,
@@ -52,6 +53,12 @@ const shortcuts = [
 
 export default function IndexPage() {
   const { user } = useAuth();
+  const {
+    events: calendarEvents,
+    loading: meetingsLoading,
+    connected: meetingsConnected,
+    fetchEvents,
+  } = useGoogleCalendar();
   const [loading, setLoading] = useState(true);
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [projects, setProjects] = useState<Project[]>([]);
@@ -69,6 +76,14 @@ export default function IndexPage() {
     void loadDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const timeMin = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
+    const timeMax = new Date(now.getTime() + 36 * 60 * 60 * 1000).toISOString();
+    void fetchEvents(timeMin, timeMax);
+  }, [fetchEvents, now, user]);
 
   async function loadDashboardData() {
     if (!user) return;
@@ -235,12 +250,101 @@ export default function IndexPage() {
     };
   }, [projectMap, tasks]);
 
+  const todayMeetings = useMemo(() => {
+    const todayKey = getDateKeyInTimezone(now, timezone);
+
+    return [...calendarEvents]
+      .filter((event) => {
+        if (event.selfResponseStatus === "declined") return false;
+        return getDateKeyInTimezone(new Date(event.start), timezone) === todayKey;
+      })
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  }, [calendarEvents, now, timezone]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Painel principal"
         description="Veja o que esta aberto, o que vence primeiro e a ordem recomendada para executar seu dia."
       />
+
+      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Agenda de hoje</p>
+            <h2 className="mt-1 text-2xl font-semibold text-foreground">Reuniões do dia</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Atualiza com os compromissos do dia e já deixa o atalho para entrar na call.
+            </p>
+          </div>
+          <Button asChild variant="outline" className="gap-2">
+            <Link href="/agenda">
+              Abrir agenda
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+
+        <div className="mt-4">
+          {meetingsLoading ? (
+            <div className="flex h-24 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : !meetingsConnected ? (
+            <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+              Google Calendar nao conectado. Conecte na Agenda para ver as reunioes de hoje aqui.
+            </div>
+          ) : todayMeetings.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+              Nenhuma reuniao para hoje.
+            </div>
+          ) : (
+            <div className="grid gap-3 xl:grid-cols-2">
+              {todayMeetings.map((meeting) => (
+                <div key={meeting.id} className="rounded-xl border border-border bg-background/25 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
+                          {meeting.allDay
+                            ? "Dia inteiro"
+                            : `${new Date(meeting.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} - ${new Date(meeting.end).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">{meeting.projectName || "Conhecimento geral"}</span>
+                      </div>
+                      <p className="mt-2 truncate text-sm font-semibold text-foreground">{meeting.summary}</p>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        <span>
+                          {meeting.allDay
+                            ? "Compromisso do dia"
+                            : `Comeca ${new Date(meeting.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {meeting.meetLink ? (
+                        <Button asChild size="sm" className="gap-2">
+                          <a href={meeting.meetLink} target="_blank" rel="noopener noreferrer">
+                            <Video className="h-4 w-4" />
+                            Entrar no Meet
+                          </a>
+                        </Button>
+                      ) : null}
+                      <Button asChild size="sm" variant="outline" className="gap-2">
+                        <a href={meeting.htmlLink} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                          Abrir no Google
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
         <div className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
