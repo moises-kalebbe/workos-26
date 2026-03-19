@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   BookOpen,
   Download,
@@ -188,6 +189,7 @@ function markSeededLocally(userId: string) {
 
 export default function SkillsPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
@@ -242,6 +244,17 @@ export default function SkillsPage() {
     const found = filteredSkills.find((skill) => skill.id === selectedSkillId);
     return found || filteredSkills[0] || null;
   }, [filteredSkills, selectedSkillId]);
+
+  useEffect(() => {
+    const requestedSkillId = searchParams.get("skill");
+    if (!requestedSkillId || skills.length === 0) return;
+
+    const requestedSkill = skills.find((skill) => skill.id === requestedSkillId);
+    if (!requestedSkill) return;
+
+    setSelectedCategoryId(requestedSkill.category_id);
+    setSelectedSkillId(requestedSkill.id);
+  }, [searchParams, skills]);
 
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil, Copy, BookOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   DndContext,
   DragEndEvent,
@@ -24,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { LoadingState } from "@/components/system/loading-state";
 import { PageHeader } from "@/components/system/page-header";
 import { getQuadrant, toTaskFields } from "@/lib/eisenhower";
@@ -73,16 +76,17 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
 }
 
 
-const TaskCard = React.memo(({ task, companyLabel, skillLabel, skillSummary, onMove, onToggleSubtask, onAddSubtask, onDelete, onEdit }: {
+const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtask, onAddSubtask, onDelete, onEdit, onPreviewSkill, onCopySkill }: {
   task: Task;
   companyLabel: string | null;
-  skillLabel: string | null;
-  skillSummary: string | null;
+  skill: SkillDocument | null;
   onMove: (id: string, direction: -1 | 1) => void;
   onToggleSubtask: (subtaskId: string, completed: boolean) => void;
   onAddSubtask: (taskId: string, title: string) => void;
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
+  onPreviewSkill: (skill: SkillDocument) => void;
+  onCopySkill: (skill: SkillDocument) => void;
 }) => {
   const [newSubtask, setNewSubtask] = useState("");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -137,12 +141,43 @@ const TaskCard = React.memo(({ task, companyLabel, skillLabel, skillSummary, onM
         </span>
       ) : null}
 
-      {skillLabel ? (
-        <div className="mb-2 rounded-lg border border-border/70 bg-background/70 px-2.5 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Skill vinculada</p>
-          <p className="mt-1 text-xs font-medium text-foreground">{skillLabel}</p>
-          {skillSummary ? (
-            <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{skillSummary}</p>
+      {skill ? (
+        <div
+          className="mb-2 rounded-lg border border-border/70 bg-background/70 px-2.5 py-2"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Skill vinculada</p>
+              <button
+                type="button"
+                onClick={() => onPreviewSkill(skill)}
+                className="mt-1 text-left text-xs font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+              >
+                {skill.title}
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onPreviewSkill(skill)}
+                className="rounded p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                aria-label={`Abrir skill ${skill.title}`}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onCopySkill(skill)}
+                className="rounded p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                aria-label={`Copiar skill ${skill.title}`}
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          {skill.summary ? (
+            <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{skill.summary}</p>
           ) : null}
         </div>
       ) : null}
@@ -235,6 +270,7 @@ const TaskCard = React.memo(({ task, companyLabel, skillLabel, skillSummary, onM
 
 export default function KanbanPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const isMobile = useIsMobile();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -242,7 +278,9 @@ export default function KanbanPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [skillPreviewOpen, setSkillPreviewOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [previewSkill, setPreviewSkill] = useState<SkillDocument | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mobileColumn, setMobileColumn] = useState(0);
 
@@ -443,6 +481,24 @@ export default function KanbanPage() {
         )
       );
     }
+  }
+
+  function openSkillPreview(skill: SkillDocument) {
+    setPreviewSkill(skill);
+    setSkillPreviewOpen(true);
+  }
+
+  async function copySkillToClipboard(skill: SkillDocument) {
+    try {
+      await navigator.clipboard.writeText(skill.content_md);
+      toast.success(`Skill "${skill.title}" copiada`);
+    } catch {
+      toast.error("Nao foi possivel copiar a skill");
+    }
+  }
+
+  function openSkillInLibrary(skill: SkillDocument) {
+    router.push(`/skills?skill=${encodeURIComponent(skill.id)}`);
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -747,6 +803,60 @@ export default function KanbanPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={skillPreviewOpen}
+        onOpenChange={(open) => {
+          setSkillPreviewOpen(open);
+          if (!open) setPreviewSkill(null);
+        }}
+      >
+        <DialogContent className="max-w-3xl bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>{previewSkill?.title || "Skill"}</DialogTitle>
+            <DialogDescription>
+              {previewSkill?.summary || "Visualize ou copie o conteudo da skill vinculada."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    if (previewSkill) openSkillInLibrary(previewSkill);
+                  }}
+                  disabled={!previewSkill}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Abrir na biblioteca
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    if (previewSkill) void copySkillToClipboard(previewSkill);
+                  }}
+                  disabled={!previewSkill}
+                >
+                  <Copy className="h-4 w-4" />
+                  Copiar skill
+                </Button>
+              </div>
+            </div>
+            <div className="max-h-[60vh] overflow-auto rounded-lg border border-border bg-background p-4">
+              <article className="prose prose-sm max-w-none prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {previewSkill?.content_md || ""}
+                </ReactMarkdown>
+              </article>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Mobile Column Selector */}
       <div className="flex gap-2 md:hidden">
         {COLUMNS.map((col) => (
@@ -812,13 +922,14 @@ export default function KanbanPage() {
                           key={task.id}
                           task={task}
                           companyLabel={task.project_id ? projectMap.get(task.project_id)?.name || task.client : task.client}
-                          skillLabel={skill?.title || null}
-                          skillSummary={skill?.summary || null}
+                          skill={skill}
                           onMove={moveTask}
                           onToggleSubtask={toggleSubtask}
                           onAddSubtask={addSubtask}
                           onDelete={deleteTask}
                           onEdit={openEditDialog}
+                          onPreviewSkill={openSkillPreview}
+                          onCopySkill={copySkillToClipboard}
                         />
                         );
                       })
