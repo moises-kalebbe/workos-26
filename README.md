@@ -1,69 +1,38 @@
-# WorkOS (Next.js 14)
+﻿# WorkOS 26
 
-Aplicacao de produtividade com App Router, Supabase e design system customizado com Tailwind + shadcn.
+Aplicacao em Next.js com App Router, Supabase e base pronta para autenticacao, design system e testes.
+
+## O que este projeto e
+WorkOS 26 e uma base de aplicacao moderna com Next.js, App Router e Supabase. O projeto organiza rotas em `app`, componentes em `src`, documentacao de migracao e testes automatizados, servindo como fundacao para um produto autenticado e escalavel.
 
 ## Stack
-
-- Next.js 14 (`app/` router)
-- React 18
+- Next.js
+- React
 - TypeScript
+- Supabase SSR
 - Tailwind CSS + shadcn/ui
-- Supabase (`@supabase/ssr` + `@supabase/supabase-js`)
 - Vitest
-- Playwright (smoke E2E)
+- Playwright
 
-## Setup
-
-1. Instale dependencias:
-
+## Como rodar
 ```bash
 npm install
-```
-
-2. Configure variaveis de ambiente (`.env`):
-
-```env
-NEXT_PUBLIC_SUPABASE_PROJECT_ID=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-NEXT_PUBLIC_SUPABASE_URL=
-```
-
-3. Rode o projeto:
-
-```bash
 npm run dev
 ```
 
-## Scripts
+## Scripts uteis
+- `npm run build`
+- `npm run start`
+- `npm run lint`
+- `npm run test`
+- `npm run test:e2e`
 
-- `npm run dev` - desenvolvimento
-- `npm run build` - build de producao
-- `npm run start` - servidor de producao
-- `npm run lint` - lint
-- `npm run test` - testes unitarios (Vitest)
-- `npm run test:e2e` - smoke E2E (Playwright)
+## Estrutura
+- `app`: rotas do App Router
+- `src`: componentes, modulos e integracoes
+- `docs`: documentacao e materiais de migracao
+- `e2e`: testes end-to-end
+- `supabase`: backend e configuracoes
 
-## Estrutura principal
-
-- `app/` - rotas Next App Router
-- `src/pages/` - modulos de tela (cliente)
-- `src/components/system/` - componentes de design system
-- `src/config/` - configuracoes tipadas para UI e constantes
-- `src/lib/supabase/` - cliente browser + server para Supabase SSR
-- `docs/migration/` - baseline e matriz de paridade
-
-## E2E
-
-Para smoke autenticado, defina:
-
-```env
-E2E_EMAIL=
-E2E_PASSWORD=
-```
-
-Opcionalmente:
-
-```env
-PLAYWRIGHT_BASE_URL=http://localhost:3000
-```
-
+## Objetivo
+Servir como base moderna para um aplicativo com autenticacao, UI consistente e evolucao segura com testes.
