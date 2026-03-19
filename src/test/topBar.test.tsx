@@ -35,7 +35,7 @@ describe("TopBar", () => {
     expect(screen.getByText("Limeira, SP")).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText("25°C · Quase limpo")).toBeInTheDocument();
+      expect(screen.getByText("25°C | Quase limpo")).toBeInTheDocument();
     });
   });
 
