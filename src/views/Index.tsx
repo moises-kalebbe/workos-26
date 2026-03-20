@@ -689,14 +689,11 @@ export default function IndexPage() {
         )}
       </section>
 
-      <div className="flex">
-        <Button asChild className="gap-2">
-          <Link href="/second-brain">
-            Abrir Second Brain
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
+      <footer className="border-t border-border/70 pt-4">
+        <p className="text-center text-xs text-muted-foreground">
+          Painel do dia atualizado com agenda, tarefas abertas e empresas em acompanhamento.
+        </p>
+      </footer>
     </div>
   );
 }
