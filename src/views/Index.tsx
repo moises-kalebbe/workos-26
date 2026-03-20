@@ -51,6 +51,29 @@ const shortcuts = [
   { label: "Cofre", path: "/vault", icon: Lock, description: "Gerencie credenciais por cliente." },
 ];
 
+const MOTIVATIONAL_PHRASES = {
+  overdue: [
+    "Ajuste a primeira pendencia e o resto do dia respira melhor.",
+    "O atraso diminui quando voce fecha a proxima entrega certa.",
+    "Voltar para o controle comeca por uma prioridade resolvida.",
+  ],
+  focus: [
+    "Menos frentes abertas, mais resultado visivel.",
+    "Foco curto e consistente entrega mais que correria espalhada.",
+    "Uma tarefa bem fechada vale mais que varias pela metade.",
+  ],
+  meeting: [
+    "Entre na proxima reuniao com clareza sobre a sua entrega principal.",
+    "Reuniao boa comeca antes, com a prioridade do dia definida.",
+    "Organize o proximo passo antes da call e ganhe o resto do dia.",
+  ],
+  default: [
+    "Constancia curta e bem feita ganha do excesso.",
+    "Seu melhor ritmo hoje e terminar o que realmente importa.",
+    "Prioridade clara transforma um dia cheio em um dia produtivo.",
+  ],
+} as const;
+
 export default function IndexPage() {
   const { user } = useAuth();
   const {
@@ -296,14 +319,23 @@ export default function IndexPage() {
             ? `proximo prazo em ${new Date(nextTask.due_date).toLocaleDateString("pt-BR")}`
             : "sem prazo critico no momento";
 
-    const motivationalLine =
+    const phraseBucket =
       kanbanFocus.overdueCount > 0
-        ? "Resolva a proxima prioridade e o dia volta para o eixo."
+        ? MOTIVATIONAL_PHRASES.overdue
         : kanbanFocus.inProgressCount > 2
-          ? "Menos frentes abertas, mais entrega real."
+          ? MOTIVATIONAL_PHRASES.focus
           : upcomingMeeting
-            ? "Entre na proxima call com a principal tarefa do dia clara."
-            : "Constancia curta e bem feita ganha do excesso."
+            ? MOTIVATIONAL_PHRASES.meeting
+            : MOTIVATIONAL_PHRASES.default;
+
+    const phraseIndex =
+      now.getFullYear() +
+      now.getMonth() +
+      now.getDate() +
+      kanbanFocus.openCount +
+      todayMeetings.length;
+
+    const motivationalLine = phraseBucket[phraseIndex % phraseBucket.length];
 
     return {
       headline: `Hoje ${meetingSummary}, com ${taskSummary} e ${dueSummary}.`,
@@ -505,7 +537,10 @@ export default function IndexPage() {
             <div className="rounded-xl border border-border bg-background/25 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Resumo do dia</p>
               <p className="mt-2 text-sm text-foreground">{dashboardSummary.headline}</p>
-              <p className="mt-2 text-xs text-muted-foreground">{dashboardSummary.motivationalLine}</p>
+              <div className="mt-3 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Frase do dia</p>
+                <p className="mt-1 text-sm text-foreground">{dashboardSummary.motivationalLine}</p>
+              </div>
 
               <div className="mt-4 grid gap-2">
                 <div className="rounded-lg border border-border px-3 py-2">
