@@ -85,6 +85,83 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_entries: {
+        Row: {
+          alert_days_before: number
+          amount: number
+          category: string
+          competency_date: string | null
+          counterparty_name: string
+          created_at: string
+          currency: string
+          description: string | null
+          due_date: string
+          id: string
+          is_platform_cost: boolean
+          notes: string | null
+          paid_at: string | null
+          project_id: string | null
+          recurrence: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_days_before?: number
+          amount?: number
+          category: string
+          competency_date?: string | null
+          counterparty_name: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          is_platform_cost?: boolean
+          notes?: string | null
+          paid_at?: string | null
+          project_id?: string | null
+          recurrence?: string
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_days_before?: number
+          amount?: number
+          category?: string
+          competency_date?: string | null
+          counterparty_name?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          is_platform_cost?: boolean
+          notes?: string | null
+          paid_at?: string | null
+          project_id?: string | null
+          recurrence?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_tokens: {
         Row: {
           access_token: string

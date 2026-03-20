@@ -19,6 +19,7 @@ const NAV_ITEMS = getAllNavItems();
 
 const QUICK_ACTIONS = [
   { label: "Nova tarefa no Kanban", path: "/kanban?compose=task", shortcut: "Task" },
+  { label: "Novo lancamento financeiro", path: "/financeiro?compose=entry", shortcut: "Finance" },
   { label: "Novo projeto no Tracker", path: "/tracker?compose=project", shortcut: "Project" },
   { label: "Nova skill", path: "/skills?compose=skill", shortcut: "Skill" },
   { label: "Nova nota", path: "/second-brain?compose=note", shortcut: "Note" },
