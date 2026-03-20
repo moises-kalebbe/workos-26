@@ -126,14 +126,14 @@ export default function SecondBrainPage() {
   const [manualTargetId, setManualTargetId] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const [graphWidth, setGraphWidth] = useState(340);
+  const [graphWidth, setGraphWidth] = useState(640);
 
   useEffect(() => {
     if (!graphContainerRef.current) return;
 
     const container = graphContainerRef.current;
     const updateWidth = () => {
-      setGraphWidth(Math.max(280, Math.floor(container.clientWidth)));
+      setGraphWidth(Math.max(420, Math.floor(container.clientWidth)));
     };
 
     updateWidth();
@@ -608,7 +608,7 @@ export default function SecondBrainPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_400px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
         <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Notas</h2>
@@ -694,268 +694,275 @@ export default function SecondBrainPage() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
-          {!selectedNote ? (
-            <div className="flex min-h-[500px] flex-col items-center justify-center gap-2 text-center">
-              <BrainCircuit className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Selecione uma nota para editar e conectar.</p>
+        <div className="space-y-4">
+          <section className="space-y-4 rounded-2xl border border-border bg-card p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Teia de conhecimento</h2>
+                <p className="text-sm text-muted-foreground">
+                  Esta area agora e o centro visual da tela. Explore relacoes e abra notas direto pelo grafo.
+                </p>
+              </div>
+              <Badge variant="secondary">{graphData.nodes.length} nos</Badge>
             </div>
-          ) : (
-            <>
+
+            {selectedNote && (
               <div className="rounded-2xl border border-border bg-background/40 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Nota em foco</p>
-                    <h2 className="mt-2 text-2xl font-semibold text-foreground">{selectedNote.title}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{getStatusDescription(selectedNote.status)}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant="outline" className={STATUS_BADGE_CLASS[selectedNote.status]}>
-                        {STATUS_LABEL[selectedNote.status]}
-                      </Badge>
-                      <Badge variant="secondary">
-                        {projectMap.get(selectedNote.project_id || "")?.name || "Conhecimento geral"}
-                      </Badge>
-                      <Badge variant="outline">Atualizada em {formatDateTime(selectedNote.updated_at)}</Badge>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => void handleSaveNote()} disabled={mutating} className="gap-2">
-                      <Save className="h-4 w-4" />
-                      Salvar
-                    </Button>
-                    <Button variant="outline" onClick={() => void handleToggleArchive()} disabled={mutating} className="gap-2">
-                      {selectedNote.status === "archived" ? (
-                        <>
-                          <ArchiveRestore className="h-4 w-4" />
-                          Reativar
-                        </>
-                      ) : (
-                        <>
-                          <Archive className="h-4 w-4" />
-                          Arquivar
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="gap-2 text-danger hover:text-danger"
-                      onClick={() => setDeleteDialogOpen(true)}
-                      disabled={mutating}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Excluir
-                    </Button>
-                  </div>
-                </div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Centro atual</p>
+                <p className="mt-2 text-lg font-medium text-foreground">{selectedNote.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {outgoingLinks.length} conexao(oes) saindo desta nota e {suggestions.length} sugestao(oes) relacionadas.
+                </p>
               </div>
+            )}
 
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_240px]">
-                <div className="space-y-2">
-                  <Label>Titulo</Label>
-                  <Input value={editorTitle} onChange={(event) => setEditorTitle(event.target.value)} />
+            <div ref={graphContainerRef} className="rounded-2xl border border-border bg-background p-2">
+              {graphData.nodes.length === 0 ? (
+                <div className="flex h-[520px] items-center justify-center text-center text-sm text-muted-foreground">
+                  Sem notas no filtro atual para montar o grafo.
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={editorStatus} onValueChange={(value) => setEditorStatus(value as SecondBrainNote["status"])}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="inbox">Inbox</SelectItem>
-                      <SelectItem value="note">Note</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Empresa</Label>
-                  <Select value={editorProjectValue} onValueChange={setEditorProjectValue}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Conhecimento geral" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={GENERAL_PROJECT_VALUE}>Conhecimento geral</SelectItem>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>URL de origem</Label>
-                  <Input
-                    value={editorSourceUrl}
-                    onChange={(event) => setEditorSourceUrl(event.target.value)}
-                    placeholder="https://..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Tags</Label>
-                  <Input
-                    value={editorTagsInput}
-                    onChange={(event) => setEditorTagsInput(event.target.value)}
-                    placeholder="pkm, processo, insight"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Markdown</Label>
-                <Textarea
-                  value={editorContent}
-                  onChange={(event) => setEditorContent(event.target.value)}
-                  className="min-h-[280px] rounded-2xl border-border bg-background/70 font-mono text-xs leading-6"
-                  placeholder="Use [[wikilinks]] para conectar notas"
+              ) : (
+                <ForceGraph2D
+                  width={graphWidth}
+                  height={520}
+                  graphData={{
+                    nodes: graphData.nodes,
+                    links: graphData.links as GraphLink[],
+                  }}
+                  nodeRelSize={5}
+                  cooldownTicks={80}
+                  linkDirectionalArrowLength={5}
+                  linkDirectionalArrowRelPos={1}
+                  linkCurvature={0.15}
+                  nodeColor={(node) => GRAPH_NODE_COLOR[node.status] || "#8b5cf6"}
+                  linkColor={(link) => (link.link_type === "manual" ? "#22c55e" : "#64748b")}
+                  nodeLabel={(node) => `${node.title} (${STATUS_LABEL[node.status]})`}
+                  onNodeClick={(node: any) => setSelectedNoteId(node?.id ? String(node.id) : null)}
                 />
-              </div>
-
-              <div className="grid gap-3 rounded-2xl border border-border bg-background p-4 md:grid-cols-[1fr_auto]">
-                <div className="space-y-2">
-                  <Label>Conexao manual</Label>
-                  <Select value={manualTargetId} onValueChange={setManualTargetId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar nota para conectar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {manualTargets.map((note) => (
-                        <SelectItem key={note.id} value={note.id}>
-                          {note.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    disabled={!manualTargetId || mutating}
-                    onClick={() => void handleCreateManualLink(manualTargetId)}
-                  >
-                    <Link2 className="h-4 w-4" />
-                    Conectar
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid gap-3 lg:grid-cols-2">
-                <div className="rounded-2xl border border-border bg-background p-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conexoes atuais</p>
-                  {outgoingLinks.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sem conexoes saindo desta nota.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {outgoingLinks.map((link) => (
-                        <div key={link.id} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1.5">
-                          <button
-                            type="button"
-                            className="truncate text-xs text-foreground hover:text-primary"
-                            onClick={() => setSelectedNoteId(link.target_note_id)}
-                          >
-                            {noteMap.get(link.target_note_id)?.title || "Nota removida"}
-                          </button>
-                          <Badge variant="outline" className="text-[10px]">
-                            {link.link_type}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="rounded-2xl border border-border bg-background p-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sugestoes por tags</p>
-                  {suggestions.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sem sugestoes no momento.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {suggestions.map((item) => (
-                        <div key={item.note.id} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1.5">
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-medium text-foreground">{item.note.title}</p>
-                            <p className="text-[10px] text-muted-foreground">{item.sharedTagsCount} tag(s) em comum</p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 text-[10px]"
-                            disabled={mutating}
-                            onClick={() => void handleCreateManualLink(item.note.id)}
-                          >
-                            Conectar
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-[#0b1220] p-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview</p>
-                <article className="prose prose-sm max-w-none overflow-auto prose-invert prose-headings:text-white prose-p:leading-7 prose-li:leading-7 prose-strong:text-white">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{editorContent || "_Sem conteudo_"}</ReactMarkdown>
-                </article>
-              </div>
-            </>
-          )}
-        </section>
-
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Teia de conhecimento</h2>
-            <Badge variant="secondary">{graphData.nodes.length} nos</Badge>
-          </div>
-
-          {selectedNote && (
-            <div className="rounded-2xl border border-border bg-background/40 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Centro atual</p>
-              <p className="mt-2 text-sm font-medium text-foreground">{selectedNote.title}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {outgoingLinks.length} conexao(oes) saindo desta nota e {suggestions.length} sugestao(oes) relacionadas.
-              </p>
+              )}
             </div>
-          )}
 
-          <div ref={graphContainerRef} className="rounded-2xl border border-border bg-background p-2">
-            {graphData.nodes.length === 0 ? (
-              <div className="flex h-[360px] items-center justify-center text-center text-sm text-muted-foreground">
-                Sem notas no filtro atual para montar o grafo.
+            <p className="text-xs text-muted-foreground">
+              Clique em um no para abrir a nota. Links verdes sao manuais, cinza sao wikilinks.
+            </p>
+          </section>
+
+          <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
+            {!selectedNote ? (
+              <div className="flex min-h-[500px] flex-col items-center justify-center gap-2 text-center">
+                <BrainCircuit className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Selecione uma nota para editar e conectar.</p>
               </div>
             ) : (
-              <ForceGraph2D
-                width={graphWidth}
-                height={360}
-                graphData={{
-                  nodes: graphData.nodes,
-                  links: graphData.links as GraphLink[],
-                }}
-                nodeRelSize={5}
-                cooldownTicks={80}
-                linkDirectionalArrowLength={5}
-                linkDirectionalArrowRelPos={1}
-                linkCurvature={0.15}
-                nodeColor={(node) => GRAPH_NODE_COLOR[node.status] || "#8b5cf6"}
-                linkColor={(link) => (link.link_type === "manual" ? "#22c55e" : "#64748b")}
-                nodeLabel={(node) => `${node.title} (${STATUS_LABEL[node.status]})`}
-                onNodeClick={(node: any) => setSelectedNoteId(node?.id ? String(node.id) : null)}
-              />
-            )}
-          </div>
+              <>
+                <div className="rounded-2xl border border-border bg-background/40 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Nota em foco</p>
+                      <h2 className="mt-2 text-2xl font-semibold text-foreground">{selectedNote.title}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">{getStatusDescription(selectedNote.status)}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Badge variant="outline" className={STATUS_BADGE_CLASS[selectedNote.status]}>
+                          {STATUS_LABEL[selectedNote.status]}
+                        </Badge>
+                        <Badge variant="secondary">
+                          {projectMap.get(selectedNote.project_id || "")?.name || "Conhecimento geral"}
+                        </Badge>
+                        <Badge variant="outline">Atualizada em {formatDateTime(selectedNote.updated_at)}</Badge>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => void handleSaveNote()} disabled={mutating} className="gap-2">
+                        <Save className="h-4 w-4" />
+                        Salvar
+                      </Button>
+                      <Button variant="outline" onClick={() => void handleToggleArchive()} disabled={mutating} className="gap-2">
+                        {selectedNote.status === "archived" ? (
+                          <>
+                            <ArchiveRestore className="h-4 w-4" />
+                            Reativar
+                          </>
+                        ) : (
+                          <>
+                            <Archive className="h-4 w-4" />
+                            Arquivar
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="gap-2 text-danger hover:text-danger"
+                        onClick={() => setDeleteDialogOpen(true)}
+                        disabled={mutating}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Excluir
+                      </Button>
+                    </div>
+                  </div>
+                </div>
 
-          <p className="text-xs text-muted-foreground">
-            Clique em um no para abrir a nota. Links verdes sao manuais, cinza sao wikilinks.
-          </p>
-        </section>
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_240px]">
+                  <div className="space-y-2">
+                    <Label>Titulo</Label>
+                    <Input value={editorTitle} onChange={(event) => setEditorTitle(event.target.value)} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={editorStatus} onValueChange={(value) => setEditorStatus(value as SecondBrainNote["status"])}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="inbox">Inbox</SelectItem>
+                        <SelectItem value="note">Note</SelectItem>
+                        <SelectItem value="archived">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Empresa</Label>
+                    <Select value={editorProjectValue} onValueChange={setEditorProjectValue}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Conhecimento geral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={GENERAL_PROJECT_VALUE}>Conhecimento geral</SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>URL de origem</Label>
+                    <Input
+                      value={editorSourceUrl}
+                      onChange={(event) => setEditorSourceUrl(event.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tags</Label>
+                    <Input
+                      value={editorTagsInput}
+                      onChange={(event) => setEditorTagsInput(event.target.value)}
+                      placeholder="pkm, processo, insight"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Markdown</Label>
+                  <Textarea
+                    value={editorContent}
+                    onChange={(event) => setEditorContent(event.target.value)}
+                    className="min-h-[280px] rounded-2xl border-border bg-background/70 font-mono text-xs leading-6"
+                    placeholder="Use [[wikilinks]] para conectar notas"
+                  />
+                </div>
+
+                <div className="grid gap-3 rounded-2xl border border-border bg-background p-4 md:grid-cols-[1fr_auto]">
+                  <div className="space-y-2">
+                    <Label>Conexao manual</Label>
+                    <Select value={manualTargetId} onValueChange={setManualTargetId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar nota para conectar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {manualTargets.map((note) => (
+                          <SelectItem key={note.id} value={note.id}>
+                            {note.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      disabled={!manualTargetId || mutating}
+                      onClick={() => void handleCreateManualLink(manualTargetId)}
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Conectar
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-border bg-background p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conexoes atuais</p>
+                    {outgoingLinks.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Sem conexoes saindo desta nota.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {outgoingLinks.map((link) => (
+                          <div key={link.id} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1.5">
+                            <button
+                              type="button"
+                              className="truncate text-xs text-foreground hover:text-primary"
+                              onClick={() => setSelectedNoteId(link.target_note_id)}
+                            >
+                              {noteMap.get(link.target_note_id)?.title || "Nota removida"}
+                            </button>
+                            <Badge variant="outline" className="text-[10px]">
+                              {link.link_type}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-2xl border border-border bg-background p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sugestoes por tags</p>
+                    {suggestions.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Sem sugestoes no momento.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {suggestions.map((item) => (
+                          <div key={item.note.id} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1.5">
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-medium text-foreground">{item.note.title}</p>
+                              <p className="text-[10px] text-muted-foreground">{item.sharedTagsCount} tag(s) em comum</p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-[10px]"
+                              disabled={mutating}
+                              onClick={() => void handleCreateManualLink(item.note.id)}
+                            >
+                              Conectar
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-[#0b1220] p-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview</p>
+                  <article className="prose prose-sm max-w-none overflow-auto prose-invert prose-headings:text-white prose-p:leading-7 prose-li:leading-7 prose-strong:text-white">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{editorContent || "_Sem conteudo_"}</ReactMarkdown>
+                  </article>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   );
