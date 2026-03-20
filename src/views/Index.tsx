@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BrainCircuit, Building2, Calendar, Columns3, Loader2, Lock, Timer, Video, ExternalLink, CalendarClock } from "lucide-react";
+import { ArrowRight, Building2, Loader2, Video, ExternalLink, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,14 +42,6 @@ type DashboardTaskRow = Pick<
   | "client"
   | "created_at"
 >;
-
-const shortcuts = [
-  { label: "Second Brain", path: "/second-brain", icon: BrainCircuit, description: "Capture notas e conecte ideias." },
-  { label: "Time Tracker", path: "/tracker", icon: Timer, description: "Registre sessoes de trabalho." },
-  { label: "Kanban", path: "/kanban", icon: Columns3, description: "Priorize tarefas por coluna." },
-  { label: "Agenda", path: "/agenda", icon: Calendar, description: "Visualize compromissos do dia." },
-  { label: "Cofre", path: "/vault", icon: Lock, description: "Gerencie credenciais por cliente." },
-];
 
 const MOTIVATIONAL_PHRASES = {
   overdue: [
@@ -579,24 +571,6 @@ export default function IndexPage() {
           </div>
         </div>
       </section>
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {shortcuts.map((shortcut) => (
-          <Link
-            key={shortcut.path}
-            href={shortcut.path}
-            className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">{shortcut.label}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{shortcut.description}</p>
-              </div>
-              <shortcut.icon className="h-4 w-4 text-primary" />
-            </div>
-          </Link>
-        ))}
-      </div>
 
       <section className="rounded-xl border border-border bg-card p-4 md:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
