@@ -1,9 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const email = process.env.E2E_EMAIL;
 const password = process.env.E2E_PASSWORD;
 
-async function login(page: Parameters<(typeof test)["beforeEach"]>[0]["page"]) {
+async function login(page: Page) {
   await page.goto("/auth");
   await page.getByLabel("Email").fill(email || "");
   await page.getByLabel("Senha").fill(password || "");
@@ -49,9 +49,8 @@ test.describe("workos smoke", () => {
     await page.goto("/vault");
     await page.getByRole("button", { name: /nova credencial/i }).click();
     await page.getByPlaceholder(/gmail, aws/i).fill(`Servico E2E ${stamp}`);
-    await page.getByPlaceholder(/••••••••/).first().fill("senha-e2e-123");
+    await page.getByPlaceholder(/senha/i).first().fill("senha-e2e-123");
     await page.getByRole("button", { name: /salvar credencial/i }).click();
     await expect(page.getByText(`Servico E2E ${stamp}`)).toBeVisible();
   });
 });
-

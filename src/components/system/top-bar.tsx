@@ -67,7 +67,7 @@ export function TopBar() {
                 <span>{weather.summary}</span>
               ) : (
                 <span>
-                  {weather.temperature}Â°C | {weather.summary}
+                  {weather.temperature}{"\u00B0C"} | {weather.summary}
                 </span>
               )}
             </div>

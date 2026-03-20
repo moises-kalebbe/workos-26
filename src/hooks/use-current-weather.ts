@@ -24,7 +24,7 @@ type WeatherState = {
 };
 
 const WEATHER_CODE_LABELS: Record<number, { day: string; night: string }> = {
-  0: { day: "Ensolarado", night: "Céu limpo" },
+  0: { day: "Ensolarado", night: "Ceu limpo" },
   1: { day: "Quase limpo", night: "Poucas nuvens" },
   2: { day: "Parcialmente nublado", night: "Parcialmente nublado" },
   3: { day: "Nublado", night: "Nublado" },
@@ -43,7 +43,7 @@ const WEATHER_CODE_LABELS: Record<number, { day: string; night: string }> = {
   71: { day: "Neve fraca", night: "Neve fraca" },
   73: { day: "Neve", night: "Neve" },
   75: { day: "Neve forte", night: "Neve forte" },
-  77: { day: "Grãos de neve", night: "Grãos de neve" },
+  77: { day: "Graos de neve", night: "Graos de neve" },
   80: { day: "Pancadas leves", night: "Pancadas leves" },
   81: { day: "Pancadas de chuva", night: "Pancadas de chuva" },
   82: { day: "Pancadas fortes", night: "Pancadas fortes" },
@@ -57,7 +57,7 @@ const WEATHER_CODE_LABELS: Record<number, { day: string; night: string }> = {
 function resolveWeatherLabel(code: number, isDay: boolean) {
   const labels = WEATHER_CODE_LABELS[code];
   if (!labels) {
-    return "Clima estável";
+    return "Clima estavel";
   }
 
   return isDay ? labels.day : labels.night;
@@ -110,7 +110,7 @@ export function useCurrentWeather() {
 
         setState({
           temperature: null,
-          summary: "Clima indisponível",
+          summary: "Clima indisponivel",
           loading: false,
           error: true,
         });
