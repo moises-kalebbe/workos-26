@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BrainCircuit, Building2, Calendar, Columns3, Loader2, Lock, Timer, AlertTriangle, Flag, ListChecks, Video, ExternalLink, CalendarClock } from "lucide-react";
+import { ArrowRight, BrainCircuit, Building2, Calendar, Columns3, Loader2, Lock, Timer, Video, ExternalLink, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -261,11 +261,63 @@ export default function IndexPage() {
       .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
   }, [calendarEvents, now, timezone]);
 
+  const dashboardSummary = useMemo(() => {
+    const upcomingMeeting = todayMeetings.find((meeting) => {
+      if (meeting.allDay) return true;
+      return new Date(meeting.end).getTime() >= now.getTime();
+    });
+
+    const nextTask = kanbanFocus.timeline[0] || null;
+
+    const meetingSummary = !meetingsConnected
+      ? "Agenda nao conectada"
+      : todayMeetings.length === 0
+        ? "sem reunioes hoje"
+        : upcomingMeeting
+          ? upcomingMeeting.allDay
+            ? "ha uma reuniao de dia inteiro"
+            : `sua proxima reuniao e as ${new Date(upcomingMeeting.start).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`
+          : "as reunioes de hoje ja terminaram";
+
+    const taskSummary =
+      kanbanFocus.openCount === 0
+        ? "nenhuma tarefa aberta"
+        : `${kanbanFocus.openCount} tarefa${kanbanFocus.openCount > 1 ? "s" : ""} aberta${kanbanFocus.openCount > 1 ? "s" : ""}`;
+
+    const dueSummary =
+      kanbanFocus.overdueCount > 0
+        ? `${kanbanFocus.overdueCount} atrasada${kanbanFocus.overdueCount > 1 ? "s" : ""}`
+        : kanbanFocus.dueTodayCount > 0
+          ? `${kanbanFocus.dueTodayCount} vence${kanbanFocus.dueTodayCount > 1 ? "m" : ""} hoje`
+          : nextTask?.due_date
+            ? `proximo prazo em ${new Date(nextTask.due_date).toLocaleDateString("pt-BR")}`
+            : "sem prazo critico no momento";
+
+    const motivationalLine =
+      kanbanFocus.overdueCount > 0
+        ? "Resolva a proxima prioridade e o dia volta para o eixo."
+        : kanbanFocus.inProgressCount > 2
+          ? "Menos frentes abertas, mais entrega real."
+          : upcomingMeeting
+            ? "Entre na proxima call com a principal tarefa do dia clara."
+            : "Constancia curta e bem feita ganha do excesso."
+
+    return {
+      headline: `Hoje ${meetingSummary}, com ${taskSummary} e ${dueSummary}.`,
+      motivationalLine,
+      nextMeeting: upcomingMeeting,
+      nextTask,
+    };
+  }, [kanbanFocus, meetingsConnected, now, todayMeetings]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Painel principal"
-        description="Veja o que esta aberto, o que vence primeiro e a ordem recomendada para executar seu dia."
+        description={dashboardSummary.headline}
       />
 
       <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
@@ -451,49 +503,41 @@ export default function IndexPage() {
 
           <div className="space-y-3">
             <div className="rounded-xl border border-border bg-background/25 p-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-warning" />
-                <h3 className="text-sm font-semibold text-foreground">Alertas de prazo</h3>
-              </div>
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                  <span className="text-muted-foreground">Atrasadas</span>
-                  <span className="font-semibold text-danger">{kanbanFocus.overdueCount}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                  <span className="text-muted-foreground">Vencem hoje</span>
-                  <span className="font-semibold text-warning">{kanbanFocus.dueTodayCount}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                  <span className="text-muted-foreground">Em andamento</span>
-                  <span className="font-semibold text-info">{kanbanFocus.inProgressCount}</span>
-                </div>
-              </div>
-            </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Resumo do dia</p>
+              <p className="mt-2 text-sm text-foreground">{dashboardSummary.headline}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{dashboardSummary.motivationalLine}</p>
 
-            <div className="rounded-xl border border-border bg-background/25 p-4">
-              <div className="flex items-center gap-2">
-                <Flag className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">Como seguir</h3>
-              </div>
-              <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <p>1. Comece pela primeira tarefa da linha de execucao.</p>
-                <p>2. Resolva antes as atrasadas e as que vencem hoje.</p>
-                <p>3. Mantenha poucas tarefas em andamento ao mesmo tempo.</p>
-              </div>
-            </div>
+              <div className="mt-4 grid gap-2">
+                <div className="rounded-lg border border-border px-3 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Proxima reuniao</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    {dashboardSummary.nextMeeting
+                      ? dashboardSummary.nextMeeting.allDay
+                        ? `${dashboardSummary.nextMeeting.summary} · Dia inteiro`
+                        : `${new Date(dashboardSummary.nextMeeting.start).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })} · ${dashboardSummary.nextMeeting.summary}`
+                      : "Sem reunioes pendentes hoje"}
+                  </p>
+                </div>
 
-            <div className="rounded-xl border border-border bg-background/25 p-4">
-              <div className="flex items-center gap-2">
-                <ListChecks className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">Atalhos</h3>
+                <div className="rounded-lg border border-border px-3 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Proxima entrega</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    {dashboardSummary.nextTask
+                      ? `${dashboardSummary.nextTask.title} · ${dashboardSummary.nextTask.dueLabel}`
+                      : "Nenhuma tarefa aberta no Kanban"}
+                  </p>
+                </div>
               </div>
-              <div className="mt-3 grid gap-2">
-                <Button asChild variant="outline" className="justify-between">
-                  <Link href="/kanban">Reorganizar prioridades<ArrowRight className="h-4 w-4" /></Link>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline" className="h-8">
+                  <Link href="/kanban">Abrir Kanban</Link>
                 </Button>
-                <Button asChild variant="outline" className="justify-between">
-                  <Link href="/agenda">Cruzar com agenda<ArrowRight className="h-4 w-4" /></Link>
+                <Button asChild size="sm" variant="outline" className="h-8">
+                  <Link href="/agenda">Abrir Agenda</Link>
                 </Button>
               </div>
             </div>
