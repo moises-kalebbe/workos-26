@@ -665,7 +665,11 @@ export default function IndexPage() {
         ) : (
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             {projectsWithTodayStats.map((project) => (
-              <div key={project.id} className="rounded-lg border border-border bg-background/20 p-3">
+              <Link
+                key={project.id}
+                href={`/settings?tab=companies&project=${project.id}`}
+                className="rounded-lg border border-border bg-background/20 p-3 transition-colors hover:border-primary/40 hover:bg-background/30"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{project.name}</p>
@@ -679,7 +683,7 @@ export default function IndexPage() {
                 <div className="mt-2 text-xs text-muted-foreground">
                   Hoje: {formatDuration(project.trackedSeconds)} · {formatMoney(project.estimatedValue)}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

@@ -36,6 +36,8 @@ export default function SettingsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("profile");
+  const [requestedProjectId, setRequestedProjectId] = useState<string | null>(null);
 
   // Profile form
   const [name, setName] = useState("");
@@ -65,7 +67,35 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (user) loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const requestedTab = searchParams.get("tab");
+    const requestedProject = searchParams.get("project");
+
+    if (requestedTab === "companies" || requestedTab === "profile" || requestedTab === "preferences") {
+      setActiveTab(requestedTab);
+    }
+
+    if (requestedProject) {
+      setRequestedProjectId(requestedProject);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!requestedProjectId || projects.length === 0) return;
+
+    const requestedProject = projects.find((project) => project.id === requestedProjectId);
+    if (!requestedProject) return;
+
+    setActiveTab("companies");
+    openEditProject(requestedProject);
+    setRequestedProjectId(null);
+  }, [projects, requestedProjectId]);
 
   useEffect(() => {
     if (projects.length === 0) {
@@ -276,7 +306,7 @@ export default function SettingsPage() {
         description="Gerencie perfil, empresas, contratos e preferencias gerais da conta."
       />
 
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-card border border-border">
           <TabsTrigger value="profile" className="gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
             <User className="h-4 w-4" /> Perfil
