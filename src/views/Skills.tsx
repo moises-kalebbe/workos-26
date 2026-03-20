@@ -164,6 +164,12 @@ function formatDateTime(value: string | null) {
   });
 }
 
+function getSourceLabel(source: SkillSourceType) {
+  if (source === "seed") return "Seed";
+  if (source === "upload") return "Upload";
+  return "Manual";
+}
+
 function getSeedFlagKey(userId: string) {
   return `workos.skills.seeded.${userId}`;
 }
@@ -223,6 +229,23 @@ export default function SkillsPage() {
     [categories],
   );
   const projectMap = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
+  const libraryStats = useMemo(() => {
+    const manualCount = skills.filter((skill) => skill.source_type === "manual").length;
+    const uploadCount = skills.filter((skill) => skill.source_type === "upload").length;
+    const lastUpdatedSkill = [...skills].sort((a, b) => {
+      const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+      const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+      return bTime - aTime;
+    })[0] || null;
+
+    return {
+      totalSkills: skills.length,
+      totalCategories: categories.length,
+      manualCount,
+      uploadCount,
+      lastUpdatedSkill,
+    };
+  }, [categories.length, skills]);
 
   const filteredSkills = useMemo(() => {
     const searchTerm = search.trim().toLowerCase();
@@ -691,7 +714,9 @@ export default function SkillsPage() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Skills Library</h1>
-          <p className="text-sm text-muted-foreground">Biblioteca privada de skills em Markdown por categoria</p>
+          <p className="text-sm text-muted-foreground">
+            Biblioteca privada de conhecimento em Markdown, organizada para busca, reutilizacao e acao rapida.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -854,8 +879,35 @@ export default function SkillsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[260px_320px_1fr]">
-        <section className="rounded-xl border border-border bg-card p-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-border bg-card/90 p-4">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Skills</p>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{libraryStats.totalSkills}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Itens prontos para consulta e download.</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card/90 p-4">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Categorias</p>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{libraryStats.totalCategories}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Grupos ativos para organizar sua biblioteca.</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card/90 p-4">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Fonte Manual</p>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{libraryStats.manualCount}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Skills criadas direto no editor do WorkOS.</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card/90 p-4">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Ultima Atualizacao</p>
+          <p className="mt-3 truncate text-lg font-semibold text-foreground">
+            {libraryStats.lastUpdatedSkill?.title || "Sem registros"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {libraryStats.lastUpdatedSkill ? formatDateTime(libraryStats.lastUpdatedSkill.updated_at) : "Crie sua primeira skill"}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[240px_360px_1fr]">
+        <section className="rounded-2xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Categorias</h2>
             <Badge variant="secondary">{categories.length}</Badge>
@@ -866,43 +918,59 @@ export default function SkillsPage() {
               type="button"
               onClick={() => setSelectedCategoryId("all")}
               className={cn(
-                "w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                "w-full rounded-xl border px-3 py-3 text-left text-sm transition-colors",
                 selectedCategoryId === "all"
                   ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:text-foreground",
+                  : "border-border text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground",
               )}
             >
-              Todas as categorias
+              <div className="flex items-center justify-between gap-2">
+                <span>Todas as categorias</span>
+                <Badge variant="outline" className="text-[10px]">{skills.length}</Badge>
+              </div>
             </button>
 
             {categories.map((category) => {
               const count = skills.filter((skill) => skill.category_id === category.id).length;
 
               return (
-                <div key={category.id} className="rounded-lg border border-border p-2">
+                <div
+                  key={category.id}
+                  className={cn(
+                    "rounded-2xl border p-3 transition-colors",
+                    selectedCategoryId === category.id
+                      ? "border-primary/50 bg-primary/5"
+                      : "border-border bg-background/30",
+                  )}
+                >
                   <button
                     type="button"
                     onClick={() => setSelectedCategoryId(category.id)}
                     className={cn(
-                      "w-full rounded-md px-2 py-1 text-left text-sm transition-colors",
+                      "w-full rounded-lg text-left transition-colors",
                       selectedCategoryId === category.id
-                        ? "bg-primary/10 text-primary"
+                        ? "text-primary"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate">{category.name}</span>
-                      <Badge variant="outline" className="text-[10px]">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{category.name}</p>
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          {category.description || "Sem descricao para esta categoria."}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="shrink-0 text-[10px]">
                         {count}
                       </Badge>
                     </div>
                   </button>
 
-                  <div className="mt-2 flex gap-1 px-1">
+                  <div className="mt-3 flex gap-1">
                     <button
                       type="button"
                       onClick={() => openEditCategoryDialog(category)}
-                      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -911,7 +979,7 @@ export default function SkillsPage() {
                       onClick={() => {
                         setCategoryPendingDelete(category);
                       }}
-                      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-danger"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-danger"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -920,7 +988,7 @@ export default function SkillsPage() {
                       onClick={() => {
                         void handleDownloadCategoryZip(category.id);
                       }}
-                      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     >
                       <Download className="h-3.5 w-3.5" />
                     </button>
@@ -931,7 +999,7 @@ export default function SkillsPage() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-4">
+        <section className="rounded-2xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">Skills</h2>
             <Badge variant="secondary">{filteredSkills.length}</Badge>
@@ -948,13 +1016,14 @@ export default function SkillsPage() {
           </div>
 
           {filteredSkills.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
               Nenhuma skill encontrada.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {filteredSkills.map((skill) => {
                 const category = categoryMap.get(skill.category_id);
+                const projectName = projectMap.get(skill.project_id || "")?.name || "Conhecimento geral";
 
                 return (
                   <button
@@ -962,32 +1031,34 @@ export default function SkillsPage() {
                     type="button"
                     onClick={() => setSelectedSkillId(skill.id)}
                     className={cn(
-                      "w-full rounded-lg border p-3 text-left transition-colors",
+                      "w-full rounded-2xl border p-4 text-left transition-colors",
                       selectedSkill?.id === skill.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-muted-foreground/30",
+                        ? "border-primary bg-primary/10 shadow-[0_0_0_1px_rgba(56,189,248,0.12)]"
+                        : "border-border bg-background/30 hover:border-muted-foreground/30 hover:bg-background/60",
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground">{skill.title}</p>
-                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                           {skill.summary || "Sem resumo"}
                         </p>
-                        <p className="mt-1 text-[10px] text-muted-foreground">
-                          {projectMap.get(skill.project_id || "")?.name || "Conhecimento geral"}
-                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="text-[10px]">{category?.name || "Sem categoria"}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{projectName}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{getSourceLabel(skill.source_type)}</Badge>
+                        </div>
                       </div>
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     </div>
 
-                    <div className="mt-2 flex items-center justify-between">
-                      <Badge variant="outline" className="text-[10px]">
-                        {category?.name || "Sem categoria"}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground">
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="text-[11px] text-muted-foreground">
                         Atualizada em {formatDateTime(skill.updated_at)}
                       </span>
+                      {selectedSkill?.id === skill.id && (
+                        <span className="text-[11px] font-medium text-primary">Selecionada</span>
+                      )}
                     </div>
                   </button>
                 );
@@ -996,7 +1067,7 @@ export default function SkillsPage() {
           )}
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-4">
+        <section className="rounded-2xl border border-border bg-card p-5">
           {!selectedSkill ? (
             <div className="flex h-full min-h-[380px] flex-col items-center justify-center gap-2 text-center">
               <BookOpen className="h-8 w-8 text-muted-foreground" />
@@ -1004,64 +1075,67 @@ export default function SkillsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground">{selectedSkill.title}</h2>
-                  <p className="text-sm text-muted-foreground">{selectedSkill.summary || "Sem resumo"}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary">{categoryMap.get(selectedSkill.category_id)?.name || "Sem categoria"}</Badge>
-                    <Badge variant="secondary">{projectMap.get(selectedSkill.project_id || "")?.name || "Conhecimento geral"}</Badge>
-                    <Badge variant="outline">Fonte: {selectedSkill.source_type}</Badge>
+              <div className="rounded-2xl border border-border bg-background/40 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Skill em foco</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-foreground">{selectedSkill.title}</h2>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                      {selectedSkill.summary || "Sem resumo"}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary">{categoryMap.get(selectedSkill.category_id)?.name || "Sem categoria"}</Badge>
+                      <Badge variant="secondary">{projectMap.get(selectedSkill.project_id || "")?.name || "Conhecimento geral"}</Badge>
+                      <Badge variant="outline">Fonte: {getSourceLabel(selectedSkill.source_type)}</Badge>
+                      <Badge variant="outline">Atualizada em {formatDateTime(selectedSkill.updated_at)}</Badge>
+                      <Badge variant="outline">Ultimo download: {formatDateTime(selectedSkill.last_downloaded_at)}</Badge>
+                    </div>
                     {selectedSkill.source_type === "seed" && (
-                      <Badge variant="outline" className="gap-1">
+                      <Badge variant="outline" className="mt-3 gap-1">
                         <Sparkles className="h-3 w-3" />
                         Seed
                       </Badge>
                     )}
                   </div>
-                </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      void handleDownloadSkill(selectedSkill);
-                    }}
-                    className="gap-1"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Baixar .md
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => openEditSkillDialog(selectedSkill)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-danger"
-                    onClick={() => {
-                      setSkillPendingDelete(selectedSkill);
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        void handleDownloadSkill(selectedSkill);
+                      }}
+                      className="gap-1"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Baixar .md
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEditSkillDialog(selectedSkill)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-danger"
+                      onClick={() => {
+                        setSkillPendingDelete(selectedSkill);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-
-              <div className="text-xs text-muted-foreground">
-                Ultimo download: {formatDateTime(selectedSkill.last_downloaded_at)}
               </div>
 
               <Tabs defaultValue="preview" className="w-full">
-                <TabsList>
+                <TabsList className="grid w-full max-w-[320px] grid-cols-2 rounded-xl bg-background/70 p-1">
                   <TabsTrigger value="preview">Preview</TabsTrigger>
                   <TabsTrigger value="markdown">Markdown</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="preview" className="mt-3">
-                  <div className="max-h-[520px] overflow-auto rounded-lg border border-border bg-background p-4">
-                    <article className="prose prose-sm max-w-none prose-invert">
+                  <div className="max-h-[640px] overflow-auto rounded-2xl border border-border bg-[#0b1220] p-6">
+                    <article className="prose prose-sm max-w-none prose-invert prose-headings:mb-3 prose-headings:text-white prose-p:leading-7 prose-li:leading-7 prose-strong:text-white">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {selectedSkill.content_md}
                       </ReactMarkdown>
@@ -1070,7 +1144,11 @@ export default function SkillsPage() {
                 </TabsContent>
 
                 <TabsContent value="markdown" className="mt-3">
-                  <Textarea readOnly value={selectedSkill.content_md} className="min-h-[520px] font-mono text-xs" />
+                  <Textarea
+                    readOnly
+                    value={selectedSkill.content_md}
+                    className="min-h-[640px] rounded-2xl border-border bg-background/80 font-mono text-xs leading-6"
+                  />
                 </TabsContent>
               </Tabs>
             </div>
