@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil, Copy, BookOpen } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil, Copy, BookOpen, Search, Activity, Clock3, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -111,11 +111,39 @@ const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtas
       style={style}
       {...attributes}
       {...listeners}
-      className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-muted-foreground/20 cursor-grab active:cursor-grabbing group"
+      className="group cursor-grab rounded-xl border border-border/80 bg-[linear-gradient(180deg,rgba(22,28,42,0.98),rgba(16,22,34,0.98))] p-4 transition-all hover:border-primary/25 hover:bg-card active:cursor-grabbing"
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-medium text-foreground flex-1">{task.title}</p>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            {priority ? (
+              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", priority.className)}>
+                {priority.label}
+              </span>
+            ) : null}
+            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", quadrant.className)}>
+              {quadrant.label}
+            </span>
+            {companyLabel ? (
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {companyLabel}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-[15px] font-semibold leading-5 text-foreground">{task.title}</p>
+          {task.due_date ? (
+            <div className="mt-2 flex items-center gap-2 text-[11px]">
+              <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className={cn(
+                "text-muted-foreground",
+                new Date(task.due_date).getTime() < new Date().setHours(0, 0, 0, 0) && "text-danger",
+              )}>
+                Prazo {new Date(task.due_date).toLocaleDateString("pt-BR")}
+              </span>
+            </div>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" onPointerDown={(e) => e.stopPropagation()}>
           <button onClick={() => onEdit(task)} className="p-1 text-muted-foreground hover:text-foreground">
             <Pencil className="h-3 w-3" />
           </button>
@@ -123,27 +151,11 @@ const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtas
             <Trash2 className="h-3 w-3" />
           </button>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {priority ? (
-            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", priority.className)}>
-              {priority.label}
-            </span>
-          ) : null}
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", quadrant.className)}>
-            {quadrant.label}
-          </span>
-        </div>
       </div>
-
-      {companyLabel ? (
-        <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground mb-2">
-          {companyLabel}
-        </span>
-      ) : null}
 
       {skill ? (
         <div
-          className="mb-2 rounded-lg border border-border/70 bg-background/70 px-2.5 py-2"
+          className="mb-3 rounded-lg border border-primary/15 bg-background/70 px-2.5 py-2"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="flex items-start justify-between gap-2">
@@ -182,16 +194,10 @@ const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtas
         </div>
       ) : null}
 
-      {task.due_date ? (
-        <p className="text-[10px] text-muted-foreground mb-2">
-          Prazo: {new Date(task.due_date).toLocaleDateString("pt-BR")}
-        </p>
-      ) : null}
-
       {/* Subtasks */}
       {subtasks.length > 0 ? (
-        <div className="mt-3 space-y-1.5">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="mt-3 space-y-1.5 rounded-lg border border-border/60 bg-background/30 p-3">
+          <div className="mb-1 flex items-center gap-2">
             <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all"
@@ -283,6 +289,9 @@ export default function KanbanPage() {
   const [previewSkill, setPreviewSkill] = useState<SkillDocument | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mobileColumn, setMobileColumn] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
 
   // New task form
   const [newTitle, setNewTitle] = useState("");
@@ -566,6 +575,59 @@ export default function KanbanPage() {
 
   const selectedNewSkill = newSkillValue === NO_SKILL_VALUE ? null : skillMap.get(newSkillValue) || null;
   const selectedEditSkill = editSkillValue === NO_SKILL_VALUE ? null : skillMap.get(editSkillValue) || null;
+
+  const filteredTasks = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    return tasks.filter((task) => {
+      const projectName = task.project_id ? projectMap.get(task.project_id)?.name || task.client || "" : task.client || "";
+      const skillTitle = task.skill_document_id ? skillMap.get(task.skill_document_id)?.title || "" : "";
+      const matchesSearch =
+        !normalizedSearch ||
+        task.title.toLowerCase().includes(normalizedSearch) ||
+        projectName.toLowerCase().includes(normalizedSearch) ||
+        skillTitle.toLowerCase().includes(normalizedSearch);
+
+      const matchesProject = projectFilter === "all" || (projectFilter === GENERAL_PROJECT_VALUE
+        ? !task.project_id
+        : task.project_id === projectFilter);
+      const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
+
+      return matchesSearch && matchesProject && matchesPriority;
+    });
+  }, [priorityFilter, projectFilter, projectMap, searchQuery, skillMap, tasks]);
+
+  const boardSummary = useMemo(() => {
+    const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 } as const;
+    const openTasks = filteredTasks.filter((task) => task.column_index < 2);
+    const overdueCount = openTasks.filter((task) => task.due_date && new Date(task.due_date).getTime() < new Date().setHours(0, 0, 0, 0)).length;
+    const dueTodayCount = openTasks.filter((task) => {
+      if (!task.due_date) return false;
+      const dueDate = new Date(task.due_date);
+      const now = new Date();
+      return dueDate.getFullYear() === now.getFullYear() && dueDate.getMonth() === now.getMonth() && dueDate.getDate() === now.getDate();
+    }).length;
+
+    const recommendedTask = [...openTasks].sort((a, b) => {
+      const aQuadrant = getQuadrant(a);
+      const bQuadrant = getQuadrant(b);
+      const quadrantOrder = { do_now: 0, schedule: 1, delegate: 2, eliminate: 3 } as const;
+      if (quadrantOrder[aQuadrant] !== quadrantOrder[bQuadrant]) return quadrantOrder[aQuadrant] - quadrantOrder[bQuadrant];
+      if (priorityOrder[a.priority] !== priorityOrder[b.priority]) return priorityOrder[a.priority] - priorityOrder[b.priority];
+      const aDue = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER;
+      const bDue = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER;
+      return aDue - bDue;
+    })[0] || null;
+
+    return {
+      openCount: openTasks.length,
+      inProgressCount: filteredTasks.filter((task) => task.column_index === 1).length,
+      completedCount: filteredTasks.filter((task) => task.column_index === 2).length,
+      overdueCount,
+      dueTodayCount,
+      recommendedTask,
+    };
+  }, [filteredTasks]);
 
   if (loading) {
     return <LoadingState message="Carregando quadro Kanban..." />;
@@ -857,6 +919,106 @@ export default function KanbanPage() {
         </DialogContent>
       </Dialog>
 
+      <section className="grid gap-3 xl:grid-cols-[1.25fr_0.9fr_0.9fr_0.9fr]">
+        <div className="rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-5 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)]">
+          <div className="flex items-center gap-2 text-cyan-200/80">
+            <Activity className="h-4 w-4 text-cyan-300" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Foco recomendado</p>
+          </div>
+          <div className="mt-3">
+            <p className="text-lg font-semibold text-foreground">
+              {boardSummary.recommendedTask?.title || "Nenhuma tarefa aberta no momento"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {boardSummary.recommendedTask
+                ? `${boardSummary.recommendedTask.project_id ? projectMap.get(boardSummary.recommendedTask.project_id)?.name || boardSummary.recommendedTask.client || "Conhecimento geral" : boardSummary.recommendedTask.client || "Conhecimento geral"} · ${QUADRANT_BADGE[getQuadrant(boardSummary.recommendedTask)].label}`
+                : "Crie uma tarefa ou ajuste os filtros para montar o proximo passo."}
+            </p>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full border border-border/70 bg-background/30 px-2.5 py-1">
+              {boardSummary.recommendedTask?.due_date
+                ? `Prazo ${new Date(boardSummary.recommendedTask.due_date).toLocaleDateString("pt-BR")}`
+                : "Sem prazo definido"}
+            </span>
+            <span className="rounded-full border border-border/70 bg-background/30 px-2.5 py-1">
+              {boardSummary.recommendedTask?.priority
+                ? PRIORITIES.find((priority) => priority.value === boardSummary.recommendedTask?.priority)?.label || "Normal"
+                : "Sem prioridade"}
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card/95 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Abertas</p>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{boardSummary.openCount}</p>
+          <p className="mt-2 text-sm text-muted-foreground">Tarefas fora de concluido</p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card/95 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Em andamento</p>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{boardSummary.inProgressCount}</p>
+          <p className="mt-2 text-sm text-muted-foreground">Capacidade atual do board</p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card/95 p-5">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Prazos</p>
+          </div>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{boardSummary.dueTodayCount + boardSummary.overdueCount}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {boardSummary.overdueCount} atrasadas · {boardSummary.dueTodayCount} vencem hoje
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card/95 p-4 md:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Filtros do quadro</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Refine o que entra no board</h2>
+          </div>
+
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar tarefa, empresa ou skill"
+                className="h-10 rounded-2xl border-border bg-background/60 pl-10 sm:w-[280px]"
+              />
+            </div>
+
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="h-10 w-full rounded-2xl border-border bg-background/60 sm:w-[210px]">
+                <SelectValue placeholder="Todas as empresas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as empresas</SelectItem>
+                <SelectItem value={GENERAL_PROJECT_VALUE}>Conhecimento geral</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="h-10 w-full rounded-2xl border-border bg-background/60 sm:w-[180px]">
+                <SelectValue placeholder="Todas as prioridades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as prioridades</SelectItem>
+                {PRIORITIES.map((priority) => (
+                  <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </section>
+
       {/* Mobile Column Selector */}
       <div className="flex gap-2 md:hidden">
         {COLUMNS.map((col) => (
@@ -870,7 +1032,7 @@ export default function KanbanPage() {
                 : "bg-secondary text-muted-foreground"
             )}
           >
-            {col.title} ({tasks.filter((t) => t.column_index === col.index).length})
+            {col.title} ({filteredTasks.filter((t) => t.column_index === col.index).length})
           </button>
         ))}
       </div>
@@ -885,7 +1047,7 @@ export default function KanbanPage() {
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {COLUMNS.map((col) => {
-            const columnTasks = tasks.filter((t) => t.column_index === col.index);
+            const columnTasks = filteredTasks.filter((t) => t.column_index === col.index);
             const isVisible = !isMobile || mobileColumn === col.index;
 
             if (!isVisible) return null;
@@ -894,12 +1056,17 @@ export default function KanbanPage() {
               <div
                 key={col.index}
                 className={cn(
-                  "rounded-xl border border-border bg-card/50 p-4 border-t-[3px]",
+                  "rounded-2xl border border-border bg-card/50 p-4 border-t-[3px]",
                   col.color
                 )}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {col.index === 0 ? "Entrada e fila priorizada" : col.index === 1 ? "Execucao atual do time" : "Entregas finalizadas"}
+                    </p>
+                  </div>
                   <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
                     {columnTasks.length}
                   </span>
@@ -911,8 +1078,17 @@ export default function KanbanPage() {
                 >
                   <DroppableColumn id={`column-${col.index}`}>
                     {columnTasks.length === 0 ? (
-                      <div className="rounded-lg border-2 border-dashed border-border p-6 text-center">
-                        <p className="text-xs text-muted-foreground">Arraste aqui</p>
+                      <div className="rounded-xl border-2 border-dashed border-border p-6 text-center">
+                        <p className="text-sm font-medium text-foreground">
+                          {col.index === 0 ? "Nenhuma tarefa na fila" : col.index === 1 ? "Nada em execucao agora" : "Nada concluido ainda"}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {col.index === 0
+                            ? "Crie uma nova tarefa ou arraste uma prioridade para ca."
+                            : col.index === 1
+                              ? "Mova uma tarefa para esta coluna quando for iniciar o trabalho."
+                              : "As entregas finalizadas aparecem aqui automaticamente."}
+                        </p>
                       </div>
                     ) : (
                       columnTasks.map((task) => {
