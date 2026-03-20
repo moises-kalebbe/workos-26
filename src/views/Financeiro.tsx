@@ -15,7 +15,6 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { financeiroApi } from "@/features/financeiro/api";
@@ -217,7 +216,6 @@ function StatCard({
 
 export default function FinanceiroPage() {
   const { user } = useAuth();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [projects, setProjects] = useState<FinanceiroProject[]>([]);
@@ -228,17 +226,6 @@ export default function FinanceiroPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<FinanceiroEntryWithProject | null>(null);
   const [form, setForm] = useState<EntryFormState>(defaultFormState);
-
-  useEffect(() => {
-    if (!user) return;
-    void loadData();
-  }, [loadData, user]);
-
-  useEffect(() => {
-    if (searchParams?.get("compose") === "entry") {
-      setDialogOpen(true);
-    }
-  }, [searchParams]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -266,6 +253,19 @@ export default function FinanceiroPage() {
 
     setLoading(false);
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    void loadData();
+  }, [loadData, user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("compose") === "entry") {
+      setDialogOpen(true);
+    }
+  }, []);
 
   function resetForm() {
     setForm(defaultFormState());
