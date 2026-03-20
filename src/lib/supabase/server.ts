@@ -8,21 +8,16 @@ export function createSupabaseServerClient() {
 
   return createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
+      getAll() {
+        return cookieStore.getAll();
       },
-      set(name: string, value: string, options) {
+      setAll(cookiesToSet) {
         try {
-          cookieStore.set({ name, value, ...options });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set({ name, value, ...options });
+          });
         } catch {
-          // Server components cannot always set cookies.
-        }
-      },
-      remove(name: string, options) {
-        try {
-          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
-        } catch {
-          // Server components cannot always set cookies.
+          // Route handlers and some server contexts may not allow cookie writes.
         }
       },
     },

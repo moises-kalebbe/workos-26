@@ -73,6 +73,103 @@ export interface VaultEntry {
   updated_at: string;
 }
 
+export interface VaultRepository {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  local_path: string;
+  remote_url: string | null;
+  html_url?: string | null;
+  repo_name: string;
+  owner_name: string | null;
+  provider: string;
+  source_type?: "local_scan" | "github_sync";
+  external_id?: string | null;
+  is_remote_only?: boolean;
+  default_branch: string | null;
+  detected_environment_count: number;
+  supabase_detected?: boolean;
+  supabase_project_ref?: string | null;
+  supabase_project_url?: string | null;
+  supabase_api_url?: string | null;
+  supabase_detection_evidence?: string[];
+  supabase_detection_scanned_at?: string | null;
+  last_scanned_at: string | null;
+  last_scan_status: "idle" | "success" | "error";
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VaultEnvironmentEntry {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  repository_id: string | null;
+  env_key: string;
+  env_scope: "local" | "development" | "production" | "staging" | "unknown";
+  source_path: string;
+  encrypted_value: string;
+  iv: string;
+  detected_provider: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VaultSupabaseInstance {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  repository_id: string | null;
+  display_name: string;
+  project_ref: string | null;
+  project_url: string | null;
+  api_url: string | null;
+  keepalive_type: "rest" | "sql";
+  keepalive_enabled: boolean;
+  keepalive_interval_hours: number;
+  encrypted_credential: string | null;
+  credential_iv: string | null;
+  encrypted_credentials_payload?: string | null;
+  credentials_payload_iv?: string | null;
+  last_keepalive_at: string | null;
+  last_keepalive_status: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VaultSyncRun {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  repository_id: string | null;
+  supabase_instance_id: string | null;
+  run_type: "repo_scan" | "env_scan" | "keepalive" | "windows_notes_import" | "github_sync";
+  status: "success" | "error" | "skipped";
+  summary: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface VaultGithubConnection {
+  id: string;
+  user_id: string;
+  display_name: string;
+  encrypted_token: string;
+  iv: string;
+  github_user_id: string | null;
+  github_login: string;
+  github_name: string | null;
+  avatar_url: string | null;
+  scopes: string[];
+  is_active: boolean;
+  last_synced_at: string | null;
+  last_sync_status: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Profile {
   id: string;
   email: string;
@@ -120,6 +217,8 @@ export interface SecondBrainNote {
   slug: string;
   content_md: string;
   source_url: string | null;
+  source_type?: "manual" | "capture" | "windows-notes-import";
+  source_metadata?: Record<string, unknown>;
   tags: string[];
   status: SecondBrainStatus;
   captured_at: string;
