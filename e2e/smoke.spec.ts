@@ -23,6 +23,9 @@ test.describe("workos smoke", () => {
       await page.goto(route);
       await expect(page).toHaveURL(new RegExp(`${route === "/" ? "\\/$" : route}$`));
       await expect(page.locator("h1")).toBeVisible();
+      await expect(page.getByText(/exige atencao/i)).toBeVisible();
+      await expect(page.getByText(/proxima acao/i)).toBeVisible();
+      await expect(page.getByRole("button", { name: /abrir busca rapida/i })).toBeVisible();
     }
   });
 

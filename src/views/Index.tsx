@@ -4,7 +4,7 @@ import { ArrowRight, Building2, Loader2, Video, ExternalLink, CalendarClock } fr
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/system/page-header";
+import { OperationalHero } from "@/components/system/operational-hero";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
@@ -339,9 +339,36 @@ export default function IndexPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <OperationalHero
+        eyebrow="Cockpit do dia"
         title="Painel principal"
         description={dashboardSummary.headline}
+        focusLabel="O que importa agora"
+        focusValue={dashboardSummary.nextTask ? `${dashboardSummary.nextTask.title} · ${dashboardSummary.nextTask.dueLabel}` : "Sem entrega critica aberta. Use o painel para organizar a proxima frente."}
+        riskLabel="Onde pode travar"
+        riskValue={
+          !meetingsConnected
+            ? "Agenda ainda nao conectada. Sem isso, o dia perde previsibilidade e os blocos de reuniao nao aparecem aqui."
+            : kanbanFocus.overdueCount > 0
+              ? `${kanbanFocus.overdueCount} tarefa(s) atrasada(s) pedem decisao rapida.`
+              : "Nenhum bloqueio forte detectado no momento."
+        }
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="rounded-2xl">
+              <Link href="/kanban">Revisar foco do board</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-2xl">
+              <Link href="/agenda">Abrir agenda do dia</Link>
+            </Button>
+          </div>
+        }
+        stats={[
+          { label: "Reunioes hoje", value: String(todayMeetings.length), tone: meetingsConnected ? "info" : "warning" },
+          { label: "Abertas", value: String(kanbanFocus.openCount) },
+          { label: "Atrasadas", value: String(kanbanFocus.overdueCount), tone: kanbanFocus.overdueCount > 0 ? "danger" : "success" },
+          { label: "Projetos ativos", value: String(projectsWithTodayStats.filter((project) => project.trackedSeconds > 0).length), tone: "success" },
+        ]}
       />
 
       <section className="rounded-2xl border border-border bg-card p-4 md:p-5">

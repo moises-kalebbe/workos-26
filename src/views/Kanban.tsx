@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { LoadingState } from "@/components/system/loading-state";
-import { PageHeader } from "@/components/system/page-header";
+import { OperationalHero } from "@/components/system/operational-hero";
 import { getQuadrant, toTaskFields } from "@/lib/eisenhower";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -635,8 +635,34 @@ export default function KanbanPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <PageHeader className="flex-1" title="Kanban" description="Organize tarefas por coluna e prioridade." />
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <OperationalHero
+            eyebrow="Execucao priorizada"
+            title="Kanban"
+            description="Organize execucao, prazos e proxima acao sem perder contexto."
+            focusLabel="Foco recomendado"
+            focusValue={
+              boardSummary.recommendedTask
+                ? `${boardSummary.recommendedTask.title} · ${QUADRANT_BADGE[getQuadrant(boardSummary.recommendedTask)].label}`
+                : "Nenhuma tarefa aberta no momento. Crie ou reative uma frente para montar a fila."
+            }
+            riskLabel="Risco do board"
+            riskValue={
+              boardSummary.overdueCount > 0
+                ? `${boardSummary.overdueCount} tarefa(s) atrasada(s) e ${boardSummary.inProgressCount} em andamento.`
+                : boardSummary.inProgressCount > 3
+                  ? "Existe trabalho demais em andamento. Reduzir WIP deve melhorar o fluxo."
+                  : "Nenhum gargalo forte detectado agora."
+            }
+            stats={[
+              { label: "Abertas", value: String(boardSummary.openCount) },
+              { label: "Em andamento", value: String(boardSummary.inProgressCount), tone: "info" },
+              { label: "Vencem hoje", value: String(boardSummary.dueTodayCount), tone: boardSummary.dueTodayCount > 0 ? "warning" : "success" },
+              { label: "Atrasadas", value: String(boardSummary.overdueCount), tone: boardSummary.overdueCount > 0 ? "danger" : "success" },
+            ]}
+          />
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
@@ -973,7 +999,7 @@ export default function KanbanPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card/95 p-4 md:p-5">
+      <section className="sticky top-[188px] z-20 rounded-2xl border border-border bg-card/95 p-4 md:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Filtros do quadro</p>

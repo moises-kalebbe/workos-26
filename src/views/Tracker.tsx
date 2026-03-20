@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/system/empty-state";
 import { LoadingState } from "@/components/system/loading-state";
-import { PageHeader } from "@/components/system/page-header";
+import { OperationalHero } from "@/components/system/operational-hero";
 import { cn, formatDuration, formatMoney } from "@/lib/utils";
 import { PROJECT_COLORS } from "@/lib/projectColors";
 import { toast } from "sonner";
@@ -471,11 +471,23 @@ export default function TrackerPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <PageHeader
-          className="flex-1"
-          title="Time Tracker"
-          description="Acompanhe foco, horas do dia e valor gerado sem perder o projeto que importa agora."
-        />
+        <div className="flex-1">
+          <OperationalHero
+            eyebrow="Fluxo diario"
+            title="Time Tracker"
+            description="Acompanhe foco, horas do dia e valor gerado sem perder o projeto que importa agora."
+            focusLabel="Sessao em foco"
+            focusValue={activeProject ? `${activeProject.name} em andamento com ${formatDuration(timer.elapsed)} registrados nesta sessao.` : "Nenhuma sessao ativa. Retome um projeto para registrar o proximo bloco de trabalho."}
+            riskLabel="Risco operacional"
+            riskValue={trackerSummary.workedTodayCount === 0 ? "Ainda nao existe registro de tempo hoje. O dia pode ficar invisivel nos relatorios." : "O principal risco agora e trocar de projeto sem fechar o bloco atual."}
+            stats={[
+              { label: "Horas hoje", value: formatDuration(trackerSummary.todaySeconds + timer.elapsed) },
+              { label: "Valor hoje", value: formatMoney(trackerSummary.todayValue + (activeProject ? (timer.elapsed / 3600) * activeProject.hourly_rate : 0)), tone: "success" },
+              { label: "Projetos ativos no dia", value: String(trackerSummary.workedTodayCount), tone: "info" },
+              { label: "Maior foco", value: trackerSummary.topProjectToday?.project.name || "Nenhum", tone: trackerSummary.topProjectToday ? "default" : "warning" },
+            ]}
+          />
+        </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>

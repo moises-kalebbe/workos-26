@@ -41,6 +41,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeleteConfirmDialog } from "@/components/system/delete-confirm-dialog";
+import { OperationalHero } from "@/components/system/operational-hero";
+import { StatePanel, StatePanelAction } from "@/components/system/state-panel";
 import { cn } from "@/lib/utils";
 import {
   downloadBlob,
@@ -677,9 +679,12 @@ export default function SkillsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <StatePanel
+        state="loading"
+        icon={Loader2}
+        title="Preparando biblioteca de skills"
+        description="Organizando categorias, conhecimento recente e preview da skill em foco."
+      />
     );
   }
 
@@ -712,11 +717,22 @@ export default function SkillsPage() {
       />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Skills Library</h1>
-          <p className="text-sm text-muted-foreground">
-            Biblioteca privada de conhecimento em Markdown, organizada para busca, reutilizacao e acao rapida.
-          </p>
+        <div className="flex-1">
+          <OperationalHero
+            eyebrow="Biblioteca operacional"
+            title="Skills Library"
+            description="Biblioteca privada de conhecimento em Markdown, organizada para busca, reutilizacao e acao rapida."
+            focusLabel="Skill em foco"
+            focusValue={selectedSkill ? `${selectedSkill.title} pronta para consulta e uso imediato.` : "Nenhuma skill selecionada. Escolha uma entrada para abrir o preview util."}
+            riskLabel="Risco da biblioteca"
+            riskValue={filteredSkills.length === 0 ? "Sem resultados no filtro atual. A biblioteca perde valor quando a consulta nao encontra nada util." : "O principal risco agora e acumular conhecimento sem resumo curto e sem categoria clara."}
+            stats={[
+              { label: "Skills", value: String(libraryStats.totalSkills) },
+              { label: "Categorias", value: String(libraryStats.totalCategories), tone: "info" },
+              { label: "Manual", value: String(libraryStats.manualCount), tone: "success" },
+              { label: "Upload", value: String(libraryStats.uploadCount), tone: libraryStats.uploadCount > 0 ? "default" : "warning" },
+            ]}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -1069,10 +1085,20 @@ export default function SkillsPage() {
 
         <section className="rounded-2xl border border-border bg-card p-5">
           {!selectedSkill ? (
-            <div className="flex h-full min-h-[380px] flex-col items-center justify-center gap-2 text-center">
-              <BookOpen className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Selecione uma skill para visualizar.</p>
-            </div>
+            <StatePanel
+              state="empty"
+              icon={BookOpen}
+              title="Escolha uma skill para abrir o preview"
+              description="A area da direita agora serve para leitura rapida, copia e decisao imediata. Se nada estiver selecionado, voce perde o principal valor da tela."
+              bullets={["Resumo curto", "Markdown completo", "Categoria", "Projeto associado"]}
+              action={
+                filteredSkills.length > 0 ? (
+                  <StatePanelAction onClick={() => setSelectedSkillId(filteredSkills[0].id)}>
+                    Abrir primeira skill disponivel
+                  </StatePanelAction>
+                ) : undefined
+              }
+            />
           ) : (
             <div className="space-y-4">
               <div className="rounded-2xl border border-border bg-background/40 p-4">

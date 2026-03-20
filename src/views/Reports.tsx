@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/system/empty-state";
 import { LoadingState } from "@/components/system/loading-state";
-import { PageHeader } from "@/components/system/page-header";
+import { OperationalHero } from "@/components/system/operational-hero";
 import { cn, formatDuration, formatMoney } from "@/lib/utils";
 import type { Project, TimeSession } from "@/types";
 
@@ -208,11 +208,23 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <PageHeader
-          className="flex-1"
-          title="Relatorios"
-          description="Veja rapidamente onde seu tempo esta concentrado, quanto isso gera e quais sessoes explicam o resultado."
-        />
+        <div className="flex-1">
+          <OperationalHero
+            eyebrow="Leitura executiva"
+            title="Relatorios"
+            description="Veja rapidamente onde seu tempo esta concentrado, quanto isso gera e quais sessoes explicam o resultado."
+            focusLabel="Principal leitura"
+            focusValue={topProject ? `${topProject.name} lidera o periodo com ${topProject.hours.toFixed(1)}h e ${formatMoney(topProject.value)}.` : "Ainda nao existem sessoes suficientes para uma leitura forte do periodo."}
+            riskLabel="Risco analitico"
+            riskValue={sessions.length === 0 ? "Sem sessoes no periodo. Os relatorios nao conseguem orientar decisoes ate existir base minima." : `${projectReports.length} projeto(s) com horas. Revise concentracao excessiva ou dispersao.`}
+            stats={[
+              { label: "Horas", value: `${totalHours.toFixed(1)}h` },
+              { label: "Valor", value: formatMoney(totalValue), tone: "success" },
+              { label: "Sessoes", value: String(sessions.length), tone: "info" },
+              { label: "Projetos", value: String(projectReports.length), tone: projectReports.length > 0 ? "default" : "warning" },
+            ]}
+          />
+        </div>
 
         <Button onClick={exportCSV} variant="outline" className="h-11 rounded-2xl border-border bg-background/60">
           <Download className="mr-2 h-4 w-4" />

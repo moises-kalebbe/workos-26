@@ -53,6 +53,8 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { OperationalHero } from "@/components/system/operational-hero";
+import { StatePanel, StatePanelAction } from "@/components/system/state-panel";
 import {
   AgendaPreferences,
   AgendaPriority,
@@ -760,23 +762,42 @@ export default function AgendaPage() {
   if (!connected && connectionReady && !loading) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
-          <p className="text-sm text-muted-foreground">Seus compromissos e eventos</p>
-        </div>
+        <OperationalHero
+          eyebrow="Fluxo do dia"
+          title="Agenda"
+          description="Mesmo sem integracao ativa, esta area deve deixar claro o que falta para o dia ficar controlado."
+          focusLabel="O que falta destravar"
+          focusValue="Conectar o Google Calendar para puxar compromissos, responder convites e centralizar o ritmo do dia."
+          riskLabel="Risco atual"
+          riskValue="Sem a agenda conectada, reunioes e blocos de foco ficam invisiveis no cockpit principal."
+          stats={[
+            { label: "Status", value: "Desconectada", tone: "warning" },
+            { label: "Convites", value: "Indisponiveis", tone: "warning" },
+            { label: "Meet", value: "Nao criado", tone: "warning" },
+            { label: "Semana", value: `${format(weekStart, "dd/MM", { locale: ptBR })} - ${format(weekEnd, "dd/MM", { locale: ptBR })}`, tone: "info" },
+          ]}
+        />
 
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
-          <CalendarDays className="mx-auto mb-4 h-12 w-12 text-primary" />
-          <p className="mb-2 text-lg font-medium text-foreground">Conecte seu Google Calendar</p>
-          <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
-            Veja eventos, responda convites e crie reunioes direto no WorkOS.
-          </p>
-          {error && <p className="mb-4 text-sm text-danger">{error}</p>}
-          <Button onClick={connectGoogle} className="gap-2">
-            <Calendar className="h-4 w-4" />
-            Conectar Google Calendar
-          </Button>
-        </div>
+        <StatePanel
+          state="empty"
+          icon={CalendarDays}
+          title="Conecte seu Google Calendar"
+          description="Assim que a integracao estiver ativa, esta tela vira um centro operacional para compromissos, respostas, prioridades e reunioes do dia."
+          bullets={["Ver eventos e convites", "Criar reunioes com Meet", "Priorizar a semana", "Responder sem sair do WorkOS"]}
+          action={
+            <StatePanelAction onClick={connectGoogle} className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Conectar Google Calendar
+            </StatePanelAction>
+          }
+          secondaryAction={
+            error ? (
+              <StatePanelAction variant="outline" disabled className="border-danger/30 text-danger">
+                {error}
+              </StatePanelAction>
+            ) : undefined
+          }
+        />
       </div>
     );
   }
@@ -784,11 +805,22 @@ export default function AgendaPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
-          <p className="text-sm text-muted-foreground">
-            {format(weekStart, "dd MMM", { locale: ptBR })} - {format(weekEnd, "dd MMM yyyy", { locale: ptBR })}
-          </p>
+        <div className="flex-1">
+          <OperationalHero
+            eyebrow="Ritmo da semana"
+            title="Agenda"
+            description={`${format(weekStart, "dd MMM", { locale: ptBR })} - ${format(weekEnd, "dd MMM yyyy", { locale: ptBR })}`}
+            focusLabel="O que exige atencao"
+            focusValue={agendaSummary.live > 0 ? `${agendaSummary.live} compromisso(s) em andamento agora.` : agendaSummary.pending > 0 ? `${agendaSummary.pending} convite(s) aguardando resposta.` : "Agenda limpa no momento. Use esta tela para desenhar o resto do dia."}
+            riskLabel="Onde pode travar"
+            riskValue={agendaSummary.pending > 0 ? "Convites sem resposta e eventos sem contexto tendem a gerar troca de foco desnecessaria." : "O maior risco agora e deixar a agenda desatualizada em relacao ao que voce realmente vai executar."}
+            stats={[
+              { label: "Total", value: String(agendaSummary.total) },
+              { label: "Pendentes", value: String(agendaSummary.pending), tone: agendaSummary.pending > 0 ? "warning" : "success" },
+              { label: "Ao vivo", value: String(agendaSummary.live), tone: agendaSummary.live > 0 ? "info" : "default" },
+              { label: "Confirmadas", value: String(agendaSummary.confirmed), tone: "success" },
+            ]}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

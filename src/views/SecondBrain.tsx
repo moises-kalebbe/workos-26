@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DeleteConfirmDialog } from "@/components/system/delete-confirm-dialog";
+import { OperationalHero } from "@/components/system/operational-hero";
+import { StatePanel, StatePanelAction } from "@/components/system/state-panel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getUniqueSlug } from "@/lib/markdown";
@@ -478,9 +480,12 @@ export default function SecondBrainPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <StatePanel
+        state="loading"
+        icon={Loader2}
+        title="Montando Second Brain"
+        description="Carregando notas, conexoes e a teia visual de conhecimento."
+      />
     );
   }
 
@@ -497,11 +502,22 @@ export default function SecondBrainPage() {
       />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Second Brain</h1>
-          <p className="text-sm text-muted-foreground">
-            Capture rapido, organize melhor e conecte notas em uma base viva de conhecimento.
-          </p>
+        <div className="flex-1">
+          <OperationalHero
+            eyebrow="Memoria conectada"
+            title="Second Brain"
+            description="Capture rapido, organize melhor e conecte notas em uma base viva de conhecimento."
+            focusLabel="Nota em foco"
+            focusValue={selectedNote ? `${selectedNote.title} pronta para edicao e conexoes.` : "Nenhuma nota selecionada. Use a lista ou o grafo para abrir o contexto certo."}
+            riskLabel="Risco da base"
+            riskValue={secondBrainStats.inboxCount > 0 ? `${secondBrainStats.inboxCount} nota(s) ainda estao no inbox sem curadoria.` : "O maior risco agora e acumular notas sem conexoes claras."}
+            stats={[
+              { label: "Inbox", value: String(secondBrainStats.inboxCount), tone: secondBrainStats.inboxCount > 0 ? "warning" : "success" },
+              { label: "Ativas", value: String(secondBrainStats.activeCount), tone: "info" },
+              { label: "Arquivadas", value: String(secondBrainStats.archivedCount) },
+              { label: "Conexoes", value: String(links.length), tone: links.length > 0 ? "success" : "warning" },
+            ]}
+          />
         </div>
 
         <Button variant="outline" className="gap-2" onClick={() => void loadData()}>
@@ -749,10 +765,20 @@ export default function SecondBrainPage() {
 
           <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
             {!selectedNote ? (
-              <div className="flex min-h-[500px] flex-col items-center justify-center gap-2 text-center">
-                <BrainCircuit className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Selecione uma nota para editar e conectar.</p>
-              </div>
+              <StatePanel
+                state="empty"
+                icon={BrainCircuit}
+                title="Selecione uma nota para editar e conectar"
+                description="A coluna da direita existe para consolidar a nota, revisar links e fechar a proxima acao. Sem selecao, a tela perde metade do valor."
+                bullets={["Editar conteudo", "Ajustar status", "Criar links", "Relacionar projeto"]}
+                action={
+                  filteredNotes.length > 0 ? (
+                    <StatePanelAction onClick={() => setSelectedNoteId(filteredNotes[0].id)}>
+                      Abrir primeira nota disponivel
+                    </StatePanelAction>
+                  ) : undefined
+                }
+              />
             ) : (
               <>
                 <div className="rounded-2xl border border-border bg-background/40 p-4">

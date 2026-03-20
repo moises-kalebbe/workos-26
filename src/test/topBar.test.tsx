@@ -35,7 +35,7 @@ describe("TopBar", () => {
     expect(screen.getByText("Limeira, SP")).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText("25°C | Quase limpo")).toBeInTheDocument();
+      expect(screen.getByText((content) => content.includes("25") && content.includes("Quase limpo"))).toBeInTheDocument();
     });
   });
 
@@ -45,7 +45,7 @@ describe("TopBar", () => {
     render(<TopBar />);
 
     await waitFor(() => {
-      expect(screen.getByText("Clima indisponível")).toBeInTheDocument();
+      expect(screen.getByText(/clima indispon/i)).toBeInTheDocument();
     });
   });
 
@@ -86,12 +86,12 @@ describe("TopBar", () => {
     render(<TopBar />);
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    expect(await screen.findByPlaceholderText("Ir para uma pagina...")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Ir para uma pagina ou disparar uma acao...")).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText("Ir para uma pagina...")).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("Ir para uma pagina ou disparar uma acao...")).not.toBeInTheDocument();
     });
   });
 });

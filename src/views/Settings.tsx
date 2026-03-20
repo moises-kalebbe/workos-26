@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/system/empty-state";
 import { LoadingState } from "@/components/system/loading-state";
-import { PageHeader } from "@/components/system/page-header";
+import { OperationalHero } from "@/components/system/operational-hero";
 import { formatMoney } from "@/lib/utils";
 import { calculateProjectContract } from "@/lib/projectContract";
 import { PROJECT_COLORS } from "@/lib/projectColors";
@@ -369,9 +369,20 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <PageHeader
+      <OperationalHero
+        eyebrow="Base do workspace"
         title="Configuracoes"
         description="Ajuste perfil, empresas e preferencias sem perder contexto da operacao."
+        focusLabel="O que revisar primeiro"
+        focusValue={projects.length === 0 ? "Cadastre a primeira empresa para conectar tracker, kanban, relatorios e cofre." : `Existem ${projects.length} empresa(s) no workspace. Revise identidade e preferencias antes de escalar o uso.`}
+        riskLabel="Risco de base"
+        riskValue={!profile?.timezone ? "Timezone ausente ou desatualizado pode quebrar leitura de agenda e timeline." : "O maior risco agora e manter empresas ou taxas desatualizadas."}
+        stats={[
+          { label: "Empresas", value: String(projects.length) },
+          { label: "Timezone", value: timezone.replace("America/", ""), tone: "info" },
+          { label: "Perfil", value: name || "Sem nome", tone: name ? "success" : "warning" },
+          { label: "Avatar", value: avatarUrl ? "Configurado" : "Pendente", tone: avatarUrl ? "success" : "warning" },
+        ]}
       />
 
       <section className="grid gap-3 xl:grid-cols-[1.35fr_0.9fr_0.9fr_0.9fr]">
