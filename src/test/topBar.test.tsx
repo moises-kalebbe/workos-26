@@ -63,7 +63,7 @@ describe("TopBar", () => {
 
     render(<TopBar />);
 
-    fireEvent.click(screen.getByRole("button", { name: /abrir busca rápida/i }));
+    fireEvent.click(screen.getByRole("button", { name: /abrir busca rapida/i }));
 
     const kanbanItem = await screen.findByText("Kanban");
     fireEvent.click(kanbanItem);
@@ -86,12 +86,12 @@ describe("TopBar", () => {
     render(<TopBar />);
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    expect(await screen.findByPlaceholderText("Ir para uma página...")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Ir para uma pagina...")).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText("Ir para uma página...")).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("Ir para uma pagina...")).not.toBeInTheDocument();
     });
   });
 });
