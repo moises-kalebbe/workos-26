@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Settings, User, Globe, Briefcase, Loader2, Camera, Trash2, Pencil, Plus, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,11 +55,7 @@ export default function SettingsPage() {
 
   const COLORS = ["#8b5cf6", "#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#ec4899"];
 
-  useEffect(() => {
-    if (user) loadData();
-  }, [user]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const [profileRes, projRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
@@ -76,7 +72,11 @@ export default function SettingsPage() {
 
     setProjects((projRes.data || []) as unknown as Project[]);
     setLoading(false);
-  }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) void loadData();
+  }, [loadData, user]);
 
   async function saveProfile() {
     if (!user) return;
@@ -111,7 +111,7 @@ export default function SettingsPage() {
       toast.success("Empresa criada!");
       setNewProjectDialog(false);
       setNewName(""); setNewClient(""); setNewRate("");
-      loadData();
+      void loadData();
     }
   }
 
@@ -129,7 +129,7 @@ export default function SettingsPage() {
     } else {
       toast.success("Empresa atualizada!");
       setEditProjectDialog(false);
-      loadData();
+      void loadData();
     }
   }
 
@@ -140,7 +140,7 @@ export default function SettingsPage() {
       toast.error("Erro ao excluir");
     } else {
       toast.success("Empresa excluída!");
-      loadData();
+      void loadData();
     }
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,11 +21,7 @@ export default function ReportsPage() {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  useEffect(() => {
-    if (user) loadData();
-  }, [user, startDate, endDate]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const [sessRes, projRes] = await Promise.all([
       supabase
@@ -40,7 +36,11 @@ export default function ReportsPage() {
     setSessions((sessRes.data || []) as any);
     setProjects((projRes.data || []) as unknown as Project[]);
     setLoading(false);
-  }
+  }, [endDate, startDate]);
+
+  useEffect(() => {
+    if (user) void loadData();
+  }, [loadData, user]);
 
   const totalSeconds = sessions.reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
   const totalValue = sessions.reduce((acc, s) => {
