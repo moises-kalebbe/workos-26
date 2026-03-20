@@ -91,6 +91,12 @@ function buildTagsInput(tags: string[]) {
   return tags.join(", ");
 }
 
+function getStatusDescription(status: SecondBrainNote["status"]) {
+  if (status === "inbox") return "Capturada e aguardando organizacao.";
+  if (status === "archived") return "Guardada no historico da base.";
+  return "Nota ativa e pronta para conexoes.";
+}
+
 export default function SecondBrainPage() {
   const { user } = useAuth();
   const graphContainerRef = useRef<HTMLDivElement | null>(null);
@@ -179,6 +185,26 @@ export default function SecondBrainPage() {
     () => filterSecondBrainNotes(notes, search, statusFilter, tagFilter),
     [notes, search, statusFilter, tagFilter],
   );
+
+  const secondBrainStats = useMemo(() => {
+    const inboxCount = notes.filter((note) => note.status === "inbox").length;
+    const activeCount = notes.filter((note) => note.status === "note").length;
+    const archivedCount = notes.filter((note) => note.status === "archived").length;
+    const topTags = [...new Map(
+      notes
+        .flatMap((note) => note.tags)
+        .map((tag) => [tag, notes.filter((note) => note.tags.includes(tag)).length] as const),
+    ).entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    return {
+      inboxCount,
+      activeCount,
+      archivedCount,
+      topTags,
+    };
+  }, [notes]);
 
   useEffect(() => {
     if (filteredNotes.length === 0) {
@@ -473,7 +499,9 @@ export default function SecondBrainPage() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Second Brain</h1>
-          <p className="text-sm text-muted-foreground">PKM privado com Inbox + Notes + Tags e teia de conhecimento</p>
+          <p className="text-sm text-muted-foreground">
+            Capture rapido, organize melhor e conecte notas em uma base viva de conhecimento.
+          </p>
         </div>
 
         <Button variant="outline" className="gap-2" onClick={() => void loadData()}>
@@ -482,10 +510,47 @@ export default function SecondBrainPage() {
         </Button>
       </div>
 
-      <section className="rounded-xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Captura rapida</h2>
-          <Badge variant="outline">Vai para Inbox</Badge>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-border bg-card/90 p-4">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Inbox</p>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.inboxCount}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Notas capturadas aguardando processamento.</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card/90 p-4">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Ativas</p>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.activeCount}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Notas prontas para consulta e conexao.</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card/90 p-4">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Arquivadas</p>
+          <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.archivedCount}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Historico preservado fora do fluxo principal.</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card/90 p-4">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Tags em alta</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {secondBrainStats.topTags.length === 0 ? (
+              <span className="text-sm text-muted-foreground">Sem tags ainda</span>
+            ) : (
+              secondBrainStats.topTags.map(([tag, count]) => (
+                <Badge key={tag} variant="secondary">{tag} ({count})</Badge>
+              ))
+            )}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Temas mais recorrentes na base atual.</p>
+        </div>
+      </div>
+
+      <section className="rounded-2xl border border-border bg-card p-5">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Captura rapida</p>
+            <h2 className="mt-1 text-xl font-semibold text-foreground">Jogue primeiro no Inbox</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Cole ideias, trechos, links ou insights sem se preocupar em organizar tudo agora.
+            </p>
+          </div>
+          <Badge variant="outline">Nova nota vai para Inbox</Badge>
         </div>
 
         <div className="space-y-3">
@@ -543,8 +608,8 @@ export default function SecondBrainPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)_380px]">
-        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_400px]">
+        <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Notas</h2>
             <Badge variant="secondary">{filteredNotes.length}</Badge>
@@ -583,7 +648,7 @@ export default function SecondBrainPage() {
 
           <div className="max-h-[540px] space-y-2 overflow-auto pr-1">
             {filteredNotes.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                 Nenhuma nota encontrada.
               </div>
             ) : (
@@ -592,10 +657,10 @@ export default function SecondBrainPage() {
                   key={note.id}
                   type="button"
                   onClick={() => setSelectedNoteId(note.id)}
-                  className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                  className={`w-full rounded-2xl border p-4 text-left transition-colors ${
                     selectedNoteId === note.id
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-muted-foreground/40"
+                      ? "border-primary bg-primary/10 shadow-[0_0_0_1px_rgba(56,189,248,0.12)]"
+                      : "border-border bg-background/30 hover:border-muted-foreground/40 hover:bg-background/60"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -604,6 +669,10 @@ export default function SecondBrainPage() {
                       {STATUS_LABEL[note.status]}
                     </Badge>
                   </div>
+
+                  <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                    {note.content_md.slice(0, 120) || "Sem conteudo ainda."}
+                  </p>
 
                   <p className="mt-2 text-[11px] text-muted-foreground">
                     Atualizada em {formatDateTime(note.updated_at)}
@@ -625,7 +694,7 @@ export default function SecondBrainPage() {
           </div>
         </section>
 
-        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
           {!selectedNote ? (
             <div className="flex min-h-[500px] flex-col items-center justify-center gap-2 text-center">
               <BrainCircuit className="h-8 w-8 text-muted-foreground" />
@@ -633,6 +702,53 @@ export default function SecondBrainPage() {
             </div>
           ) : (
             <>
+              <div className="rounded-2xl border border-border bg-background/40 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Nota em foco</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-foreground">{selectedNote.title}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{getStatusDescription(selectedNote.status)}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="outline" className={STATUS_BADGE_CLASS[selectedNote.status]}>
+                        {STATUS_LABEL[selectedNote.status]}
+                      </Badge>
+                      <Badge variant="secondary">
+                        {projectMap.get(selectedNote.project_id || "")?.name || "Conhecimento geral"}
+                      </Badge>
+                      <Badge variant="outline">Atualizada em {formatDateTime(selectedNote.updated_at)}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => void handleSaveNote()} disabled={mutating} className="gap-2">
+                      <Save className="h-4 w-4" />
+                      Salvar
+                    </Button>
+                    <Button variant="outline" onClick={() => void handleToggleArchive()} disabled={mutating} className="gap-2">
+                      {selectedNote.status === "archived" ? (
+                        <>
+                          <ArchiveRestore className="h-4 w-4" />
+                          Reativar
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="h-4 w-4" />
+                          Arquivar
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="gap-2 text-danger hover:text-danger"
+                      onClick={() => setDeleteDialogOpen(true)}
+                      disabled={mutating}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_240px]">
                 <div className="space-y-2">
                   <Label>Titulo</Label>
@@ -696,41 +812,12 @@ export default function SecondBrainPage() {
                 <Textarea
                   value={editorContent}
                   onChange={(event) => setEditorContent(event.target.value)}
-                  className="min-h-[260px] font-mono text-xs"
+                  className="min-h-[280px] rounded-2xl border-border bg-background/70 font-mono text-xs leading-6"
                   placeholder="Use [[wikilinks]] para conectar notas"
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => void handleSaveNote()} disabled={mutating} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Salvar
-                </Button>
-                <Button variant="outline" onClick={() => void handleToggleArchive()} disabled={mutating} className="gap-2">
-                  {selectedNote.status === "archived" ? (
-                    <>
-                      <ArchiveRestore className="h-4 w-4" />
-                      Reativar
-                    </>
-                  ) : (
-                    <>
-                      <Archive className="h-4 w-4" />
-                      Arquivar
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2 text-danger hover:text-danger"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  disabled={mutating}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Excluir
-                </Button>
-              </div>
-
-              <div className="grid gap-3 rounded-lg border border-border bg-background p-3 md:grid-cols-[1fr_auto]">
+              <div className="grid gap-3 rounded-2xl border border-border bg-background p-4 md:grid-cols-[1fr_auto]">
                 <div className="space-y-2">
                   <Label>Conexao manual</Label>
                   <Select value={manualTargetId} onValueChange={setManualTargetId}>
@@ -760,7 +847,7 @@ export default function SecondBrainPage() {
               </div>
 
               <div className="grid gap-3 lg:grid-cols-2">
-                <div className="rounded-lg border border-border bg-background p-3">
+                <div className="rounded-2xl border border-border bg-background p-3">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conexoes atuais</p>
                   {outgoingLinks.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Sem conexoes saindo desta nota.</p>
@@ -784,7 +871,7 @@ export default function SecondBrainPage() {
                   )}
                 </div>
 
-                <div className="rounded-lg border border-border bg-background p-3">
+                <div className="rounded-2xl border border-border bg-background p-3">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sugestoes por tags</p>
                   {suggestions.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Sem sugestoes no momento.</p>
@@ -813,9 +900,9 @@ export default function SecondBrainPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-background p-3">
+              <div className="rounded-2xl border border-border bg-[#0b1220] p-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview</p>
-                <article className="prose prose-sm max-w-none overflow-auto prose-invert">
+                <article className="prose prose-sm max-w-none overflow-auto prose-invert prose-headings:text-white prose-p:leading-7 prose-li:leading-7 prose-strong:text-white">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{editorContent || "_Sem conteudo_"}</ReactMarkdown>
                 </article>
               </div>
@@ -823,13 +910,23 @@ export default function SecondBrainPage() {
           )}
         </section>
 
-        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Teia de conhecimento</h2>
             <Badge variant="secondary">{graphData.nodes.length} nos</Badge>
           </div>
 
-          <div ref={graphContainerRef} className="rounded-lg border border-border bg-background p-2">
+          {selectedNote && (
+            <div className="rounded-2xl border border-border bg-background/40 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Centro atual</p>
+              <p className="mt-2 text-sm font-medium text-foreground">{selectedNote.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {outgoingLinks.length} conexao(oes) saindo desta nota e {suggestions.length} sugestao(oes) relacionadas.
+              </p>
+            </div>
+          )}
+
+          <div ref={graphContainerRef} className="rounded-2xl border border-border bg-background p-2">
             {graphData.nodes.length === 0 ? (
               <div className="flex h-[360px] items-center justify-center text-center text-sm text-muted-foreground">
                 Sem notas no filtro atual para montar o grafo.
