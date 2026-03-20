@@ -148,6 +148,7 @@ export function useGoogleCalendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [connectionReady, setConnectionReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [insufficientScope, setInsufficientScope] = useState(false);
 
@@ -212,6 +213,7 @@ export function useGoogleCalendar() {
 
         if (!session) {
           setConnected(false);
+          setConnectionReady(true);
           setEvents([]);
           setLoading(false);
           return;
@@ -235,6 +237,7 @@ export function useGoogleCalendar() {
 
         if (result.error === "not_connected") {
           setConnected(false);
+          setConnectionReady(true);
           setEvents([]);
           setInsufficientScope(false);
           return;
@@ -242,6 +245,7 @@ export function useGoogleCalendar() {
 
         if (result.error === "insufficient_scope") {
           setConnected(true);
+          setConnectionReady(true);
           setEvents([]);
           setInsufficientScope(true);
           setError("Permissao insuficiente do Google Calendar. Reconecte e aceite permissoes de edicao.");
@@ -250,6 +254,7 @@ export function useGoogleCalendar() {
 
         if (result.events) {
           setConnected(true);
+          setConnectionReady(true);
           setInsufficientScope(false);
           const merged = await mergeEventsWithMetadata(result.events, session.user.id);
           setEvents(merged);
@@ -527,7 +532,6 @@ export function useGoogleCalendar() {
   useEffect(() => {
     const init = async () => {
       await storeTokenFromSession();
-      setLoading(false);
     };
 
     void init();
@@ -537,6 +541,7 @@ export function useGoogleCalendar() {
     events,
     loading,
     connected,
+    connectionReady,
     error,
     insufficientScope,
     connectGoogle,

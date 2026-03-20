@@ -17,8 +17,11 @@ import {
 } from "lucide-react";
 import {
   addWeeks,
+  differenceInMinutes,
   endOfWeek,
   format,
+  isAfter,
+  isBefore,
   isSameDay,
   isToday,
   parseISO,
@@ -92,6 +95,146 @@ function statusMatchesFilter(event: CalendarEvent, filter: AgendaPreferences["st
   return event.selfResponseStatus === "needsAction" || event.selfResponseStatus === "none" || event.selfResponseStatus === "tentative";
 }
 
+type EventMomentState = "past" | "live" | "upcoming";
+type EventBucket = "pending" | "confirmed" | "live" | "past";
+
+function getEventMomentState(start: Date, end: Date, now: Date): EventMomentState {
+  if (isBefore(end, now)) return "past";
+  if (isAfter(start, now)) return "upcoming";
+  return "live";
+}
+
+function getEventBucket(event: CalendarEvent, now: Date): EventBucket {
+  const startDate = parseISO(event.start);
+  const endDate = parseISO(event.end);
+  const momentState = getEventMomentState(startDate, endDate, now);
+
+  if (momentState === "past") return "past";
+  if (momentState === "live") return "live";
+  if (event.selfResponseStatus === "needsAction" || event.selfResponseStatus === "none" || event.selfResponseStatus === "tentative") {
+    return "pending";
+  }
+  return "confirmed";
+}
+
+function getEventMomentLabel(event: CalendarEvent, now: Date) {
+  const startDate = parseISO(event.start);
+  const endDate = parseISO(event.end);
+  const momentState = getEventMomentState(startDate, endDate, now);
+
+  if (momentState === "past") {
+    return {
+      label: "Encerrada",
+      className: "border-border bg-background text-muted-foreground",
+    };
+  }
+
+  if (momentState === "live") {
+    return {
+      label: "Acontecendo agora",
+      className: "border-primary/30 bg-primary/10 text-primary",
+    };
+  }
+
+  const minutesUntilStart = differenceInMinutes(startDate, now);
+
+  if (minutesUntilStart <= 60) {
+    return {
+      label: "Comeca em breve",
+      className: "border-warning/40 bg-warning/10 text-warning",
+    };
+  }
+
+  if (isToday(startDate)) {
+    return {
+      label: "Ainda hoje",
+      className: "border-primary/20 bg-primary/10 text-primary",
+    };
+  }
+
+  return {
+    label: "Proxima",
+    className: "border-border bg-background text-muted-foreground",
+  };
+}
+
+function getResponseBadge(event: CalendarEvent) {
+  if (event.selfResponseStatus === "accepted") {
+    return {
+      label: "Aceita",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    };
+  }
+
+  if (event.selfResponseStatus === "declined") {
+    return {
+      label: "Recusada",
+      className: "border-danger/40 bg-danger/10 text-danger",
+    };
+  }
+
+  return {
+    label: "Aguardando resposta",
+    className: "border-warning/40 bg-warning/10 text-warning",
+  };
+}
+
+function AgendaGroup({
+  title,
+  description,
+  count,
+  events,
+  projects,
+  respondingEventId,
+  savingSeriesKey,
+  onRespond,
+  onSaveMetadata,
+}: {
+  title: string;
+  description: string;
+  count: number;
+  events: CalendarEvent[];
+  projects: Project[];
+  respondingEventId: string | null;
+  savingSeriesKey: string | null;
+  onRespond: (eventId: string, status: "accepted" | "declined") => Promise<void>;
+  onSaveMetadata: (
+    seriesKey: string,
+    priority: AgendaPriority,
+    tags: string[],
+    projectId: string | null,
+    projectName: string | null,
+  ) => Promise<void>;
+}) {
+  if (events.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <Badge variant="secondary">{count}</Badge>
+      </div>
+
+      <div className="space-y-3">
+        {events.map((event) => (
+          <EventCard
+            key={event.id}
+            event={event}
+            projects={projects}
+            respondingEventId={respondingEventId}
+            savingSeriesKey={savingSeriesKey}
+            onRespond={onRespond}
+            onSaveMetadata={onSaveMetadata}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EventCard({
   event,
   projects,
@@ -115,6 +258,7 @@ function EventCard({
 }) {
   const startDate = parseISO(event.start);
   const endDate = parseISO(event.end);
+  const now = new Date();
   const [priority, setPriority] = useState<AgendaPriority>(event.priority);
   const [tagsInput, setTagsInput] = useState(event.tags.join(", "));
   const [projectValue, setProjectValue] = useState(projectSelectValue(event.projectId));
@@ -131,6 +275,13 @@ function EventCard({
   const isDeclined = event.selfResponseStatus === "declined";
   const isResponding = respondingEventId === event.id;
   const isSavingSeries = savingSeriesKey === event.seriesKey || savingDraft;
+  const eventMoment = getEventMomentLabel(event, now);
+  const responseBadge = getResponseBadge(event);
+  const eventBucket = getEventBucket(event, now);
+  const showPendingActions = event.canRespond && eventBucket === "pending";
+  const showAcceptedState = event.selfResponseStatus === "accepted" && eventBucket !== "past";
+  const showDeclinedState = event.selfResponseStatus === "declined";
+  const showDeclineAction = event.canRespond && eventBucket !== "past" && event.selfResponseStatus === "accepted";
 
   const handleSaveMetadata = async () => {
     setSavingDraft(true);
@@ -149,8 +300,9 @@ function EventCard({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-4",
+        "rounded-lg border bg-card p-4 transition-colors",
         isDeclined ? "border-danger/40 opacity-90" : "border-border",
+        eventBucket === "live" && "border-primary/40 shadow-[0_0_0_1px_rgba(56,189,248,0.18)]",
       )}
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start">
@@ -166,12 +318,11 @@ function EventCard({
         <div className="flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-base font-semibold text-foreground">{event.summary}</p>
+            <Badge className={cn("border", eventMoment.className)}>{eventMoment.label}</Badge>
             <Badge className={cn("border", PRIORITIES.find((item) => item.value === event.priority)?.badgeClass)}>
               {PRIORITIES.find((item) => item.value === event.priority)?.label}
             </Badge>
-            <Badge variant="outline" className={cn(isDeclined && "border-danger/40 text-danger")}>
-              {RESPONSE_STATUS_LABEL[event.selfResponseStatus]}
-            </Badge>
+            <Badge className={cn("border", responseBadge.className)}>{responseBadge.label}</Badge>
             <Badge variant="secondary">{event.projectName || "Conhecimento geral"}</Badge>
             {tags.map((tag) => (
               <Badge key={tag} variant="secondary" className="gap-1">
@@ -197,6 +348,18 @@ function EventCard({
           </div>
 
           {description && <p className="text-xs text-muted-foreground">{description}</p>}
+
+          {showAcceptedState && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+              Presenca confirmada. Esta reuniao ja foi aceita por voce.
+            </div>
+          )}
+
+          {showDeclinedState && eventBucket !== "past" && (
+            <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+              Convite recusado. A reuniao continua visivel para contexto, mas nao esta mais pendente.
+            </div>
+          )}
 
           <div className="grid gap-2 md:grid-cols-[160px_190px_1fr_auto]">
             <Select value={priority} onValueChange={(value) => setPriority(value as AgendaPriority)}>
@@ -258,11 +421,11 @@ function EventCard({
             <ExternalLink className="h-3 w-3" />
           </a>
 
-          {event.canRespond && (
+          {showPendingActions && (
             <div className="flex gap-2">
               <Button
                 size="sm"
-                variant={event.selfResponseStatus === "accepted" ? "default" : "outline"}
+                variant="default"
                 disabled={isResponding}
                 onClick={() => {
                   void onRespond(event.id, "accepted");
@@ -284,6 +447,26 @@ function EventCard({
               </Button>
             </div>
           )}
+
+          {showDeclineAction && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isResponding}
+              onClick={() => {
+                void onRespond(event.id, "declined");
+              }}
+            >
+              <X className="mr-1 h-3 w-3" />
+              Recusar agora
+            </Button>
+          )}
+
+          {!event.canRespond && (
+            <span className="text-xs text-muted-foreground">
+              {event.isOrganizer ? "Organizada por voce" : RESPONSE_STATUS_LABEL[event.selfResponseStatus]}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -296,6 +479,7 @@ export default function AgendaPage() {
     events,
     loading,
     connected,
+    connectionReady,
     error,
     insufficientScope,
     connectGoogle,
@@ -428,16 +612,48 @@ export default function AgendaPage() {
     });
   }, [events, preferences]);
 
+  const agendaSummary = useMemo(() => {
+    const now = new Date();
+
+    return filteredEvents.reduce(
+      (acc, event) => {
+        const bucket = getEventBucket(event, now);
+        acc.total += 1;
+        acc[bucket] += 1;
+        return acc;
+      },
+      {
+        total: 0,
+        pending: 0,
+        confirmed: 0,
+        live: 0,
+        past: 0,
+      },
+    );
+  }, [filteredEvents]);
+
   const days = useMemo(() => {
-    const result: { date: Date; events: CalendarEvent[] }[] = [];
+    const result: {
+      date: Date;
+      events: CalendarEvent[];
+      groupedEvents: Record<EventBucket, CalendarEvent[]>;
+    }[] = [];
+    const now = new Date();
 
     for (let i = 0; i < 7; i++) {
       const day = new Date(weekStart);
       day.setDate(weekStart.getDate() + i);
+      const dayEvents = filteredEvents.filter((event) => isSameDay(parseISO(event.start), day));
 
       result.push({
         date: day,
-        events: filteredEvents.filter((event) => isSameDay(parseISO(event.start), day)),
+        events: dayEvents,
+        groupedEvents: {
+          pending: dayEvents.filter((event) => getEventBucket(event, now) === "pending"),
+          live: dayEvents.filter((event) => getEventBucket(event, now) === "live"),
+          confirmed: dayEvents.filter((event) => getEventBucket(event, now) === "confirmed"),
+          past: dayEvents.filter((event) => getEventBucket(event, now) === "past"),
+        },
       });
     }
 
@@ -541,7 +757,7 @@ export default function AgendaPage() {
     }
   };
 
-  if (!connected && !loading) {
+  if (!connected && connectionReady && !loading) {
     return (
       <div className="space-y-6">
         <div>
@@ -694,6 +910,29 @@ export default function AgendaPage() {
       )}
 
       <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-lg border border-border bg-background/60 p-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pendentes</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.pending}</p>
+            <p className="text-xs text-muted-foreground">Convites aguardando sua resposta.</p>
+          </div>
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Em andamento</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.live}</p>
+            <p className="text-xs text-muted-foreground">Reunioes acontecendo agora.</p>
+          </div>
+          <div className="rounded-lg border border-border bg-background/60 p-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Confirmadas</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.confirmed}</p>
+            <p className="text-xs text-muted-foreground">Proximas reunioes ja aceitas.</p>
+          </div>
+          <div className="rounded-lg border border-border bg-background/60 p-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Encerradas</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.past}</p>
+            <p className="text-xs text-muted-foreground">Eventos que ja aconteceram.</p>
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-[180px]">
             <Select
@@ -823,7 +1062,7 @@ export default function AgendaPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {days.map(({ date, events: dayEvents }) => (
+          {days.map(({ date, events: dayEvents, groupedEvents }) => (
             <div key={date.toISOString()}>
               <div className="mb-3 flex items-center gap-2">
                 <span
@@ -842,18 +1081,51 @@ export default function AgendaPage() {
               </div>
 
               {dayEvents.length > 0 ? (
-                <div className="space-y-3">
-                  {dayEvents.map((event) => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      projects={projects}
-                      respondingEventId={respondingEventId}
-                      savingSeriesKey={savingSeriesKey}
-                      onRespond={handleRespond}
-                      onSaveMetadata={handleSaveMetadata}
-                    />
-                  ))}
+                <div className="space-y-4">
+                  <AgendaGroup
+                    title="Pendentes de resposta"
+                    description="Reunioes que ainda precisam da sua confirmacao."
+                    count={groupedEvents.pending.length}
+                    events={groupedEvents.pending}
+                    projects={projects}
+                    respondingEventId={respondingEventId}
+                    savingSeriesKey={savingSeriesKey}
+                    onRespond={handleRespond}
+                    onSaveMetadata={handleSaveMetadata}
+                  />
+                  <AgendaGroup
+                    title="Acontecendo agora"
+                    description="Compromissos ativos neste momento."
+                    count={groupedEvents.live.length}
+                    events={groupedEvents.live}
+                    projects={projects}
+                    respondingEventId={respondingEventId}
+                    savingSeriesKey={savingSeriesKey}
+                    onRespond={handleRespond}
+                    onSaveMetadata={handleSaveMetadata}
+                  />
+                  <AgendaGroup
+                    title="Proximas ja aceitas"
+                    description="Reunioes futuras que ja estao confirmadas."
+                    count={groupedEvents.confirmed.length}
+                    events={groupedEvents.confirmed}
+                    projects={projects}
+                    respondingEventId={respondingEventId}
+                    savingSeriesKey={savingSeriesKey}
+                    onRespond={handleRespond}
+                    onSaveMetadata={handleSaveMetadata}
+                  />
+                  <AgendaGroup
+                    title="Ja encerradas"
+                    description="Historico do que ja aconteceu neste dia."
+                    count={groupedEvents.past.length}
+                    events={groupedEvents.past}
+                    projects={projects}
+                    respondingEventId={respondingEventId}
+                    savingSeriesKey={savingSeriesKey}
+                    onRespond={handleRespond}
+                    onSaveMetadata={handleSaveMetadata}
+                  />
                 </div>
               ) : (
                 <p className="pl-1 text-xs italic text-muted-foreground/60">Nenhum evento</p>
