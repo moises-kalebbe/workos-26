@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export type AgendaPriority = "urgent" | "high" | "normal" | "low";
 export type AgendaSortMode = "priority_then_time" | "time_only";
@@ -131,19 +132,16 @@ function getProjectNameFromMetadata(value: EventMetadataRow["project"]): string 
   return value.name || null;
 }
 
-async function getSessionOrThrow() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    throw new Error("Sessao nao encontrada");
+async function getClerkTokenOrThrow(getToken: () => Promise<string | null>): Promise<string> {
+  const token = await getToken();
+  if (!token) {
+    throw new Error("Sessao Clerk nao encontrada");
   }
-
-  return session;
+  return token;
 }
 
 export function useGoogleCalendar() {
+  const { user, getToken } = useAuth();
   const db = supabase as any;
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,6 +152,10 @@ export function useGoogleCalendar() {
 
   const lastRangeRef = useRef<{ timeMin?: string; timeMax?: string }>({});
   const eventsRef = useRef<CalendarEvent[]>([]);
+
+  const getClerkUserId = useCallback(() => {
+    return user?.id || null;
+  }, [user]);
 
   useEffect(() => {
     eventsRef.current = events;
@@ -207,17 +209,7 @@ export function useGoogleCalendar() {
       }
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session) {
-          setConnected(false);
-          setConnectionReady(true);
-          setEvents([]);
-          setLoading(false);
-          return;
-        }
+        const token = await getClerkTokenOrThrow(getToken);
 
         const params = new URLSearchParams({ action: "events" });
         if (timeMin) params.set("timeMin", timeMin);
@@ -227,7 +219,7 @@ export function useGoogleCalendar() {
           `${SUPABASE_URL}/functions/v1/google-calendar?${params}`,
           {
             headers: {
-              Authorization: `Bearer ${session.access_token}`,
+              Authorization: `Bearer ${token}`,
               apikey: SUPABASE_PUBLISHABLE_KEY,
             },
           },
@@ -256,8 +248,11 @@ export function useGoogleCalendar() {
           setConnected(true);
           setConnectionReady(true);
           setInsufficientScope(false);
-          const merged = await mergeEventsWithMetadata(result.events, session.user.id);
-          setEvents(merged);
+          const userId = getClerkUserId();
+          if (userId) {
+            const merged = await mergeEventsWithMetadata(result.events, userId);
+            setEvents(merged);
+          }
           return;
         }
 
@@ -270,38 +265,21 @@ export function useGoogleCalendar() {
         setLoading(false);
       }
     },
-    [mergeEventsWithMetadata],
+    [getToken, mergeEventsWithMetadata],
   );
 
   const connectGoogle = useCallback(async () => {
-    const { error: signInError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin + "/agenda",
-        scopes: GOOGLE_CALENDAR_SCOPES,
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-          include_granted_scopes: "true",
-        },
-      },
-    });
-
-    if (signInError) {
-      setError(signInError.message);
-    }
+    return;
   }, []);
 
   const disconnect = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) return;
+    const token = await getToken().catch(() => null);
+    if (!token) return;
 
     await fetch(`${SUPABASE_URL}/functions/v1/google-calendar?action=disconnect`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${token}`,
         apikey: SUPABASE_PUBLISHABLE_KEY,
         "Content-Type": "application/json",
       },
@@ -309,11 +287,11 @@ export function useGoogleCalendar() {
 
     setConnected(false);
     setEvents([]);
-  }, []);
+  }, [getToken]);
 
   const respondToInvite = useCallback(
     async (eventId: string, responseStatus: "accepted" | "declined") => {
-      const session = await getSessionOrThrow();
+      const token = await getClerkTokenOrThrow(getToken);
       const previousEvents = eventsRef.current;
 
       setEvents((prev) =>
@@ -333,7 +311,7 @@ export function useGoogleCalendar() {
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${session.access_token}`,
+              Authorization: `Bearer ${token}`,
               apikey: SUPABASE_PUBLISHABLE_KEY,
               "Content-Type": "application/json",
             },
@@ -374,19 +352,19 @@ export function useGoogleCalendar() {
         throw err;
       }
     },
-    [],
+    [getToken],
   );
 
   const createMeeting = useCallback(
     async (payload: CreateMeetingPayload) => {
-      const session = await getSessionOrThrow();
+      const token = await getClerkTokenOrThrow(getToken);
 
       const res = await fetch(
         `${SUPABASE_URL}/functions/v1/google-calendar?action=create-event`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
             apikey: SUPABASE_PUBLISHABLE_KEY,
             "Content-Type": "application/json",
           },
@@ -423,12 +401,13 @@ export function useGoogleCalendar() {
       projectId: string | null,
       projectName: string | null = null,
     ) => {
-      const session = await getSessionOrThrow();
+      const userId = getClerkUserId();
+      if (!userId) throw new Error("Usuario nao autenticado");
       const normalizedTags = uniqueTags(tags);
 
       const { error: saveError } = await db.from("agenda_event_metadata").upsert(
         {
-          user_id: session.user.id,
+          user_id: userId,
           series_key: seriesKey,
           priority,
           tags: normalizedTags,
@@ -456,17 +435,18 @@ export function useGoogleCalendar() {
         ),
       );
     },
-    [db],
+    [db, getClerkUserId],
   );
 
   const loadPreferences = useCallback(async (): Promise<AgendaPreferences> => {
     try {
-      const session = await getSessionOrThrow();
+      const userId = getClerkUserId();
+      if (!userId) throw new Error("Usuario nao autenticado");
 
       const { data, error: prefError } = await supabase
         .from("agenda_preferences")
         .select("sort_mode, status_filter, priority_filter, tag_filter, show_declined")
-        .eq("user_id", session.user.id)
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (prefError) {
@@ -477,14 +457,15 @@ export function useGoogleCalendar() {
     } catch {
       return DEFAULT_AGENDA_PREFERENCES;
     }
-  }, []);
+  }, [getClerkUserId]);
 
   const savePreferences = useCallback(async (preferences: AgendaPreferences) => {
-    const session = await getSessionOrThrow();
+    const userId = getClerkUserId();
+    if (!userId) throw new Error("Usuario nao autenticado");
 
     const { error: prefError } = await db.from("agenda_preferences").upsert(
       {
-        user_id: session.user.id,
+        user_id: userId,
         sort_mode: preferences.sortMode,
         status_filter: preferences.statusFilter,
         priority_filter: preferences.priorityFilter,
@@ -498,44 +479,37 @@ export function useGoogleCalendar() {
       setError(prefError.message);
       throw prefError;
     }
-  }, [db]);
+  }, [db, getClerkUserId]);
 
-  const storeTokenFromSession = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) return false;
+  const storeGoogleToken = useCallback(
+    async (accessToken: string, refreshToken?: string | null, expiresAt?: number) => {
+      const token = await getClerkTokenOrThrow(getToken);
 
-    const providerToken = session.provider_token;
-    const providerRefreshToken = session.provider_refresh_token;
-
-    if (providerToken) {
       await fetch(`${SUPABASE_URL}/functions/v1/google-calendar?action=store-token`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
           apikey: SUPABASE_PUBLISHABLE_KEY,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          access_token: providerToken,
-          refresh_token: providerRefreshToken,
-          expires_at: session.expires_at,
+          access_token: accessToken,
+          refresh_token: refreshToken || null,
+          expires_at: expiresAt ? new Date(expiresAt * 1000).toISOString() : null,
         }),
       });
-      return true;
-    }
-
-    return false;
-  }, []);
+    },
+    [getToken],
+  );
 
   useEffect(() => {
-    const init = async () => {
-      await storeTokenFromSession();
-    };
-
-    void init();
-  }, [storeTokenFromSession]);
+    if (!user) {
+      setConnected(false);
+      setConnectionReady(true);
+      setEvents([]);
+      setLoading(false);
+    }
+  }, [user]);
 
   return {
     events,
@@ -552,6 +526,7 @@ export function useGoogleCalendar() {
     saveEventMetadata,
     loadPreferences,
     savePreferences,
+    storeGoogleToken,
   };
 }
 

@@ -1,10 +1,27 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyToken } from "https://esm.sh/@clerk/backend@1.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-clerk-auth-message, x-clerk-auth-signature",
 };
+
+async function getUserIdFromClerkToken(token: string): Promise<string | null> {
+  const secretKey = Deno.env.get("CLERK_SECRET_KEY");
+  if (!secretKey) {
+    console.error("CLERK_SECRET_KEY not configured");
+    return null;
+  }
+
+  try {
+    const payload = await verifyToken(token, { secretKey });
+    return payload?.sub || null;
+  } catch (err) {
+    console.error("Clerk token verification failed:", err);
+    return null;
+  }
+}
 
 type GoogleAttendee = {
   email?: string;
@@ -211,18 +228,26 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const anonClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
 
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return jsonResponse({ error: "Unauthorized" }, 401);
+    let userId: string | null = null;
+
+    const clerkUserId = await getUserIdFromClerkToken(token);
+    if (clerkUserId) {
+      userId = clerkUserId;
+    } else {
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+
+      const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+
+      userId = claimsData.claims.sub as string;
     }
-
-    const userId = claimsData.claims.sub as string;
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 

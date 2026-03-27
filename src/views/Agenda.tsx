@@ -53,6 +53,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useClerk, useSignIn } from "@clerk/nextjs";
 import {
   AgendaPreferences,
   AgendaPriority,
@@ -475,6 +476,10 @@ function EventCard({
 
 export default function AgendaPage() {
   const { user } = useAuth();
+  const { session } = useClerk();
+  const { storeGoogleToken, fetchEvents } = useGoogleCalendar();
+  const { signIn } = useSignIn();
+
   const {
     events,
     loading,
@@ -482,15 +487,27 @@ export default function AgendaPage() {
     connectionReady,
     error,
     insufficientScope,
-    connectGoogle,
     disconnect,
-    fetchEvents,
     respondToInvite,
     createMeeting,
     saveEventMetadata,
     loadPreferences,
     savePreferences,
   } = useGoogleCalendar();
+
+  const handleConnectGoogle = async () => {
+    if (!signIn) return;
+    
+    try {
+      await (signIn as any).authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: `${window.location.origin}/sso-callback`,
+        redirectUrlComplete: `${window.location.origin}/agenda`,
+      });
+    } catch (err) {
+      toast.error("Erro ao conectar Google Calendar");
+    }
+  };
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [preferences, setPreferences] = useState<AgendaPreferences>(DEFAULT_AGENDA_PREFERENCES);
@@ -546,6 +563,27 @@ export default function AgendaPage() {
 
     void loadProjects();
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !session) return;
+
+    const checkAndStoreGoogleToken = async () => {
+      if (connected) return;
+
+      try {
+        const googleToken = await session.getToken({ template: "oauth_google" });
+        if (googleToken) {
+          await storeGoogleToken(googleToken);
+          toast.success("Google Calendar conectado");
+          await fetchEvents();
+        }
+      } catch (err) {
+        console.error("Error getting Google token:", err);
+      }
+    };
+
+    void checkAndStoreGoogleToken();
+  }, [user, session, connected, storeGoogleToken, fetchEvents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -772,7 +810,7 @@ export default function AgendaPage() {
             Veja eventos, responda convites e crie reunioes direto no WorkOS.
           </p>
           {error && <p className="mb-4 text-sm text-danger">{error}</p>}
-          <Button onClick={connectGoogle} className="gap-2">
+          <Button onClick={handleConnectGoogle} className="gap-2">
             <Calendar className="h-4 w-4" />
             Conectar Google Calendar
           </Button>
@@ -903,7 +941,7 @@ export default function AgendaPage() {
             <AlertCircle className="h-4 w-4" />
             <span>{error || "Permissao insuficiente no Google Calendar para escrita."}</span>
           </div>
-          <Button size="sm" variant="outline" onClick={connectGoogle}>
+          <Button size="sm" variant="outline" onClick={handleConnectGoogle}>
             Reconectar Google
           </Button>
         </div>
