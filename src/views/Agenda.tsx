@@ -79,7 +79,7 @@ const GOOGLE_CALENDAR_SCOPES = [
 
 type ClerkExternalAccount = {
   provider?: string;
-  approvedScopes?: string[];
+  approvedScopes?: string[] | string;
   verification?: {
     externalVerificationRedirectURL?: URL | { href?: string } | string | null;
   } | null;
@@ -105,6 +105,21 @@ function getExternalRedirectUrl(account: ClerkExternalAccount | null | undefined
   if ("href" in redirect && typeof redirect.href === "string") return redirect.href;
   if (redirect instanceof URL) return redirect.href;
   return null;
+}
+
+function normalizeApprovedScopes(scopes: ClerkExternalAccount["approvedScopes"]) {
+  if (Array.isArray(scopes)) {
+    return scopes;
+  }
+
+  if (typeof scopes === "string") {
+    return scopes
+      .split(/\s+/)
+      .map((scope) => scope.trim())
+      .filter((scope) => scope.length > 0);
+  }
+
+  return [];
 }
 
 function sanitizeDescription(value: string | null) {
@@ -533,25 +548,24 @@ export default function AgendaPage() {
 
     try {
       const agendaUrl = `${window.location.origin}/agenda`;
-      const redirectUrl = `${window.location.origin}/sso-callback?redirect_url=${encodeURIComponent(agendaUrl)}`;
       const googleAccount = clerkUser.externalAccounts?.find(
-        (account) => account.provider === "google",
+        (account) => account.provider === "google" || account.provider === "oauth_google",
       );
 
       let accountResult: ClerkExternalAccount | null | undefined;
 
       if (googleAccount?.reauthorize) {
-        const approvedScopes = new Set(googleAccount.approvedScopes || []);
+        const approvedScopes = new Set(normalizeApprovedScopes(googleAccount.approvedScopes));
         const missingScopes = GOOGLE_CALENDAR_SCOPES.filter((scope) => !approvedScopes.has(scope));
 
         accountResult = await googleAccount.reauthorize({
           additionalScopes: missingScopes.length > 0 ? missingScopes : GOOGLE_CALENDAR_SCOPES,
-          redirectUrl,
+          redirectUrl: agendaUrl,
         });
       } else if (clerkUser.createExternalAccount) {
         accountResult = await clerkUser.createExternalAccount({
           strategy: "oauth_google",
-          redirectUrl,
+          redirectUrl: agendaUrl,
           additionalScopes: GOOGLE_CALENDAR_SCOPES,
         });
       }
