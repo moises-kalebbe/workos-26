@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
+export const dynamic = "force-dynamic";
+
 const DEV_AUTH_USER_ID = process.env.DEV_AUTH_USER_ID || process.env.NEXT_PUBLIC_DEV_AUTH_USER_ID || null;
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {

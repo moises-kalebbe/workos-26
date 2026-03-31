@@ -45,9 +45,11 @@ export function TopBar() {
   const pageTitle = resolveTitle(pathname);
   const pageDescription = resolveDescription(pathname);
   const weather = useCurrentWeather();
-  const [clock, setClock] = React.useState(() => formatClock(new Date()));
+  const [clock, setClock] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    setClock(formatClock(new Date()));
+
     const intervalId = window.setInterval(() => {
       setClock(formatClock(new Date()));
     }, 1000);
@@ -75,7 +77,7 @@ export function TopBar() {
         <div className="flex flex-wrap items-center justify-self-end gap-2">
           <div className="flex items-center gap-2 rounded-2xl border border-cyan-500/15 bg-white/[0.03] px-3 py-2 text-sm text-foreground shadow-[0_12px_28px_-22px_rgba(34,211,238,0.9)]">
             <Clock3 className="h-4 w-4 text-cyan-300" />
-            <span className="font-medium tabular-nums">{clock}</span>
+            <span className="font-medium tabular-nums">{clock ?? "--:--"}</span>
           </div>
           <div
             className="hidden items-center gap-2 rounded-2xl border border-border/60 bg-white/[0.03] px-3 py-2 text-xs text-muted-foreground lg:flex"
