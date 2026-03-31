@@ -71,6 +71,28 @@ describe("TopBar", () => {
     expect(pushMock).toHaveBeenCalledWith("/kanban");
   });
 
+  it("lists Financeiro in quick search and navigates to the route", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        current: {
+          temperature_2m: 23,
+          weather_code: 0,
+          is_day: 1,
+        },
+      }),
+    } as Response);
+
+    render(<TopBar />);
+
+    fireEvent.click(screen.getByRole("button", { name: /abrir busca rapida/i }));
+
+    const financeiroItem = await screen.findByText("Financeiro");
+    fireEvent.click(financeiroItem);
+
+    expect(pushMock).toHaveBeenCalledWith("/financeiro");
+  });
+
   it("toggles quick search with keyboard shortcut", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Activity,
   Briefcase,
@@ -525,10 +526,18 @@ export default function SettingsPage() {
               <h2 className="mt-1 text-lg font-semibold text-foreground">Mantenha base comercial e financeira organizada</h2>
             </div>
 
-            <Button onClick={() => setNewProjectDialog(true)} className="h-11 rounded-2xl bg-primary px-5 text-primary-foreground hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova empresa
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" className="h-11 rounded-2xl">
+                <Link href="/financeiro">
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Abrir financeiro
+                </Link>
+              </Button>
+              <Button onClick={() => setNewProjectDialog(true)} className="h-11 rounded-2xl bg-primary px-5 text-primary-foreground hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova empresa
+              </Button>
+            </div>
           </div>
 
           <section className="rounded-2xl border border-border bg-card/95 p-5">

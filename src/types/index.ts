@@ -27,6 +27,33 @@ export interface TimeSession {
   project?: Project;
 }
 
+export type FinancialEntryType = "income" | "expense";
+export type FinancialEntryStatus = "pending" | "paid" | "overdue";
+export type FinancialEntryRecurrence = "none" | "monthly" | "yearly";
+
+export interface FinancialEntry {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  type: FinancialEntryType;
+  category: string;
+  title: string;
+  description: string | null;
+  counterparty_name: string;
+  amount: number;
+  currency: string;
+  status: FinancialEntryStatus;
+  due_date: string;
+  paid_at: string | null;
+  competency_date: string | null;
+  recurrence: FinancialEntryRecurrence;
+  alert_days_before: number;
+  is_platform_cost: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Task {
   id: string;
   user_id: string;

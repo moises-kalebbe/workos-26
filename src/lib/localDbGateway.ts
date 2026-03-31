@@ -22,6 +22,7 @@ export type LocalDbPayload = {
 export const LOCAL_DB_TABLES = new Set([
   "profiles",
   "projects",
+  "financial_entries",
   "time_sessions",
   "tasks",
   "subtasks",

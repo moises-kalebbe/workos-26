@@ -1,11 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Building2, Loader2, Video, ExternalLink, CalendarClock } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDownCircle,
+  ArrowRight,
+  ArrowUpCircle,
+  Building2,
+  CalendarClock,
+  ExternalLink,
+  Landmark,
+  Loader2,
+  Video,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/system/page-header";
 import { db } from "@/lib/dbClient";
+import { summarizeFinanceiro } from "@/features/financeiro/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { getQuadrant, sortTasksForMatrix } from "@/lib/eisenhower";
@@ -18,7 +30,7 @@ import {
 } from "@/lib/timeline";
 import { cn, formatDuration, formatMoney } from "@/lib/utils";
 import { KANBAN_PRIORITIES } from "@/config/priorities";
-import type { Project, Task } from "@/types";
+import type { FinancialEntry, Project, Task } from "@/types";
 
 type DashboardSessionRow = {
   id: string;
@@ -42,6 +54,10 @@ type DashboardTaskRow = Pick<
   | "client"
   | "created_at"
 >;
+
+type DashboardFinancialEntry = FinancialEntry & {
+  project?: Pick<Project, "id" | "name" | "client" | "color"> | null;
+};
 
 const MOTIVATIONAL_PHRASES = {
   overdue: [
@@ -79,6 +95,7 @@ export default function IndexPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<DashboardSessionRow[]>([]);
   const [tasks, setTasks] = useState<DashboardTaskRow[]>([]);
+  const [financialEntries, setFinancialEntries] = useState<DashboardFinancialEntry[]>([]);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -106,7 +123,7 @@ export default function IndexPage() {
 
     const recentWindowIso = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
 
-    const [profileRes, projectRes, taskRes, sessionRes] = await Promise.all([
+    const [profileRes, projectRes, taskRes, sessionRes, financialRes] = await Promise.all([
       db.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
       db.from("projects").select("*").order("name"),
       db.from("tasks").select("id, title, project_id, skill_document_id, column_index, priority, urgency, importance, due_date, client, created_at").lt("column_index", 2).order("position"),
@@ -116,6 +133,7 @@ export default function IndexPage() {
         .gte("started_at", recentWindowIso)
         .order("started_at", { ascending: false })
         .limit(250),
+      db.from("financial_entries").select("*").order("due_date", { ascending: true }),
     ]);
 
     if (profileRes.error) {
@@ -140,6 +158,12 @@ export default function IndexPage() {
       toast.error("Nao foi possivel carregar a linha do tempo.");
     } else {
       setSessions((sessionRes.data || []) as unknown as DashboardSessionRow[]);
+    }
+
+    if (financialRes.error) {
+      toast.error("Nao foi possivel carregar o resumo financeiro.");
+    } else {
+      setFinancialEntries((financialRes.data || []) as DashboardFinancialEntry[]);
     }
 
     setLoading(false);
@@ -200,6 +224,14 @@ export default function IndexPage() {
   }, [now, projects, sessions, timezone]);
 
   const projectMap = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
+  const financialMetrics = useMemo(() => {
+    const entriesWithProjects = financialEntries.map((entry) => ({
+      ...entry,
+      project: entry.project_id ? projectMap.get(entry.project_id) || null : null,
+    }));
+
+    return summarizeFinanceiro(entriesWithProjects, now);
+  }, [financialEntries, now, projectMap]);
 
   const kanbanFocus = useMemo(() => {
     const today = new Date();
@@ -568,6 +600,58 @@ export default function IndexPage() {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4 md:p-5">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Financeiro</p>
+            <h2 className="mt-1 text-base font-semibold text-foreground">Resumo financeiro do workspace</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Entradas, saidas e alertas de vencimento no mesmo painel operacional.
+            </p>
+          </div>
+          <Button asChild variant="outline" className="gap-2">
+            <Link href="/financeiro">
+              Abrir financeiro
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-border bg-background/30 p-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ArrowUpCircle className="h-4 w-4 text-emerald-300" />
+              <p className="text-[11px] uppercase tracking-wide">A receber</p>
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{formatMoney(financialMetrics.receivableOpen)}</p>
+          </div>
+
+          <div className="rounded-xl border border-border bg-background/30 p-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ArrowDownCircle className="h-4 w-4 text-amber-300" />
+              <p className="text-[11px] uppercase tracking-wide">A pagar</p>
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{formatMoney(financialMetrics.payableOpen)}</p>
+          </div>
+
+          <div className="rounded-xl border border-border bg-background/30 p-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <AlertTriangle className="h-4 w-4 text-rose-300" />
+              <p className="text-[11px] uppercase tracking-wide">Vencidos</p>
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{financialMetrics.overdueCount}</p>
+          </div>
+
+          <div className="rounded-xl border border-border bg-background/30 p-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Landmark className="h-4 w-4 text-primary" />
+              <p className="text-[11px] uppercase tracking-wide">Proximos</p>
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{financialMetrics.upcomingCount}</p>
           </div>
         </div>
       </section>

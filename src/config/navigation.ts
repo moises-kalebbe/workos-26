@@ -1,4 +1,5 @@
 import {
+  Landmark,
   BarChart3,
   Brain,
   BrainCircuit,
@@ -23,6 +24,7 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
   { icon: Timer, label: "Time Tracker", path: "/tracker" },
   { icon: Columns3, label: "Kanban", path: "/kanban" },
   { icon: Calendar, label: "Agenda", path: "/agenda" },
+  { icon: Landmark, label: "Financeiro", path: "/financeiro" },
   { icon: Brain, label: "Skills", path: "/skills" },
   { icon: BrainCircuit, label: "Second Brain", path: "/second-brain" },
   { icon: Lock, label: "Cofre", path: "/vault" },
