@@ -26,8 +26,14 @@ Este app e um sistema operacional pessoal/profissional mais completo, com rotas 
 ## Como rodar
 ```bash
 npm install
+npm run db:check
 npm run dev
 ```
+
+## Banco de dados local
+- O desenvolvimento local deve usar o mesmo usuario, database e senha definidos no stack Docker/Portainer.
+- Configure `DATABASE_URL` em `.env` com a mesma senha usada em `POSTGRES_PASSWORD` no stack.
+- Use `npm run db:check` antes de subir o app quando houver duvida sobre host, porta ou credenciais.
 
 ## Comandos uteis
 ```bash
@@ -36,6 +42,7 @@ npm run start
 npm run lint
 npm run test
 npm run test:e2e
+npm run db:check
 ```
 
 ## Estrutura

@@ -88,12 +88,6 @@ export interface VaultRepository {
   is_remote_only?: boolean;
   default_branch: string | null;
   detected_environment_count: number;
-  supabase_detected?: boolean;
-  supabase_project_ref?: string | null;
-  supabase_project_url?: string | null;
-  supabase_api_url?: string | null;
-  supabase_detection_evidence?: string[];
-  supabase_detection_scanned_at?: string | null;
   last_scanned_at: string | null;
   last_scan_status: "idle" | "success" | "error";
   notes: string | null;
@@ -116,36 +110,12 @@ export interface VaultEnvironmentEntry {
   updated_at: string;
 }
 
-export interface VaultSupabaseInstance {
-  id: string;
-  user_id: string;
-  project_id: string | null;
-  repository_id: string | null;
-  display_name: string;
-  project_ref: string | null;
-  project_url: string | null;
-  api_url: string | null;
-  keepalive_type: "rest" | "sql";
-  keepalive_enabled: boolean;
-  keepalive_interval_hours: number;
-  encrypted_credential: string | null;
-  credential_iv: string | null;
-  encrypted_credentials_payload?: string | null;
-  credentials_payload_iv?: string | null;
-  last_keepalive_at: string | null;
-  last_keepalive_status: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface VaultSyncRun {
   id: string;
   user_id: string;
   project_id: string | null;
   repository_id: string | null;
-  supabase_instance_id: string | null;
-  run_type: "repo_scan" | "env_scan" | "keepalive" | "windows_notes_import" | "github_sync";
+  run_type: "repo_scan" | "env_scan" | "windows_notes_import" | "github_sync";
   status: "success" | "error" | "skipped";
   summary: string | null;
   details: Record<string, unknown>;

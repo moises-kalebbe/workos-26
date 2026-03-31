@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 
 export const featureApi = {
-  db: supabase,
+  db: db,
 };

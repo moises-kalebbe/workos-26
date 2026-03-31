@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 
 export type AgendaPriority = "urgent" | "high" | "normal" | "low";
@@ -142,7 +142,7 @@ async function getClerkTokenOrThrow(getToken: () => Promise<string | null>): Pro
 
 export function useGoogleCalendar() {
   const { user, getToken } = useAuth();
-  const db = supabase as any;
+  const dbClient = db as any;
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
@@ -169,7 +169,7 @@ export function useGoogleCalendar() {
       let metadataMap = new Map<string, EventMetadataRow>();
 
         if (seriesKeys.length > 0) {
-          const { data: metadataRows, error: metadataError } = await supabase
+          const { data: metadataRows, error: metadataError } = await dbClient
             .from("agenda_event_metadata")
             .select("series_key, priority, tags, project_id, project:projects(name)")
             .eq("user_id", userId)
@@ -215,16 +215,11 @@ export function useGoogleCalendar() {
         if (timeMin) params.set("timeMin", timeMin);
         if (timeMax) params.set("timeMax", timeMax);
 
-        const res = await fetch(
-          `${SUPABASE_URL}/functions/v1/google-calendar?${params}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              apikey: SUPABASE_PUBLISHABLE_KEY,
-            },
+        const res = await fetch(`/api/google-calendar?${params}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
-
+        });
         const result = (await res.json()) as FetchEventsResult;
 
         if (result.error === "not_connected") {
@@ -257,9 +252,13 @@ export function useGoogleCalendar() {
         }
 
         if (result.error) {
+          setConnected(false);
+          setConnectionReady(true);
           setError(result.message || result.error);
         }
       } catch (err) {
+        setConnected(false);
+        setConnectionReady(true);
         setError((err as Error).message);
       } finally {
         setLoading(false);
@@ -276,16 +275,16 @@ export function useGoogleCalendar() {
     const token = await getToken().catch(() => null);
     if (!token) return;
 
-    await fetch(`${SUPABASE_URL}/functions/v1/google-calendar?action=disconnect`, {
+    await fetch(`/api/google-calendar?action=disconnect`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        apikey: SUPABASE_PUBLISHABLE_KEY,
         "Content-Type": "application/json",
       },
     });
 
     setConnected(false);
+    setConnectionReady(true);
     setEvents([]);
   }, [getToken]);
 
@@ -306,18 +305,14 @@ export function useGoogleCalendar() {
       );
 
       try {
-        const res = await fetch(
-          `${SUPABASE_URL}/functions/v1/google-calendar?action=rsvp`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              apikey: SUPABASE_PUBLISHABLE_KEY,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ eventId, responseStatus }),
+        const res = await fetch(`/api/google-calendar?action=rsvp`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({ eventId, responseStatus }),
+        });
 
         const result = (await res.json()) as {
           error?: string;
@@ -359,18 +354,14 @@ export function useGoogleCalendar() {
     async (payload: CreateMeetingPayload) => {
       const token = await getClerkTokenOrThrow(getToken);
 
-      const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/google-calendar?action=create-event`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            apikey: SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
+      const res = await fetch(`/api/google-calendar?action=create-event`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify(payload),
+      });
 
       const result = (await res.json()) as {
         error?: string;
@@ -405,7 +396,7 @@ export function useGoogleCalendar() {
       if (!userId) throw new Error("Usuario nao autenticado");
       const normalizedTags = uniqueTags(tags);
 
-      const { error: saveError } = await db.from("agenda_event_metadata").upsert(
+      const { error: saveError } = await dbClient.from("agenda_event_metadata").upsert(
         {
           user_id: userId,
           series_key: seriesKey,
@@ -435,7 +426,7 @@ export function useGoogleCalendar() {
         ),
       );
     },
-    [db, getClerkUserId],
+    [dbClient, getClerkUserId],
   );
 
   const loadPreferences = useCallback(async (): Promise<AgendaPreferences> => {
@@ -443,7 +434,7 @@ export function useGoogleCalendar() {
       const userId = getClerkUserId();
       if (!userId) throw new Error("Usuario nao autenticado");
 
-      const { data, error: prefError } = await supabase
+      const { data, error: prefError } = await dbClient
         .from("agenda_preferences")
         .select("sort_mode, status_filter, priority_filter, tag_filter, show_declined")
         .eq("user_id", userId)
@@ -463,7 +454,7 @@ export function useGoogleCalendar() {
     const userId = getClerkUserId();
     if (!userId) throw new Error("Usuario nao autenticado");
 
-    const { error: prefError } = await db.from("agenda_preferences").upsert(
+    const { error: prefError } = await dbClient.from("agenda_preferences").upsert(
       {
         user_id: userId,
         sort_mode: preferences.sortMode,
@@ -479,17 +470,16 @@ export function useGoogleCalendar() {
       setError(prefError.message);
       throw prefError;
     }
-  }, [db, getClerkUserId]);
+  }, [dbClient, getClerkUserId]);
 
   const storeGoogleToken = useCallback(
     async (accessToken: string, refreshToken?: string | null, expiresAt?: number) => {
       const token = await getClerkTokenOrThrow(getToken);
 
-      await fetch(`${SUPABASE_URL}/functions/v1/google-calendar?action=store-token`, {
+      await fetch(`/api/google-calendar?action=store-token`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          apikey: SUPABASE_PUBLISHABLE_KEY,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

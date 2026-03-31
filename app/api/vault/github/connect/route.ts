@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getRequestUser } from "@/lib/supabase/requestUser";
+import { appendClerkResetHeaders, getRequestUser } from "@/lib/auth";
+import { createServerDbClient } from "@/lib/serverDbClient";
 import { encodeSecret } from "@/lib/vaultHub";
 
 const GITHUB_HEADERS = {
@@ -12,12 +12,15 @@ const GITHUB_HEADERS = {
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const supabase = createSupabaseServerClient() as any;
-  const user = await getRequestUser(supabase, request);
+  const user = await getRequestUser(request);
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    appendClerkResetHeaders(response.headers);
+    return response;
   }
+
+  const db = createServerDbClient(user.id) as any;
 
   const body = await request.json().catch(() => ({}));
   const token = typeof body.token === "string" ? body.token.trim() : "";
@@ -56,7 +59,7 @@ export async function POST(request: Request) {
     .filter(Boolean);
 
   const encoded = encodeSecret(token);
-  const upsertRes = await supabase
+  const upsertRes = await db
     .from("vault_github_connections")
     .upsert(
       {

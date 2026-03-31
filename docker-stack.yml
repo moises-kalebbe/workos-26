@@ -1,0 +1,86 @@
+###############################################################
+# WorkOS 26 - Stack Docker Swarm
+###############################################################
+
+services:
+
+  ###############################################################
+  # Banco de Dados PostgreSQL
+  ###############################################################
+  workos-postgres:
+    image: postgres:17-alpine
+    container_name: workos-postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-workos_secure_password_2026}
+      POSTGRES_USER: workos-user
+      POSTGRES_DB: workos-db
+    volumes:
+      - workos-postgres-data:/var/lib/postgresql/data
+    networks:
+      - workos-network
+    deploy:
+      restart_policy:
+        condition: any
+
+  ###############################################################
+  # Aplicação Principal - WorkOS
+  ###############################################################
+  workos:
+    image: ghcr.io/moi-kalebbe/workos-26:latest
+    container_name: workos
+    restart: always
+    environment:
+      # Application
+      NODE_ENV: production
+
+      # Database
+      DATABASE_URL: postgresql://workos-user:${POSTGRES_PASSWORD:-workos_secure_password_2026}@workos-postgres:5432/workos-db
+
+      # Clerk Authentication
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+
+
+      # Google Calendar (opcional)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    ports:
+      - "3000:3000"
+    networks:
+      - workos-network
+      - MoiKalebbe
+    depends_on:
+      - workos-postgres
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=1
+        - traefik.http.routers.workos.rule=Host(`workos.moiseskalebbe.cloud`)
+        - traefik.http.routers.workos.entrypoints=websecure
+        - traefik.http.routers.workos.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.workos.service=workos
+        - traefik.http.services.workos.loadbalancer.server.port=3000
+        - traefik.docker.network=MoiKalebbe
+
+###############################################################
+# Volumes Persistentes
+###############################################################
+volumes:
+  workos-postgres-data:
+
+###############################################################
+# Redes
+###############################################################
+networks:
+  workos-network:
+    driver: overlay
+  MoiKalebbe:
+    external: true
+    name: MoiKalebbe

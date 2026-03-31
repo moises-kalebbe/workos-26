@@ -11,9 +11,17 @@ node_modules
 dist
 dist-ssr
 .next
+backups
 playwright-report
 test-results
 *.local
+.env.production
+.local-postgres/
+data-export/
+kanban-debug.png
+signin-debug.png
+nul
+tsconfig.tsbuildinfo
 
 # Editor directories and files
 .vscode/*

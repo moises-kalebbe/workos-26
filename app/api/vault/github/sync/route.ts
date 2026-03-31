@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getRequestUser } from "@/lib/supabase/requestUser";
+import { appendClerkResetHeaders, getRequestUser } from "@/lib/auth";
+import { createServerDbClient } from "@/lib/serverDbClient";
 import {
   decodeSecret,
-  detectSupabaseFromEnvRows,
-  detectSupabaseFromToml,
-  extractSupabaseProjectRef,
-  parseEnvFileContent,
   resolveProjectAssociation,
-  type GithubSupabaseDetection,
 } from "@/lib/vaultHub";
 import type { Project } from "@/types";
 
@@ -29,19 +24,6 @@ type GithubRepository = {
   };
 };
 
-type GithubTreeResponse = {
-  tree: Array<{
-    path: string;
-    type: "blob" | "tree";
-    sha: string;
-  }>;
-};
-
-type GithubBlobResponse = {
-  content?: string;
-  encoding?: string;
-};
-
 async function fetchGithubJson<T>(url: string, token: string) {
   const response = await fetch(url, {
     headers: {
@@ -58,134 +40,19 @@ async function fetchGithubJson<T>(url: string, token: string) {
   return (await response.json()) as T;
 }
 
-async function fetchGithubBlobContent(token: string, owner: string, repo: string, sha: string) {
-  const blob = await fetchGithubJson<GithubBlobResponse>(
-    `https://api.github.com/repos/${owner}/${repo}/git/blobs/${sha}`,
-    token,
-  );
-
-  if (blob.encoding !== "base64" || !blob.content) {
-    return "";
-  }
-
-  return Buffer.from(blob.content.replace(/\n/g, ""), "base64").toString("utf8");
-}
-
-function isCandidateSupabasePath(path: string) {
-  const normalized = path.toLowerCase();
-
-  if (normalized === "supabase/config.toml") return true;
-  if (normalized.endsWith("/supabase/config.toml")) return true;
-  if (normalized === ".env" || normalized.startsWith(".env.")) return true;
-  if (normalized.endsWith("/.env") || normalized.includes("/.env.")) return true;
-  if (normalized.endsWith(".env.example") || normalized.endsWith(".env.sample")) return true;
-  if (normalized.endsWith("readme.md")) return true;
-  if (normalized.includes("supabase")) return true;
-  if (normalized.includes("env")) return true;
-  if (normalized.includes("docs/")) return true;
-
-  return false;
-}
-
-async function detectSupabaseInGithubRepository(
-  token: string,
-  repository: GithubRepository,
-): Promise<GithubSupabaseDetection> {
-  const owner = repository.owner?.login;
-  if (!owner || !repository.default_branch) {
-    return { detected: false, projectRef: null, projectUrl: null, apiUrl: null, evidence: [] };
-  }
-
-  const tree = await fetchGithubJson<GithubTreeResponse>(
-    `https://api.github.com/repos/${owner}/${repository.name}/git/trees/${repository.default_branch}?recursive=1`,
-    token,
-  );
-
-  const candidateFiles = tree.tree
-    .filter((item) => item.type === "blob" && isCandidateSupabasePath(item.path))
-    .slice(0, 20);
-
-  if (candidateFiles.length === 0) {
-    return { detected: false, projectRef: null, projectUrl: null, apiUrl: null, evidence: [] };
-  }
-
-  const evidence = new Set<string>();
-  let projectRef: string | null = null;
-  let apiUrl: string | null = null;
-  let projectUrl: string | null = null;
-
-  for (const file of candidateFiles) {
-    const content = await fetchGithubBlobContent(token, owner, repository.name, file.sha);
-    if (!content) continue;
-
-    const normalizedPath = file.path.toLowerCase();
-
-    if (normalizedPath.endsWith("config.toml")) {
-      const tomlDetection = detectSupabaseFromToml(repository.name, content);
-      if (tomlDetection) {
-        evidence.add(file.path);
-        projectRef ||= tomlDetection.projectRef;
-        apiUrl ||= tomlDetection.apiUrl;
-        projectUrl ||= tomlDetection.projectUrl;
-      }
-    }
-
-    if (normalizedPath.includes(".env")) {
-      const envDetection = detectSupabaseFromEnvRows(repository.name, parseEnvFileContent(content));
-      if (envDetection) {
-        evidence.add(file.path);
-        projectRef ||= envDetection.projectRef;
-        apiUrl ||= envDetection.apiUrl;
-        projectUrl ||= envDetection.projectUrl;
-      }
-    }
-
-    if (/supabase|supabase\.co|service_role|anon key|anon_key|project_ref/i.test(content)) {
-      evidence.add(file.path);
-      const extractedProjectRef = extractSupabaseProjectRef(content);
-      if (extractedProjectRef) {
-        projectRef ||= extractedProjectRef;
-      }
-
-      const urlMatch = content.match(/https:\/\/[a-z0-9-]+\.supabase\.co/gi)?.[0] || null;
-      if (urlMatch) {
-        apiUrl ||= urlMatch;
-      }
-    }
-  }
-
-  if (!projectRef && apiUrl) {
-    projectRef = extractSupabaseProjectRef(apiUrl);
-  }
-
-  if (projectRef && !projectUrl) {
-    projectUrl = `https://supabase.com/dashboard/project/${projectRef}`;
-  }
-
-  if (projectRef && !apiUrl) {
-    apiUrl = `https://${projectRef}.supabase.co`;
-  }
-
-  return {
-    detected: evidence.size > 0,
-    projectRef,
-    projectUrl,
-    apiUrl,
-    evidence: [...evidence].sort(),
-  };
-}
-
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const supabase = createSupabaseServerClient() as any;
-  const user = await getRequestUser(supabase, request);
+  const user = await getRequestUser(request);
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    appendClerkResetHeaders(response.headers);
+    return response;
   }
 
-  const connectionRes = await supabase
+  const db = createServerDbClient(user.id) as any;
+  const connectionRes = await db
     .from("vault_github_connections")
     .select("*")
     .eq("user_id", user.id)
@@ -208,7 +75,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const projectsRes = await supabase.from("projects").select("*").order("name");
+    const projectsRes = await db.from("projects").select("*").order("name");
     if (projectsRes.error) {
       throw new Error(projectsRes.error.message);
     }
@@ -237,11 +104,7 @@ export async function POST(request: Request) {
       ...new Map(repositories.map((repository) => [String(repository.id), repository])).values(),
     ];
 
-    const detections = await Promise.all(
-      uniqueRepositories.map((repository) => detectSupabaseInGithubRepository(token, repository)),
-    );
-
-    const rows = uniqueRepositories.map((repository, index) => ({
+    const rows = uniqueRepositories.map((repository) => ({
       user_id: user.id,
       project_id: resolveProjectAssociation(projects, {
         repoName: repository.name,
@@ -258,27 +121,13 @@ export async function POST(request: Request) {
       is_remote_only: true,
       default_branch: repository.default_branch || null,
       detected_environment_count: 0,
-      supabase_detected: detections[index]?.detected || false,
-      supabase_project_ref: detections[index]?.projectRef || null,
-      supabase_project_url: detections[index]?.projectUrl || null,
-      supabase_api_url: detections[index]?.apiUrl || null,
-      supabase_detection_evidence: detections[index]?.evidence || [],
-      supabase_detection_scanned_at: new Date().toISOString(),
       last_scanned_at: new Date().toISOString(),
       last_scan_status: "success",
       notes: "Sincronizado automaticamente via GitHub API.",
     }));
-    const detectedSupabaseRepositories = uniqueRepositories
-      .map((repository, index) => ({
-        repo: repository.name,
-        owner: repository.owner?.login || null,
-        project_ref: detections[index]?.projectRef || null,
-        evidence: detections[index]?.evidence || [],
-      }))
-      .filter((repository) => repository.evidence.length > 0);
 
     if (rows.length > 0) {
-      const upsertRes = await supabase
+      const upsertRes = await db
         .from("vault_repositories")
         .upsert(rows, { onConflict: "user_id,provider,external_id" });
 
@@ -288,7 +137,7 @@ export async function POST(request: Request) {
     }
 
     const syncedAt = new Date().toISOString();
-    await supabase
+    await db
       .from("vault_github_connections")
       .update({
         last_synced_at: syncedAt,
@@ -296,24 +145,22 @@ export async function POST(request: Request) {
       })
       .eq("id", connectionRes.data.id);
 
-    await supabase.from("vault_sync_runs").insert({
+    await db.from("vault_sync_runs").insert({
       user_id: user.id,
       run_type: "github_sync",
       status: "success",
-      summary: `${rows.length} repositorio(s) sincronizado(s) do GitHub, ${detections.filter((item) => item.detected).length} com Supabase detectado.`,
+      summary: `${rows.length} repositorio(s) sincronizado(s) do GitHub.`,
       details: {
         github_login: connectionRes.data.github_login,
-        supabase_detected_repositories: detectedSupabaseRepositories,
       },
     });
 
     return NextResponse.json({
       synced: rows.length,
       githubLogin: connectionRes.data.github_login,
-      supabaseDetected: detections.filter((item) => item.detected).length,
     });
   } catch (error) {
-    await supabase
+    await db
       .from("vault_github_connections")
       .update({
         last_sync_status: "error",

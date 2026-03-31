@@ -21,7 +21,7 @@ export function Sidebar() {
 
   async function handleSignOut() {
     await signOut();
-    router.push("/auth");
+    router.push("/sign-in");
     router.refresh();
   }
 
@@ -82,10 +82,10 @@ export function Sidebar() {
 
           <div className="flex items-center gap-3 px-3 pt-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
-              {user?.email?.charAt(0).toUpperCase()}
+              {user?.primaryEmailAddress?.emailAddress?.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-foreground">{user?.email}</p>
+              <p className="truncate text-xs font-medium text-foreground">{user?.primaryEmailAddress?.emailAddress}</p>
               <p className="text-[10px] text-muted-foreground">Plano Free</p>
             </div>
           </div>

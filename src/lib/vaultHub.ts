@@ -6,11 +6,9 @@ export type VaultHubTab =
   | "credentials"
   | "repositories"
   | "environments"
-  | "supabase"
   | "imports";
 
 export type VaultEnvironmentScope = "local" | "development" | "production" | "staging" | "unknown";
-export type VaultKeepaliveType = "rest" | "sql";
 
 export type VaultRepositoryRecord = {
   id: string;
@@ -27,12 +25,6 @@ export type VaultRepositoryRecord = {
   is_remote_only?: boolean;
   default_branch: string | null;
   detected_environment_count: number;
-  supabase_detected?: boolean;
-  supabase_project_ref?: string | null;
-  supabase_project_url?: string | null;
-  supabase_api_url?: string | null;
-  supabase_detection_evidence?: string[];
-  supabase_detection_scanned_at?: string | null;
   last_scanned_at: string | null;
   last_scan_status: "idle" | "success" | "error";
   notes: string | null;
@@ -55,47 +47,12 @@ export type VaultEnvironmentEntryRecord = {
   updated_at: string;
 };
 
-export type VaultSupabaseInstanceRecord = {
-  id: string;
-  user_id: string;
-  project_id: string | null;
-  repository_id: string | null;
-  display_name: string;
-  project_ref: string | null;
-  project_url: string | null;
-  api_url: string | null;
-  keepalive_type: VaultKeepaliveType;
-  keepalive_enabled: boolean;
-  keepalive_interval_hours: number;
-  encrypted_credential: string | null;
-  credential_iv: string | null;
-  encrypted_credentials_payload?: string | null;
-  credentials_payload_iv?: string | null;
-  last_keepalive_at: string | null;
-  last_keepalive_status: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type VaultSupabaseCredentialsPayload = {
-  email: string;
-  anonKey: string;
-  serviceRoleKey: string;
-  accessToken: string;
-  managementToken: string;
-  databaseUrl: string;
-  databasePassword: string;
-  supabasePassword: string;
-};
-
 export type VaultSyncRunRecord = {
   id: string;
   user_id: string;
   project_id: string | null;
   repository_id: string | null;
-  supabase_instance_id: string | null;
-  run_type: "repo_scan" | "env_scan" | "keepalive" | "windows_notes_import" | "github_sync";
+  run_type: "repo_scan" | "env_scan" | "windows_notes_import" | "github_sync";
   status: "success" | "error" | "skipped";
   summary: string | null;
   details: Record<string, unknown>;
@@ -138,23 +95,6 @@ export type LocalEnvironmentScanResult = {
   detectedProvider: string | null;
 };
 
-export type LocalSupabaseDetection = {
-  repositoryLocalPath: string;
-  displayName: string;
-  projectRef: string | null;
-  projectUrl: string | null;
-  apiUrl: string | null;
-  suggestedCredential: string | null;
-};
-
-export type GithubSupabaseDetection = {
-  detected: boolean;
-  projectRef: string | null;
-  projectUrl: string | null;
-  apiUrl: string | null;
-  evidence: string[];
-};
-
 export type WindowsNoteSourceDetection = {
   key: string;
   label: string;
@@ -170,25 +110,11 @@ export function encodeSecret(value: string) {
   };
 }
 
-export function encodeSecretPayload<T extends Record<string, string>>(value: T) {
-  return encodeSecret(JSON.stringify(value));
-}
-
 export function decodeSecret(value: string) {
   try {
     return Buffer.from(value, "base64").toString("utf8");
   } catch {
     return "";
-  }
-}
-
-export function decodeSecretPayload<T extends Record<string, string>>(value: string | null | undefined) {
-  if (!value) return null;
-
-  try {
-    return JSON.parse(decodeSecret(value)) as T;
-  } catch {
-    return null;
   }
 }
 
@@ -205,21 +131,6 @@ export function encodeBrowserSecret(value: string) {
     encrypted: btoa(value),
     iv: crypto.randomUUID(),
   };
-}
-
-export function encodeBrowserSecretPayload<T extends Record<string, string>>(value: T) {
-  return encodeBrowserSecret(JSON.stringify(value));
-}
-
-export function decodeBrowserSecretPayload<T extends Record<string, string>>(value: string | null | undefined) {
-  if (!value) return null;
-
-  try {
-    const decoded = decodeBrowserSecret(value);
-    return JSON.parse(decoded) as T;
-  } catch {
-    return null;
-  }
 }
 
 export function parseRemoteUrl(remoteUrl: string | null) {
@@ -272,82 +183,12 @@ export function parseEnvFileContent(content: string) {
 
 export function detectProviderFromEnvKey(envKey: string) {
   const normalized = envKey.toLowerCase();
-  if (normalized.includes("supabase")) return "supabase";
-  if (normalized.includes("vercel")) return "vercel";
+
+  if (normalized.includes("postgres") || normalized === "database_url") return "postgres";
+  if (normalized.includes("clerk")) return "clerk";
+  if (normalized.includes("google")) return "google";
   if (normalized.includes("github")) return "github";
-  return null;
-}
-
-export function detectSupabaseFromEnvRows(
-  repositoryLocalPath: string,
-  rows: { envKey: string; envValue: string }[],
-) {
-  const byKey = new Map(rows.map((row) => [row.envKey, row.envValue]));
-  const projectRef =
-    byKey.get("NEXT_PUBLIC_SUPABASE_PROJECT_REF") ||
-    byKey.get("SUPABASE_PROJECT_REF") ||
-    null;
-  const apiUrl =
-    byKey.get("NEXT_PUBLIC_SUPABASE_URL") ||
-    byKey.get("SUPABASE_URL") ||
-    null;
-  const suggestedCredential =
-    byKey.get("SUPABASE_SERVICE_ROLE_KEY") ||
-    byKey.get("NEXT_PUBLIC_SUPABASE_ANON_KEY") ||
-    byKey.get("SUPABASE_ANON_KEY") ||
-    null;
-
-  if (!projectRef && !apiUrl && !suggestedCredential) {
-    return null;
-  }
-
-  const displayName = repositoryLocalPath.split(/[/\\]/).filter(Boolean).pop() || "Supabase";
-  const normalizedApiUrl = apiUrl || (projectRef ? `https://${projectRef}.supabase.co` : null);
-  const projectUrl = projectRef ? `https://supabase.com/dashboard/project/${projectRef}` : null;
-
-  return {
-    repositoryLocalPath,
-    displayName,
-    projectRef,
-    projectUrl,
-    apiUrl: normalizedApiUrl,
-    suggestedCredential,
-  } satisfies LocalSupabaseDetection;
-}
-
-export function detectSupabaseFromToml(
-  repositoryLocalPath: string,
-  tomlContent: string,
-) {
-  const projectRefMatch = tomlContent.match(/project_id\s*=\s*"([^"]+)"/i);
-  if (!projectRefMatch) return null;
-
-  const projectRef = projectRefMatch[1] || null;
-  if (!projectRef) return null;
-
-  return {
-    repositoryLocalPath,
-    displayName: `${repositoryLocalPath.split(/[/\\]/).filter(Boolean).pop() || "Supabase"} Supabase`,
-    projectRef,
-    projectUrl: `https://supabase.com/dashboard/project/${projectRef}`,
-    apiUrl: `https://${projectRef}.supabase.co`,
-    suggestedCredential: null,
-  } satisfies LocalSupabaseDetection;
-}
-
-export function extractSupabaseProjectRef(value: string | null) {
-  if (!value) return null;
-
-  const directMatch = value.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i);
-  if (directMatch?.[1]) return directMatch[1];
-
-  const dashboardMatch = value.match(/project\/([a-z0-9-]+)/i);
-  if (dashboardMatch?.[1]) return dashboardMatch[1];
-
-  const normalized = value.trim();
-  if (/^[a-z0-9-]{6,}$/i.test(normalized) && !normalized.includes("/")) {
-    return normalized;
-  }
+  if (normalized.includes("vercel")) return "vercel";
 
   return null;
 }
@@ -382,7 +223,6 @@ export function getInitialTab(value: string | null): VaultHubTab {
     value === "credentials" ||
     value === "repositories" ||
     value === "environments" ||
-    value === "supabase" ||
     value === "imports"
   ) {
     return value;

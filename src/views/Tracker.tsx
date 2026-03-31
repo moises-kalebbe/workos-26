@@ -13,7 +13,7 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimer } from "@/hooks/useTimer";
 import { Button } from "@/components/ui/button";
@@ -74,7 +74,7 @@ function formatSessionMoment(iso: string | null) {
 }
 
 export default function TrackerPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const timer = useTimer();
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<TimeSession[]>([]);
@@ -97,26 +97,52 @@ export default function TrackerPage() {
   const [editColor, setEditColor] = useState("#8b5cf6");
 
   useEffect(() => {
-    if (user) {
-      void loadData();
+    if (authLoading) return;
+
+    if (!user) {
+      setProjects([]);
+      setSessions([]);
+      setLoading(false);
+      return;
     }
-  }, [user]);
+
+    void loadData();
+  }, [authLoading, user]);
 
   async function loadData() {
+    if (!user) return;
+
     setLoading(true);
-    const [projRes, sessRes] = await Promise.all([
-      supabase.from("projects").select("*").order("created_at", { ascending: false }),
-      supabase.from("time_sessions").select("*").not("ended_at", "is", null).order("started_at", { ascending: false }),
-    ]);
-    setProjects((projRes.data || []) as unknown as Project[]);
-    setSessions((sessRes.data || []) as unknown as TimeSession[]);
-    setLoading(false);
+    try {
+      const [projRes, sessRes] = await Promise.all([
+        db.from("projects").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        db
+          .from("time_sessions")
+          .select("*")
+          .eq("user_id", user.id)
+          .not("ended_at", "is", null)
+          .order("started_at", { ascending: false }),
+      ]);
+
+      if (projRes.error) throw projRes.error;
+      if (sessRes.error) throw sessRes.error;
+
+      setProjects((projRes.data || []) as unknown as Project[]);
+      setSessions((sessRes.data || []) as unknown as TimeSession[]);
+    } catch (error) {
+      console.error("Erro ao carregar tracker", error);
+      toast.error("Nao foi possivel carregar projetos e sessoes.");
+      setProjects([]);
+      setSessions([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function createProject() {
     if (!newName || !user) return;
 
-    const { error } = await supabase.from("projects").insert({
+    const { error } = await db.from("projects").insert({
       user_id: user.id,
       name: newName,
       client: newClient || null,
@@ -139,7 +165,7 @@ export default function TrackerPage() {
   async function updateProject() {
     if (!editingProject || !editName) return;
 
-    const { error } = await supabase.from("projects").update({
+    const { error } = await db.from("projects").update({
       name: editName,
       client: editClient || null,
       hourly_rate: parseFloat(editRate) || 0,
@@ -157,8 +183,8 @@ export default function TrackerPage() {
   }
 
   async function deleteProject(projectId: string) {
-    await supabase.from("time_sessions").delete().eq("project_id", projectId);
-    const { error } = await supabase.from("projects").delete().eq("id", projectId);
+    await db.from("time_sessions").delete().eq("project_id", projectId);
+    const { error } = await db.from("projects").delete().eq("id", projectId);
 
     if (error) {
       toast.error("Erro ao excluir projeto");
@@ -169,7 +195,7 @@ export default function TrackerPage() {
   }
 
   async function deleteSession(sessionId: string) {
-    const { error } = await supabase.from("time_sessions").delete().eq("id", sessionId);
+    const { error } = await db.from("time_sessions").delete().eq("id", sessionId);
 
     if (error) {
       toast.error("Erro ao excluir sessao");
@@ -464,8 +490,18 @@ export default function TrackerPage() {
     );
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return <LoadingState message="Carregando projetos e sessoes..." />;
+  }
+
+  if (!user) {
+    return (
+      <EmptyState
+        icon={Activity}
+        title="Sessao expirada"
+        description="Entre novamente para carregar seus projetos e sessoes."
+      />
+    );
   }
 
   return (

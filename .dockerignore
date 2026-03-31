@@ -1,0 +1,11 @@
+.git
+.github
+.next
+node_modules
+npm-debug.log*
+standalone-test.log
+data-export
+backups
+*.local
+.env
+nul

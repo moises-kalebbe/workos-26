@@ -18,7 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,14 +116,14 @@ export default function ReportsPage() {
     setLoading(true);
 
     const [sessionsResponse, projectsResponse] = await Promise.all([
-      supabase
+      db
         .from("time_sessions")
         .select("*, project:projects(*)")
         .not("ended_at", "is", null)
         .gte("started_at", startDate)
         .lte("started_at", `${endDate}T23:59:59`)
         .order("started_at", { ascending: false }),
-      supabase.from("projects").select("*").order("name"),
+      db.from("projects").select("*").order("name"),
     ]);
 
     setSessions((sessionsResponse.data || []) as SessionWithProject[]);

@@ -15,7 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,9 +148,9 @@ export default function SecondBrainPage() {
 
     try {
       const [notesRes, linksRes, projectsRes] = await Promise.all([
-        supabase.from("second_brain_notes").select("*").order("updated_at", { ascending: false }),
-        supabase.from("second_brain_links").select("*").order("created_at", { ascending: false }),
-        supabase.from("projects").select("*").order("name"),
+        db.from("second_brain_notes").select("*").order("updated_at", { ascending: false }),
+        db.from("second_brain_links").select("*").order("created_at", { ascending: false }),
+        db.from("projects").select("*").order("name"),
       ]);
 
       if (notesRes.error) throw notesRes.error;
@@ -271,7 +271,7 @@ export default function SecondBrainPage() {
     let desiredTargets: string[] = [];
 
     if (parsedSlugs.length > 0) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("second_brain_notes")
         .select("id,slug")
         .in("slug", parsedSlugs);
@@ -286,7 +286,7 @@ export default function SecondBrainPage() {
     const { toCreate, toDelete } = computeWikiLinkSyncPlan(existingTargets, desiredTargets);
 
     if (toDelete.length > 0) {
-      const { error } = await supabase
+      const { error } = await db
         .from("second_brain_links")
         .delete()
         .eq("source_note_id", noteId)
@@ -304,7 +304,7 @@ export default function SecondBrainPage() {
         link_type: "wikilink" as const,
       }));
 
-      const { error } = await supabase.from("second_brain_links").insert(rows);
+      const { error } = await db.from("second_brain_links").insert(rows);
       if (error && error.code !== "23505") throw error;
     }
   }
@@ -326,7 +326,7 @@ export default function SecondBrainPage() {
         existingSlugs: notes.map((note) => note.slug),
       });
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("second_brain_notes")
         .insert({
           ...payload,
@@ -369,7 +369,7 @@ export default function SecondBrainPage() {
         notes.filter((note) => note.id !== selectedNote.id).map((note) => note.slug),
       );
 
-      const { error } = await supabase
+      const { error } = await db
         .from("second_brain_notes")
         .update({
           title: editorTitle.trim(),
@@ -401,7 +401,7 @@ export default function SecondBrainPage() {
     setMutating(true);
 
     try {
-      const { error } = await supabase.from("second_brain_notes").delete().eq("id", selectedNote.id);
+      const { error } = await db.from("second_brain_notes").delete().eq("id", selectedNote.id);
       if (error) throw error;
 
       toast.success("Nota excluida");
@@ -421,7 +421,7 @@ export default function SecondBrainPage() {
     setMutating(true);
 
     try {
-      const { error } = await supabase
+      const { error } = await db
         .from("second_brain_notes")
         .update({ status: nextStatus })
         .eq("id", selectedNote.id);
@@ -456,7 +456,7 @@ export default function SecondBrainPage() {
     setMutating(true);
 
     try {
-      const { error } = await supabase.from("second_brain_links").insert({
+      const { error } = await db.from("second_brain_links").insert({
         user_id: user.id,
         source_note_id: selectedNote.id,
         target_note_id: targetNoteId,

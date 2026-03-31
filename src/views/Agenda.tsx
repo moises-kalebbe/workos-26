@@ -51,9 +51,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
-import { useClerk, useSignIn } from "@clerk/nextjs";
 import {
   AgendaPreferences,
   AgendaPriority,
@@ -72,6 +71,42 @@ import {
   RESPONSE_STATUS_LABEL,
 } from "@/config/priorities";
 import type { Project } from "@/types";
+
+const GOOGLE_CALENDAR_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar",
+];
+const DEV_AUTH_USER_ID = process.env.NEXT_PUBLIC_DEV_AUTH_USER_ID || null;
+
+type ClerkExternalAccount = {
+  provider?: string;
+  approvedScopes?: string[];
+  verification?: {
+    externalVerificationRedirectURL?: URL | { href?: string } | string | null;
+  } | null;
+  reauthorize?: (params: {
+    additionalScopes?: string[];
+    redirectUrl?: string;
+  }) => Promise<ClerkExternalAccount>;
+};
+
+type ClerkUserWithExternalAccounts = {
+  externalAccounts?: ClerkExternalAccount[];
+  createExternalAccount?: (params: {
+    strategy: string;
+    redirectUrl?: string;
+    additionalScopes?: string[];
+  }) => Promise<ClerkExternalAccount>;
+};
+
+function getExternalRedirectUrl(account: ClerkExternalAccount | null | undefined) {
+  const redirect = account?.verification?.externalVerificationRedirectURL;
+  if (!redirect) return null;
+  if (typeof redirect === "string") return redirect;
+  if ("href" in redirect && typeof redirect.href === "string") return redirect.href;
+  if (redirect instanceof URL) return redirect.href;
+  return null;
+}
 
 function sanitizeDescription(value: string | null) {
   if (!value) return null;
@@ -475,10 +510,7 @@ function EventCard({
 }
 
 export default function AgendaPage() {
-  const { user } = useAuth();
-  const { session } = useClerk();
-  const { storeGoogleToken, fetchEvents } = useGoogleCalendar();
-  const { signIn } = useSignIn();
+  const { user, getToken } = useAuth();
 
   const {
     events,
@@ -493,19 +525,47 @@ export default function AgendaPage() {
     saveEventMetadata,
     loadPreferences,
     savePreferences,
+    storeGoogleToken,
+    fetchEvents,
   } = useGoogleCalendar();
 
   const handleConnectGoogle = async () => {
-    if (!signIn) return;
-    
+    const clerkUser = user as ClerkUserWithExternalAccounts | null;
+    if (!clerkUser) return;
+
     try {
-      await (signIn as any).authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: `${window.location.origin}/sso-callback`,
-        redirectUrlComplete: `${window.location.origin}/agenda`,
-      });
+      const redirectUrl = `${window.location.origin}/sso-callback`;
+      const googleAccount = clerkUser.externalAccounts?.find(
+        (account) => account.provider === "google",
+      );
+
+      let accountResult: ClerkExternalAccount | null | undefined;
+
+      if (googleAccount?.reauthorize) {
+        const approvedScopes = new Set(googleAccount.approvedScopes || []);
+        const missingScopes = GOOGLE_CALENDAR_SCOPES.filter((scope) => !approvedScopes.has(scope));
+
+        accountResult = await googleAccount.reauthorize({
+          additionalScopes: missingScopes.length > 0 ? missingScopes : GOOGLE_CALENDAR_SCOPES,
+          redirectUrl,
+        });
+      } else if (clerkUser.createExternalAccount) {
+        accountResult = await clerkUser.createExternalAccount({
+          strategy: "oauth_google",
+          redirectUrl,
+          additionalScopes: GOOGLE_CALENDAR_SCOPES,
+        });
+      }
+
+      const verificationRedirectUrl = getExternalRedirectUrl(accountResult);
+      if (!verificationRedirectUrl) {
+        throw new Error("Clerk nao retornou URL de autorizacao do Google");
+      }
+
+      window.location.href = verificationRedirectUrl;
     } catch (err) {
-      toast.error("Erro ao conectar Google Calendar");
+      console.error("Google Calendar connect error", err);
+      toast.error(err instanceof Error ? err.message : "Erro ao conectar Google Calendar");
     }
   };
 
@@ -548,7 +608,7 @@ export default function AgendaPage() {
     if (!user) return;
 
     const loadProjects = async () => {
-      const { data, error: projectError } = await supabase
+      const { data, error: projectError } = await db
         .from("projects")
         .select("*")
         .order("name");
@@ -565,13 +625,14 @@ export default function AgendaPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!user || !session) return;
+    if (DEV_AUTH_USER_ID) return;
+    if (!user) return;
 
     const checkAndStoreGoogleToken = async () => {
       if (connected) return;
 
       try {
-        const googleToken = await session.getToken({ template: "oauth_google" });
+        const googleToken = await getToken({ template: "oauth_google" });
         if (googleToken) {
           await storeGoogleToken(googleToken);
           toast.success("Google Calendar conectado");
@@ -583,7 +644,7 @@ export default function AgendaPage() {
     };
 
     void checkAndStoreGoogleToken();
-  }, [user, session, connected, storeGoogleToken, fetchEvents]);
+  }, [connected, fetchEvents, getToken, storeGoogleToken, user]);
 
   useEffect(() => {
     let cancelled = false;

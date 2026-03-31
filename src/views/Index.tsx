@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/system/page-header";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { getQuadrant, sortTasksForMatrix } from "@/lib/eisenhower";
@@ -107,10 +107,10 @@ export default function IndexPage() {
     const recentWindowIso = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
 
     const [profileRes, projectRes, taskRes, sessionRes] = await Promise.all([
-      supabase.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
-      supabase.from("projects").select("*").order("name"),
-      supabase.from("tasks").select("id, title, project_id, skill_document_id, column_index, priority, urgency, importance, due_date, client, created_at").lt("column_index", 2).order("position"),
-      supabase
+      db.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
+      db.from("projects").select("*").order("name"),
+      db.from("tasks").select("id, title, project_id, skill_document_id, column_index, priority, urgency, importance, due_date, client, created_at").lt("column_index", 2).order("position"),
+      db
         .from("time_sessions")
         .select("id, project_id, started_at, ended_at, project:projects(name, client, hourly_rate, color)")
         .gte("started_at", recentWindowIso)

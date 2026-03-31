@@ -17,7 +17,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import JSZip from "jszip";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -288,9 +288,9 @@ export default function SkillsPage() {
 
   async function fetchData() {
     const [categoryRes, skillRes, projectRes] = await Promise.all([
-      supabase.from("skill_categories").select("*").order("name"),
-      supabase.from("skill_documents").select("*").order("updated_at", { ascending: false }),
-      supabase.from("projects").select("*").order("name"),
+      db.from("skill_categories").select("*").order("name"),
+      db.from("skill_documents").select("*").order("updated_at", { ascending: false }),
+      db.from("projects").select("*").order("name"),
     ]);
 
     if (categoryRes.error) throw categoryRes.error;
@@ -356,7 +356,7 @@ export default function SkillsPage() {
       description: category.description,
     }));
 
-    const { data: upsertedCategories, error: categoryError } = await supabase
+    const { data: upsertedCategories, error: categoryError } = await db
       .from("skill_categories")
       .upsert(categoryRows, { onConflict: "user_id,slug" })
       .select("id, slug");
@@ -385,7 +385,7 @@ export default function SkillsPage() {
       };
     });
 
-    const { error: skillError } = await supabase
+    const { error: skillError } = await db
       .from("skill_documents")
       .upsert(skillRows, { onConflict: "user_id,slug" });
 
@@ -419,7 +419,7 @@ export default function SkillsPage() {
     const slug = getUniqueSlug(categoryName, existingSlugs);
 
     if (editingCategory) {
-      const { error } = await supabase
+      const { error } = await db
         .from("skill_categories")
         .update({ name: categoryName.trim(), slug, description: categoryDescription.trim() || null })
         .eq("id", editingCategory.id);
@@ -431,7 +431,7 @@ export default function SkillsPage() {
 
       toast.success("Categoria atualizada");
     } else {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("skill_categories")
         .insert({
           user_id: user.id,
@@ -461,7 +461,7 @@ export default function SkillsPage() {
   async function removeCategory(category: SkillCategory) {
     if (!user) return;
 
-    const { error: skillDeleteError } = await supabase
+    const { error: skillDeleteError } = await db
       .from("skill_documents")
       .delete()
       .eq("category_id", category.id)
@@ -472,7 +472,7 @@ export default function SkillsPage() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("skill_categories")
       .delete()
       .eq("id", category.id)
@@ -561,7 +561,7 @@ export default function SkillsPage() {
 
     try {
       if (editingSkill) {
-        const { error } = await supabase
+        const { error } = await db
           .from("skill_documents")
           .update({
             title: skillTitle.trim(),
@@ -577,7 +577,7 @@ export default function SkillsPage() {
         if (error) throw error;
         toast.success("Skill atualizada");
       } else {
-        const { data, error } = await supabase
+        const { data, error } = await db
           .from("skill_documents")
           .insert({
             user_id: user.id,
@@ -611,7 +611,7 @@ export default function SkillsPage() {
   async function removeSkill(skill: SkillDocument) {
     if (!user) return;
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("skill_documents")
       .delete()
       .eq("id", skill.id)
@@ -639,7 +639,7 @@ export default function SkillsPage() {
   async function handleDownloadSkill(skill: SkillDocument) {
     downloadMarkdownFile(skill.title, skill.content_md);
 
-    await supabase
+    await db
       .from("skill_documents")
       .update({ last_downloaded_at: new Date().toISOString() })
       .eq("id", skill.id);
@@ -667,7 +667,7 @@ export default function SkillsPage() {
     const archiveName = `${sanitizeFileName(selectedCategory.name) || "skills"}-skills.zip`;
     downloadBlob(blob, archiveName);
 
-    await supabase
+    await db
       .from("skill_documents")
       .update({ last_downloaded_at: new Date().toISOString() })
       .in("id", categorySkills.map((skill) => skill.id));

@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getRequestUser } from "@/lib/supabase/requestUser";
+import { appendClerkResetHeaders, getRequestUser } from "@/lib/auth";
+import { createServerDbClient } from "@/lib/serverDbClient";
 import { buildCapturePayload, parseTagsInput } from "@/lib/secondBrain";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const supabase = createSupabaseServerClient() as any;
-  const user = await getRequestUser(supabase, request);
+  const user = await getRequestUser(request);
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    appendClerkResetHeaders(response.headers);
+    return response;
   }
+
+  const db = createServerDbClient(user.id) as any;
 
   const body = await request.json().catch(() => ({}));
   const notes = Array.isArray(body.notes) ? body.notes : [];
@@ -23,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Nenhuma nota para importar." }, { status: 400 });
   }
 
-  const existingNotes = await supabase.from("second_brain_notes").select("slug").eq("user_id", user.id);
+  const existingNotes = await db.from("second_brain_notes").select("slug").eq("user_id", user.id);
   const existingSlugs = (existingNotes.data || []).map((note: any) => note.slug);
 
   const rows = notes
@@ -56,12 +59,12 @@ export async function POST(request: Request) {
       };
     });
 
-  const insertRes = await supabase.from("second_brain_notes").insert(rows).select("id");
+  const insertRes = await db.from("second_brain_notes").insert(rows).select("id");
   if (insertRes.error) {
     return NextResponse.json({ error: insertRes.error.message }, { status: 500 });
   }
 
-  await supabase.from("vault_sync_runs").insert({
+  await db.from("vault_sync_runs").insert({
     user_id: user.id,
     project_id: projectId,
     run_type: "windows_notes_import",

@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  workos-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:-workos-user}
+      POSTGRES_DB: ${POSTGRES_DB:-workos-db}
+    volumes:
+      - workos-postgres-data:/var/lib/postgresql/data
+    networks:
+      - workos-network
+    deploy:
+      restart_policy:
+        condition: any
+
+  workos:
+    image: ${WORKOS_IMAGE:-ghcr.io/moi-kalebbe/workos-26:latest}
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+
+      DATABASE_URL: postgresql://${POSTGRES_USER:-workos-user}:${POSTGRES_PASSWORD}@workos-postgres:5432/${POSTGRES_DB:-workos-db}
+
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+
+
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    networks:
+      - workos-network
+      - MoiKalebbe
+    depends_on:
+      - workos-postgres
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=MoiKalebbe
+        - traefik.http.routers.workos.rule=Host(`${WORKOS_DOMAIN:-workos.moiseskalebbe.cloud}`)
+        - traefik.http.routers.workos.entrypoints=websecure
+        - traefik.http.routers.workos.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.workos.service=workos
+        - traefik.http.services.workos.loadbalancer.server.port=3000
+
+volumes:
+  workos-postgres-data:
+
+networks:
+  workos-network:
+    driver: overlay
+  MoiKalebbe:
+    external: true
+    name: MoiKalebbe

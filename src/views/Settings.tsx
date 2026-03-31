@@ -13,7 +13,7 @@ import {
   User,
   Wallet,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -115,8 +115,8 @@ export default function SettingsPage() {
 
     setLoading(true);
     const [profileRes, projRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
-      supabase.from("projects").select("*").order("name"),
+      db.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+      db.from("projects").select("*").order("name"),
     ]);
 
     const nextProfile = profileRes.data as Profile | null;
@@ -175,7 +175,7 @@ export default function SettingsPage() {
     if (!user) return;
     setSaving(true);
 
-    const { error } = await supabase
+    const { error } = await db
       .from("profiles")
       .update({
         name,
@@ -197,7 +197,7 @@ export default function SettingsPage() {
   async function createProject() {
     if (!newName || !user) return;
 
-    const { error } = await supabase.from("projects").insert({
+    const { error } = await db.from("projects").insert({
       user_id: user.id,
       name: newName,
       client: newClient || null,
@@ -221,7 +221,7 @@ export default function SettingsPage() {
   async function updateProject() {
     if (!editingProject || !editName) return;
 
-    const { error } = await supabase
+    const { error } = await db
       .from("projects")
       .update({
         name: editName,
@@ -241,8 +241,8 @@ export default function SettingsPage() {
   }
 
   async function deleteProject(projectId: string) {
-    await supabase.from("time_sessions").delete().eq("project_id", projectId);
-    const { error } = await supabase.from("projects").delete().eq("id", projectId);
+    await db.from("time_sessions").delete().eq("project_id", projectId);
+    const { error } = await db.from("projects").delete().eq("id", projectId);
 
     if (error) {
       toast.error("Erro ao excluir empresa");
@@ -317,7 +317,7 @@ export default function SettingsPage() {
     }
 
     setSavingCalculator(true);
-    const { error } = await supabase
+    const { error } = await db
       .from("projects")
       .update({
         monthly_agreed_amount: roundToMoney(monthlyAmountValue),
@@ -360,7 +360,7 @@ export default function SettingsPage() {
     return projectsWithRate.reduce((sum, project) => sum + project.hourly_rate, 0) / projectsWithRate.length;
   }, [projects]);
 
-  const initials = (name || user?.email || "U").charAt(0).toUpperCase();
+  const initials = (name || user?.primaryEmailAddress?.emailAddress || "U").charAt(0).toUpperCase();
   const timezoneLabel = TIMEZONES.find((item) => item.value === timezone)?.label || timezone;
 
   if (loading) {
@@ -389,7 +389,7 @@ export default function SettingsPage() {
 
             <div className="min-w-0">
               <p className="text-lg font-semibold text-foreground">{name || "Perfil sem nome"}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{user?.email || "Sem email"}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{user?.primaryEmailAddress?.emailAddress || "Sem email"}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Badge className="bg-primary/15 text-primary hover:bg-primary/15">{profile?.plan || "Free"}</Badge>
                 <Badge variant="secondary" className="bg-background/40 text-muted-foreground">
@@ -460,7 +460,7 @@ export default function SettingsPage() {
 
                 <div>
                   <p className="text-base font-semibold text-foreground">{name || "Sem nome definido"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{user?.primaryEmailAddress?.emailAddress}</p>
                 </div>
 
                 <div className="w-full rounded-xl border border-border/70 bg-background/35 p-4">
@@ -503,7 +503,7 @@ export default function SettingsPage() {
 
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Email</Label>
-                  <Input value={user?.email || ""} disabled className="h-11 rounded-2xl border-border bg-background/40 opacity-70" />
+                  <Input value={user?.primaryEmailAddress?.emailAddress || ""} disabled className="h-11 rounded-2xl border-border bg-background/40 opacity-70" />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 pt-2">

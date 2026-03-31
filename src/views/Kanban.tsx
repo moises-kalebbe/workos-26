@@ -20,7 +20,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -321,9 +321,9 @@ export default function KanbanPage() {
     setLoading(true);
     try {
       const [tasksRes, projRes, skillsRes] = await Promise.all([
-        supabase.from("tasks").select("*").order("position"),
-        supabase.from("projects").select("*").order("name"),
-        supabase.from("skill_documents").select("*").order("title"),
+        db.from("tasks").select("*").order("position"),
+        db.from("projects").select("*").order("name"),
+        db.from("skill_documents").select("*").order("title"),
       ]);
 
       const tasksList = (tasksRes.data || []) as unknown as Task[];
@@ -332,7 +332,7 @@ export default function KanbanPage() {
 
       if (tasksList.length > 0) {
         const taskIds = tasksList.map((t) => t.id);
-        const { data: subtasksData } = await supabase
+        const { data: subtasksData } = await db
           .from("subtasks")
           .select("*")
           .in("task_id", taskIds)
@@ -360,7 +360,7 @@ export default function KanbanPage() {
     const selectedProject = projects.find((project) => project.id === projectId) || null;
     const skillDocumentId = newSkillValue === NO_SKILL_VALUE ? null : newSkillValue;
     const maxPos = Math.max(0, ...tasks.filter((t) => t.column_index === 0).map((t) => t.position));
-    const { error } = await supabase.from("tasks").insert({
+    const { error } = await db.from("tasks").insert({
       user_id: user.id,
       title: newTitle,
       project_id: projectId,
@@ -394,7 +394,7 @@ export default function KanbanPage() {
     const projectId = projectIdFromSelectValue(editProjectValue);
     const selectedProject = projects.find((project) => project.id === projectId) || null;
     const skillDocumentId = editSkillValue === NO_SKILL_VALUE ? null : editSkillValue;
-    const { error } = await supabase.from("tasks").update({
+    const { error } = await db.from("tasks").update({
       title: editTitle,
       project_id: projectId,
       skill_document_id: skillDocumentId,
@@ -417,8 +417,8 @@ export default function KanbanPage() {
 
   async function deleteTask(taskId: string) {
     // Delete subtasks first
-    await supabase.from("subtasks").delete().eq("task_id", taskId);
-    const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+    await db.from("subtasks").delete().eq("task_id", taskId);
+    const { error } = await db.from("tasks").delete().eq("id", taskId);
     if (error) {
       toast.error("Erro ao excluir tarefa");
     } else {
@@ -454,7 +454,7 @@ export default function KanbanPage() {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, column_index: newCol } : t))
     );
-    await supabase.from("tasks").update({ column_index: newCol }).eq("id", taskId);
+    await db.from("tasks").update({ column_index: newCol }).eq("id", taskId);
   }
 
   async function toggleSubtask(subtaskId: string, completed: boolean) {
@@ -466,7 +466,7 @@ export default function KanbanPage() {
         ),
       }))
     );
-    await supabase.from("subtasks").update({ completed }).eq("id", subtaskId);
+    await db.from("subtasks").update({ completed }).eq("id", subtaskId);
   }
 
   async function addSubtask(taskId: string, title: string) {
@@ -474,7 +474,7 @@ export default function KanbanPage() {
       0,
       ...(tasks.find((t) => t.id === taskId)?.subtasks?.map((s) => s.position) || [0])
     );
-    const { data } = await supabase
+    const { data } = await db
       .from("subtasks")
       .insert({ task_id: taskId, title, position: maxPos + 1 })
       .select()
@@ -550,7 +550,7 @@ export default function KanbanPage() {
     if (!activeTask) return;
 
     // Persist final column
-    await supabase.from("tasks").update({ column_index: activeTask.column_index }).eq("id", String(active.id));
+    await db.from("tasks").update({ column_index: activeTask.column_index }).eq("id", String(active.id));
   }
 
   const projectMap = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);

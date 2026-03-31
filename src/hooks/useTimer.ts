@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { db } from "@/lib/dbClient";
 
 interface TimerState {
   activeSessionId: string | null;
@@ -19,7 +19,7 @@ export function useTimer() {
 
   useEffect(() => {
     async function checkActive() {
-      const { data } = await supabase
+      const { data } = await db
         .from("time_sessions")
         .select("id, project_id, started_at")
         .is("ended_at", null)
@@ -59,14 +59,14 @@ export function useTimer() {
 
   const start = useCallback(async (projectId: string, userId: string) => {
     if (state.activeSessionId) {
-      await supabase
+      await db
         .from("time_sessions")
         .update({ ended_at: new Date().toISOString() })
         .eq("id", state.activeSessionId);
     }
 
     const now = new Date();
-    const { data } = await supabase
+    const { data } = await db
       .from("time_sessions")
       .insert({
         project_id: projectId,
@@ -89,7 +89,7 @@ export function useTimer() {
   const stop = useCallback(async () => {
     if (!state.activeSessionId) return null;
 
-    const { data } = await supabase
+    const { data } = await db
       .from("time_sessions")
       .update({ ended_at: new Date().toISOString() })
       .eq("id", state.activeSessionId)
