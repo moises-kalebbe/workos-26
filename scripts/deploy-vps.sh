@@ -1,7 +1,10 @@
 #!/bin/sh
 set -eu
 
-APP_DIR=${APP_DIR:-/opt/workos-26}
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+
+APP_DIR=${APP_DIR:-$REPO_DIR}
 STACK_NAME=${STACK_NAME:-workos}
 IMAGE_NAME=${IMAGE_NAME:-ghcr.io/moi-kalebbe/workos-26:latest}
 
