@@ -4,6 +4,12 @@ export type AuthenticatedUser = {
   id: string;
 };
 
+type ClerkOauthAccessToken = {
+  token?: string;
+  scopes?: string[];
+  expiresAt?: number;
+};
+
 const secretKey = process.env.CLERK_SECRET_KEY;
 const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY;
 
@@ -66,6 +72,31 @@ function getSafeTokenDebug(token: string) {
     typ: payload.typ ?? null,
     v: payload.v ?? null,
   };
+}
+
+function normalizeOauthAccessTokens(payload: unknown): ClerkOauthAccessToken[] {
+  if (Array.isArray(payload)) {
+    return payload as ClerkOauthAccessToken[];
+  }
+
+  if (payload && typeof payload === "object" && "data" in payload) {
+    const data = (payload as { data?: unknown }).data;
+    if (Array.isArray(data)) {
+      return data as ClerkOauthAccessToken[];
+    }
+  }
+
+  return [];
+}
+
+function scoreGoogleOauthToken(token: ClerkOauthAccessToken) {
+  const scopes = token.scopes || [];
+  const hasCalendarScope = scopes.some((scope) =>
+    scope.startsWith("https://www.googleapis.com/auth/calendar"),
+  );
+  const expiresAt = typeof token.expiresAt === "number" ? token.expiresAt : 0;
+
+  return (hasCalendarScope ? 1 : 0) * 1_000_000_000 + expiresAt;
 }
 
 export function appendClerkResetHeaders(headers: Headers) {
@@ -146,4 +177,29 @@ export async function requireAuth(request: Request) {
 
 export async function getAuthUser() {
   return null;
+}
+
+export async function getGoogleOauthAccessToken(userId: string) {
+  if (!clerkClient) {
+    console.warn("[auth] clerk backend client is not configured for Google OAuth sync");
+    return null;
+  }
+
+  const response = await clerkClient.users.getUserOauthAccessToken(userId, "google");
+  const tokens = normalizeOauthAccessTokens(response)
+    .filter((token): token is Required<Pick<ClerkOauthAccessToken, "token">> & ClerkOauthAccessToken =>
+      typeof token?.token === "string" && token.token.length > 0,
+    )
+    .sort((left, right) => scoreGoogleOauthToken(right) - scoreGoogleOauthToken(left));
+
+  const token = tokens[0];
+  if (!token) {
+    return null;
+  }
+
+  return {
+    token: token.token,
+    scopes: token.scopes || [],
+    expiresAt: token.expiresAt,
+  };
 }

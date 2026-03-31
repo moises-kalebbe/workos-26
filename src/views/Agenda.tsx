@@ -76,7 +76,6 @@ const GOOGLE_CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar",
 ];
-const DEV_AUTH_USER_ID = process.env.NEXT_PUBLIC_DEV_AUTH_USER_ID || null;
 
 type ClerkExternalAccount = {
   provider?: string;
@@ -510,7 +509,7 @@ function EventCard({
 }
 
 export default function AgendaPage() {
-  const { user, getToken } = useAuth();
+  const { user } = useAuth();
 
   const {
     events,
@@ -525,7 +524,6 @@ export default function AgendaPage() {
     saveEventMetadata,
     loadPreferences,
     savePreferences,
-    storeGoogleToken,
     fetchEvents,
   } = useGoogleCalendar();
 
@@ -624,28 +622,6 @@ export default function AgendaPage() {
 
     void loadProjects();
   }, [user]);
-
-  useEffect(() => {
-    if (DEV_AUTH_USER_ID) return;
-    if (!user) return;
-
-    const checkAndStoreGoogleToken = async () => {
-      if (connected) return;
-
-      try {
-        const googleToken = await getToken({ template: "oauth_google" });
-        if (googleToken) {
-          await storeGoogleToken(googleToken);
-          toast.success("Google Calendar conectado");
-          await fetchEvents();
-        }
-      } catch (err) {
-        console.error("Error getting Google token:", err);
-      }
-    };
-
-    void checkAndStoreGoogleToken();
-  }, [connected, fetchEvents, getToken, storeGoogleToken, user]);
 
   useEffect(() => {
     let cancelled = false;

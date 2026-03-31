@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { appendClerkResetHeaders, requireAuth } from "@/lib/auth";
+import {
+  appendClerkResetHeaders,
+  getGoogleOauthAccessToken,
+  requireAuth,
+} from "@/lib/auth";
 import {
   deleteGoogleToken,
   encodeEventId,
@@ -25,6 +29,38 @@ function unauthorizedJsonResponse() {
   return response;
 }
 
+async function syncGoogleTokenFromClerk(userId: string) {
+  const oauthToken = await getGoogleOauthAccessToken(userId);
+  if (!oauthToken) {
+    return false;
+  }
+
+  await storeGoogleToken(userId, {
+    access_token: oauthToken.token,
+    expires_at: oauthToken.expiresAt,
+  });
+
+  return true;
+}
+
+async function getAccessTokenForUser(userId: string) {
+  const tokenResult = await getValidAccessToken(userId);
+  if (!("error" in tokenResult)) {
+    return tokenResult;
+  }
+
+  if (tokenResult.error !== "not_connected") {
+    return tokenResult;
+  }
+
+  const synced = await syncGoogleTokenFromClerk(userId);
+  if (!synced) {
+    return tokenResult;
+  }
+
+  return getValidAccessToken(userId);
+}
+
 export async function GET(request: Request) {
   try {
     const user = await requireAuth(request);
@@ -35,7 +71,7 @@ export async function GET(request: Request) {
       return jsonResponse({ error: "Unknown action" }, 400);
     }
 
-    const tokenResult = await getValidAccessToken(user.id);
+    const tokenResult = await getAccessTokenForUser(user.id);
     if ("error" in tokenResult) {
       return jsonResponse(tokenResult);
     }
@@ -126,12 +162,27 @@ export async function POST(request: Request) {
       return jsonResponse({ success: true });
     }
 
+    if (action === "sync-clerk-token") {
+      const synced = await syncGoogleTokenFromClerk(user.id);
+      if (!synced) {
+        return jsonResponse(
+          {
+            error: "not_connected",
+            message: "Google Calendar not connected in Clerk",
+          },
+          404,
+        );
+      }
+
+      return jsonResponse({ success: true });
+    }
+
     if (action === "disconnect") {
       await deleteGoogleToken(user.id);
       return jsonResponse({ success: true });
     }
 
-    const tokenResult = await getValidAccessToken(user.id);
+    const tokenResult = await getAccessTokenForUser(user.id);
     if ("error" in tokenResult) {
       return jsonResponse(tokenResult);
     }
