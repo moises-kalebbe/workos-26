@@ -534,7 +534,8 @@ export default function AgendaPage() {
     if (!clerkUser) return;
 
     try {
-      const redirectUrl = `${window.location.origin}/sso-callback`;
+      const agendaUrl = `${window.location.origin}/agenda`;
+      const redirectUrl = `${window.location.origin}/sso-callback?redirect_url=${encodeURIComponent(agendaUrl)}`;
       const googleAccount = clerkUser.externalAccounts?.find(
         (account) => account.provider === "google",
       );
