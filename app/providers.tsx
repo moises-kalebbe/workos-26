@@ -1,6 +1,6 @@
 "use client";
 
-import { ClerkProvider, useAuth as useClerkAuth, useClerk, useUser } from "@clerk/nextjs";
+import { useAuth as useClerkAuth, useClerk, useUser } from "@clerk/nextjs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -86,10 +86,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return <DevAuthProvider>{appTree}</DevAuthProvider>;
   }
 
-  return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
-      <ClerkAuthProvider>{appTree}</ClerkAuthProvider>
-    </ClerkProvider>
-  );
+  return <ClerkAuthProvider>{appTree}</ClerkAuthProvider>;
 }
 
