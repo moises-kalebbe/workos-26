@@ -190,9 +190,10 @@ class LocalQueryBuilder<T> implements PromiseLike<QueryResult<T>> {
     };
 
     if (!response.ok) {
+      const baseMessage = json.error || "Request failed";
       return {
         data: null,
-        error: { message: json.error || "Request failed" },
+        error: { message: `${baseMessage} (${response.status})` },
       };
     }
 

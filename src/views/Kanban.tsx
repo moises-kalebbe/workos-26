@@ -282,6 +282,7 @@ export default function KanbanPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [skills, setSkills] = useState<SkillDocument[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [skillPreviewOpen, setSkillPreviewOpen] = useState(false);
@@ -319,6 +320,7 @@ export default function KanbanPage() {
 
   async function loadData() {
     setLoading(true);
+    setLoadError(null);
     try {
       const [tasksRes, projRes, skillsRes] = await Promise.all([
         db.from("tasks").select("*").order("position"),
@@ -326,17 +328,40 @@ export default function KanbanPage() {
         db.from("skill_documents").select("*").order("title"),
       ]);
 
+      if (tasksRes.error) {
+        throw new Error(tasksRes.error.message);
+      }
+
+      if (projRes.error) {
+        console.error("[kanban] failed to load projects", projRes.error.message);
+        toast.error(`Projetos indisponiveis: ${projRes.error.message}`);
+        setProjects([]);
+      } else {
+        setProjects((projRes.data || []) as unknown as Project[]);
+      }
+
+      if (skillsRes.error) {
+        console.error("[kanban] failed to load skills", skillsRes.error.message);
+        toast.error(`Skills indisponiveis: ${skillsRes.error.message}`);
+        setSkills([]);
+      } else {
+        setSkills((skillsRes.data || []) as unknown as SkillDocument[]);
+      }
+
       const tasksList = (tasksRes.data || []) as unknown as Task[];
-      setProjects((projRes.data || []) as unknown as Project[]);
-      setSkills((skillsRes.data || []) as unknown as SkillDocument[]);
 
       if (tasksList.length > 0) {
         const taskIds = tasksList.map((t) => t.id);
-        const { data: subtasksData } = await db
+        const { data: subtasksData, error: subtasksError } = await db
           .from("subtasks")
           .select("*")
           .in("task_id", taskIds)
           .order("position");
+
+        if (subtasksError) {
+          console.error("[kanban] failed to load subtasks", subtasksError.message);
+          toast.error(`Subtarefas indisponiveis: ${subtasksError.message}`);
+        }
 
         const subtasksList = (subtasksData || []) as unknown as Subtask[];
         const tasksWithSubs = tasksList.map((t) => ({
@@ -348,7 +373,10 @@ export default function KanbanPage() {
         setTasks([]);
       }
     } catch (error) {
-      toast.error("Erro ao carregar dados do Kanban");
+      const message = error instanceof Error ? error.message : "Erro ao carregar dados do Kanban";
+      setLoadError(message);
+      setTasks([]);
+      toast.error(`Erro ao carregar Kanban: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -629,12 +657,37 @@ export default function KanbanPage() {
     };
   }, [filteredTasks]);
 
+  const signedInEmail = user?.primaryEmailAddress?.emailAddress || null;
+
   if (loading) {
     return <LoadingState message="Carregando quadro Kanban..." />;
   }
 
   return (
     <div className="space-y-6">
+      {loadError ? (
+        <div className="rounded-2xl border border-danger/30 bg-danger-muted/40 p-4">
+          <p className="text-sm font-semibold text-danger">Nao foi possivel carregar o quadro.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
+          <div className="mt-3">
+            <Button variant="outline" className="border-danger/30" onClick={() => void loadData()}>
+              Tentar novamente
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {!loadError && tasks.length === 0 ? (
+        <div className="rounded-2xl border border-border bg-card/95 p-4">
+          <p className="text-sm font-semibold text-foreground">Nenhuma tarefa encontrada para a conta atual.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {signedInEmail
+              ? `Sessao ativa: ${signedInEmail}. Se esse nao for o email esperado, saia da conta e entre novamente.`
+              : "Se esse nao for o ambiente esperado, saia da conta e entre novamente."}
+          </p>
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between">
         <PageHeader className="flex-1" title="Kanban" description="Organize tarefas por coluna e prioridade." />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
