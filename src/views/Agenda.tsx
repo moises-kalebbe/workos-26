@@ -81,6 +81,7 @@ type ClerkExternalAccount = {
   provider?: string;
   approvedScopes?: string[] | string;
   verification?: {
+    status?: string | null;
     externalVerificationRedirectURL?: URL | { href?: string } | string | null;
   } | null;
   reauthorize?: (params: {
@@ -551,6 +552,16 @@ export default function AgendaPage() {
       const googleAccount = clerkUser.externalAccounts?.find(
         (account) => account.provider === "google" || account.provider === "oauth_google",
       );
+
+      const existingVerificationUrl = getExternalRedirectUrl(googleAccount);
+      if (
+        googleAccount?.verification?.status &&
+        googleAccount.verification.status !== "verified" &&
+        existingVerificationUrl
+      ) {
+        window.location.href = existingVerificationUrl;
+        return;
+      }
 
       let accountResult: ClerkExternalAccount | null | undefined;
 
