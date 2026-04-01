@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   CalendarClock,
   CreditCard,
+  ExternalLink,
   Landmark,
   Pencil,
   Plus,
@@ -66,6 +67,7 @@ type EntryFormState = {
   recurrence: FinanceiroEntryRecurrence;
   alertDaysBefore: string;
   isPlatformCost: boolean;
+  paymentUrl: string;
   notes: string;
 };
 
@@ -116,6 +118,7 @@ function defaultFormState(): EntryFormState {
     recurrence: "none",
     alertDaysBefore: "7",
     isPlatformCost: false,
+    paymentUrl: "",
     notes: "",
   };
 }
@@ -301,6 +304,7 @@ export default function FinanceiroPage() {
       recurrence: entry.recurrence,
       alertDaysBefore: String(entry.alert_days_before || 7),
       isPlatformCost: entry.is_platform_cost,
+      paymentUrl: entry.payment_url || "",
       notes: entry.notes || "",
     });
     setDialogOpen(true);
@@ -331,6 +335,7 @@ export default function FinanceiroPage() {
       recurrence: form.recurrence,
       alert_days_before: Number.parseInt(form.alertDaysBefore, 10) || 7,
       is_platform_cost: form.isPlatformCost,
+      payment_url: form.paymentUrl.trim() || null,
       notes: form.notes.trim() || null,
     };
 
@@ -629,6 +634,11 @@ export default function FinanceiroPage() {
             </div>
 
             <div className="space-y-2 md:col-span-2">
+              <Label className="text-xs text-muted-foreground">Link de pagamento</Label>
+              <Input value={form.paymentUrl} onChange={(event) => setForm((current) => ({ ...current, paymentUrl: event.target.value }))} placeholder="https://claude.ai/settings/billing" className="h-11 rounded-2xl border-border bg-background/60" />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
               <Label className="text-xs text-muted-foreground">Notas</Label>
               <Textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Observacoes internas" className="min-h-[88px] rounded-2xl border-border bg-background/60" />
             </div>
@@ -774,6 +784,15 @@ function EntryCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {entry.payment_url ? (
+            <Button asChild variant="outline" size="sm" className="gap-1 rounded-xl">
+              <a href={entry.payment_url} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Abrir pagamento
+              </a>
+            </Button>
+          ) : null}
+
           {visualStatus !== "paid" ? (
             <Button onClick={() => onMarkAsPaid(entry)} size="sm" className="bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20">
               <BadgeCheck className="mr-1 h-3.5 w-3.5" />

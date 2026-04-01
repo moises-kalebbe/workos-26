@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS financial_entries (
   recurrence TEXT NOT NULL DEFAULT 'none' CHECK (recurrence IN ('none', 'monthly', 'yearly')),
   alert_days_before INTEGER NOT NULL DEFAULT 7 CHECK (alert_days_before >= 0 AND alert_days_before <= 365),
   is_platform_cost BOOLEAN NOT NULL DEFAULT FALSE,
+  payment_url TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

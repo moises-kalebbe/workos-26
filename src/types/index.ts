@@ -49,6 +49,7 @@ export interface FinancialEntry {
   recurrence: FinancialEntryRecurrence;
   alert_days_before: number;
   is_platform_cost: boolean;
+  payment_url: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
