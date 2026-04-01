@@ -132,9 +132,13 @@ relinked_entries AS (
    AND ic.recurrence = tr.recurrence
    AND ic.due_day = tr.due_day_key
   WHERE fe.id = tr.id
-  RETURNING fe.id, fe.financial_contract_id, COALESCE(fe.competency_date, fe.due_date) AS ref_date, fe.due_date, fe.status, fe.paid_at, fe.created_at
-),
-duplicate_rows AS (
+  RETURNING fe.id
+)
+SELECT
+  (SELECT count(*) FROM inserted_contracts) AS rebuilt_contracts,
+  (SELECT count(*) FROM relinked_entries) AS relinked_entries;
+
+WITH duplicate_rows AS (
   SELECT
     fe.id,
     row_number() OVER (
@@ -146,18 +150,12 @@ duplicate_rows AS (
         fe.id ASC
     ) AS row_rank
   FROM financial_entries fe
-  WHERE fe.financial_contract_id IN (SELECT id FROM inserted_contracts)
-),
-deleted_duplicates AS (
-  DELETE FROM financial_entries fe
-  USING duplicate_rows dr
-  WHERE fe.id = dr.id
-    AND dr.row_rank > 1
-  RETURNING fe.id
+  WHERE fe.financial_contract_id IS NOT NULL
 )
-SELECT
-  (SELECT count(*) FROM inserted_contracts) AS rebuilt_contracts,
-  (SELECT count(*) FROM deleted_duplicates) AS removed_duplicates;
+DELETE FROM financial_entries fe
+USING duplicate_rows dr
+WHERE fe.id = dr.id
+  AND dr.row_rank > 1;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_financial_entries_contract_period_unique
   ON financial_entries (
