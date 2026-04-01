@@ -1,0 +1,418 @@
+import type {
+  FinanceiroContractWithProject,
+  FinanceiroEntryWithProject,
+  FinanceiroReportingBasis,
+  FinanceiroVisualStatus,
+} from "@/features/financeiro/types";
+import { parseFinanceiroDate } from "@/features/financeiro/utils";
+
+export type FinanceiroPeriodPreset = "month" | "6m" | "12m" | "24m" | "custom";
+
+export type FinanceiroExecutiveSnapshot = {
+  operation: {
+    receivableNow: number;
+    payableNow: number;
+    overdueCount: number;
+    upcomingCount: number;
+  };
+  month: {
+    income: number;
+    expense: number;
+    profit: number;
+    planned: number;
+  };
+  rolling: {
+    income6m: number;
+    expense6m: number;
+    incomeYear: number;
+    expenseYear: number;
+  };
+};
+
+export type FinanceiroMonthlyTrendPoint = {
+  monthKey: string;
+  label: string;
+  income: number;
+  expense: number;
+  profit: number;
+};
+
+export type FinanceiroProjectionPoint = {
+  monthKey: string;
+  label: string;
+  income: number;
+  expense: number;
+  profit: number;
+};
+
+export type FinanceiroForecastEntryInput = Omit<FinanceiroEntryWithProject, "id" | "created_at" | "updated_at" | "project">;
+
+function normalizeFinanceiroAmount(value: number | string | null | undefined) {
+  const parsed = typeof value === "number" ? value : Number.parseFloat(String(value ?? 0));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function endOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function addMonths(date: Date, months: number) {
+  return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
+function formatMonthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthLabel(date: Date) {
+  return date.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+}
+
+function getEntryDateByBasis(entry: FinanceiroEntryWithProject, basis: FinanceiroReportingBasis) {
+  if (basis === "cash") {
+    return entry.paid_at ? startOfDay(new Date(entry.paid_at)) : null;
+  }
+
+  return startOfDay(parseFinanceiroDate(entry.competency_date || entry.due_date));
+}
+
+function getProjectionDate(entry: FinanceiroEntryWithProject) {
+  return startOfDay(parseFinanceiroDate(entry.competency_date || entry.due_date));
+}
+
+function getRangeFromPreset(
+  now: Date,
+  preset: FinanceiroPeriodPreset,
+  customStart?: string,
+  customEnd?: string,
+) {
+  if (preset === "custom" && customStart && customEnd) {
+    return {
+      start: startOfDay(new Date(customStart)),
+      end: startOfDay(new Date(customEnd)),
+    };
+  }
+
+  if (preset === "month") {
+    return {
+      start: startOfMonth(now),
+      end: startOfDay(now),
+    };
+  }
+
+  if (preset === "6m") {
+    return {
+      start: startOfMonth(addMonths(now, -5)),
+      end: startOfDay(now),
+    };
+  }
+
+  if (preset === "12m") {
+    return {
+      start: startOfMonth(addMonths(now, -11)),
+      end: startOfDay(now),
+    };
+  }
+
+  return {
+    start: startOfMonth(addMonths(now, -23)),
+    end: startOfDay(now),
+  };
+}
+
+export function summarizeActionableEntries(
+  entries: FinanceiroEntryWithProject[],
+  getVisualStatus: (entry: FinanceiroEntryWithProject, now?: Date) => FinanceiroVisualStatus,
+  now = new Date(),
+) {
+  return entries.reduce(
+    (acc, entry) => {
+      const visualStatus = getVisualStatus(entry, now);
+      const amount = normalizeFinanceiroAmount(entry.amount);
+      const actionable = visualStatus === "overdue" || visualStatus === "upcoming";
+
+      if (entry.type === "income" && actionable) acc.receivableNow += amount;
+      if (entry.type === "expense" && actionable) acc.payableNow += amount;
+      if (visualStatus === "overdue") acc.overdueCount += 1;
+      if (visualStatus === "upcoming") acc.upcomingCount += 1;
+
+      return acc;
+    },
+    {
+      receivableNow: 0,
+      payableNow: 0,
+      overdueCount: 0,
+      upcomingCount: 0,
+    },
+  );
+}
+
+export function buildExecutiveSnapshot(
+  entries: FinanceiroEntryWithProject[],
+  basis: FinanceiroReportingBasis,
+  getVisualStatus: (entry: FinanceiroEntryWithProject, now?: Date) => FinanceiroVisualStatus,
+  now = new Date(),
+): FinanceiroExecutiveSnapshot {
+  const currentMonthStart = startOfMonth(now);
+  const currentMonthEnd = endOfMonth(now);
+  const last6MonthsStart = startOfMonth(addMonths(now, -5));
+  const currentYearStart = new Date(now.getFullYear(), 0, 1);
+
+  const snapshot: FinanceiroExecutiveSnapshot = {
+    operation: summarizeActionableEntries(entries, getVisualStatus, now),
+    month: {
+      income: 0,
+      expense: 0,
+      profit: 0,
+      planned: 0,
+    },
+    rolling: {
+      income6m: 0,
+      expense6m: 0,
+      incomeYear: 0,
+      expenseYear: 0,
+    },
+  };
+
+  for (const entry of entries) {
+    const amount = normalizeFinanceiroAmount(entry.amount);
+    const datedAt = getEntryDateByBasis(entry, basis);
+    const projectionDate = getProjectionDate(entry);
+
+    if (datedAt && datedAt >= currentMonthStart && datedAt <= currentMonthEnd) {
+      if (entry.type === "income") snapshot.month.income += amount;
+      if (entry.type === "expense") snapshot.month.expense += amount;
+    }
+
+    if (datedAt && datedAt >= last6MonthsStart && datedAt <= currentMonthEnd) {
+      if (entry.type === "income") snapshot.rolling.income6m += amount;
+      if (entry.type === "expense") snapshot.rolling.expense6m += amount;
+    }
+
+    if (datedAt && datedAt >= currentYearStart && datedAt <= currentMonthEnd) {
+      if (entry.type === "income") snapshot.rolling.incomeYear += amount;
+      if (entry.type === "expense") snapshot.rolling.expenseYear += amount;
+    }
+
+    if (
+      projectionDate >= currentMonthStart &&
+      projectionDate <= currentMonthEnd &&
+      entry.status !== "paid"
+    ) {
+      snapshot.month.planned += entry.type === "income" ? amount : -amount;
+    }
+  }
+
+  snapshot.month.profit = snapshot.month.income - snapshot.month.expense;
+  return snapshot;
+}
+
+export function buildMonthlyTrend(
+  entries: FinanceiroEntryWithProject[],
+  basis: FinanceiroReportingBasis,
+  now = new Date(),
+  months = 12,
+) {
+  const points = Array.from({ length: months }, (_, index) => {
+    const date = addMonths(startOfMonth(now), index - (months - 1));
+    return {
+      monthKey: formatMonthKey(date),
+      label: formatMonthLabel(date),
+      income: 0,
+      expense: 0,
+      profit: 0,
+    } satisfies FinanceiroMonthlyTrendPoint;
+  });
+
+  const pointMap = new Map(points.map((point) => [point.monthKey, point]));
+
+  for (const entry of entries) {
+    const date = getEntryDateByBasis(entry, basis);
+    if (!date) continue;
+    const key = formatMonthKey(date);
+    const point = pointMap.get(key);
+    if (!point) continue;
+
+    const amount = normalizeFinanceiroAmount(entry.amount);
+    if (entry.type === "income") point.income += amount;
+    else point.expense += amount;
+    point.profit = point.income - point.expense;
+  }
+
+  return points;
+}
+
+export function buildProjectionTimeline(
+  entries: FinanceiroEntryWithProject[],
+  now = new Date(),
+  months = 6,
+) {
+  const firstMonth = startOfMonth(now);
+  const points = Array.from({ length: months }, (_, index) => {
+    const date = addMonths(firstMonth, index);
+    return {
+      monthKey: formatMonthKey(date),
+      label: formatMonthLabel(date),
+      income: 0,
+      expense: 0,
+      profit: 0,
+    } satisfies FinanceiroProjectionPoint;
+  });
+
+  const pointMap = new Map(points.map((point) => [point.monthKey, point]));
+
+  for (const entry of entries) {
+    const date = getProjectionDate(entry);
+    if (date < firstMonth) continue;
+    const point = pointMap.get(formatMonthKey(date));
+    if (!point) continue;
+
+    const amount = normalizeFinanceiroAmount(entry.amount);
+    if (entry.type === "income") point.income += amount;
+    else point.expense += amount;
+    point.profit = point.income - point.expense;
+  }
+
+  return points;
+}
+
+export function filterEntriesForExecutiveView(
+  entries: FinanceiroEntryWithProject[],
+  {
+    basis,
+    preset,
+    now,
+    customStart,
+    customEnd,
+    type,
+    projectId,
+    contractId,
+    status,
+    search,
+    getVisualStatus,
+  }: {
+    basis: FinanceiroReportingBasis;
+    preset: FinanceiroPeriodPreset;
+    now: Date;
+    customStart?: string;
+    customEnd?: string;
+    type: "all" | "income" | "expense";
+    projectId: string;
+    contractId: string;
+    status: "all" | "actionable" | "pending" | "paid" | "overdue" | "upcoming";
+    search: string;
+    getVisualStatus: (entry: FinanceiroEntryWithProject, now?: Date) => FinanceiroVisualStatus;
+  },
+) {
+  const { start, end } = getRangeFromPreset(now, preset, customStart, customEnd);
+  const normalizedSearch = search.trim().toLowerCase();
+
+  return entries.filter((entry) => {
+    const visualStatus = getVisualStatus(entry, now);
+    const effectiveDate = getEntryDateByBasis(entry, basis) ?? getProjectionDate(entry);
+
+    if (effectiveDate < start || effectiveDate > end) return false;
+    if (type !== "all" && entry.type !== type) return false;
+    if (projectId !== "all" && entry.project_id !== projectId) return false;
+    if (contractId !== "all" && entry.financial_contract_id !== contractId) return false;
+
+    if (status === "actionable" && !["overdue", "upcoming"].includes(visualStatus)) return false;
+    if (status !== "all" && status !== "actionable" && visualStatus !== status) return false;
+
+    if (!normalizedSearch) return true;
+
+    return [
+      entry.title,
+      entry.category,
+      entry.counterparty_name,
+      entry.description,
+      entry.notes,
+      entry.project?.name,
+      entry.project?.client,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedSearch);
+  });
+}
+
+function isContractActiveInMonth(contract: FinanceiroContractWithProject, monthStart: Date) {
+  if (contract.status !== "active") return false;
+
+  const contractStart = startOfMonth(parseFinanceiroDate(contract.start_date));
+  const contractEnd = contract.end_date ? endOfMonth(parseFinanceiroDate(contract.end_date)) : null;
+
+  if (monthStart < contractStart) return false;
+  if (contractEnd && monthStart > contractEnd) return false;
+  return true;
+}
+
+function buildDueDate(monthStart: Date, dueDay: number) {
+  const lastDay = endOfMonth(monthStart).getDate();
+  const day = Math.min(Math.max(dueDay, 1), lastDay);
+  return new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
+}
+
+export function buildMissingForecastEntries(
+  contracts: FinanceiroContractWithProject[],
+  entries: FinanceiroEntryWithProject[],
+  now = new Date(),
+  months = 24,
+): FinanceiroForecastEntryInput[] {
+  const existingKeys = new Set(
+    entries
+      .filter((entry) => entry.financial_contract_id)
+      .map((entry) => `${entry.financial_contract_id}:${entry.competency_date || entry.due_date}:${entry.due_date}`),
+  );
+
+  const missing: FinanceiroForecastEntryInput[] = [];
+  const currentMonth = startOfMonth(now);
+
+  for (const contract of contracts) {
+    if (contract.recurrence === "none") continue;
+
+    for (let index = 0; index < months; index += 1) {
+      const monthStart = addMonths(currentMonth, index);
+      if (!isContractActiveInMonth(contract, monthStart)) continue;
+
+      const dueDate = buildDueDate(monthStart, contract.due_day);
+      const competencyDate = startOfMonth(monthStart);
+      const key = `${contract.id}:${competencyDate.toISOString().slice(0, 10)}:${dueDate.toISOString().slice(0, 10)}`;
+
+      if (existingKeys.has(key)) continue;
+
+      missing.push({
+        user_id: contract.user_id,
+        project_id: contract.project_id,
+        financial_contract_id: contract.id,
+        type: contract.type,
+        category: contract.category,
+        title: contract.name,
+        description: null,
+        counterparty_name: contract.counterparty_name,
+        amount: normalizeFinanceiroAmount(contract.amount),
+        currency: contract.currency,
+        status: "pending",
+        due_date: dueDate.toISOString().slice(0, 10),
+        paid_at: null,
+        competency_date: competencyDate.toISOString().slice(0, 10),
+        recurrence: contract.recurrence,
+        alert_days_before: contract.alert_days_before,
+        is_platform_cost: contract.is_platform_cost,
+        payment_url: contract.payment_url,
+        notes: contract.notes,
+      });
+    }
+  }
+
+  return missing;
+}

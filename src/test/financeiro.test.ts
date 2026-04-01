@@ -10,6 +10,7 @@ const baseEntry: FinanceiroEntryWithProject = {
   id: "1",
   user_id: "user_123",
   project_id: null,
+  financial_contract_id: null,
   type: "expense",
   category: "Plataforma",
   title: "Figma",
@@ -24,10 +25,12 @@ const baseEntry: FinanceiroEntryWithProject = {
   recurrence: "monthly",
   alert_days_before: 7,
   is_platform_cost: true,
+  payment_url: null,
   notes: null,
   created_at: "2026-03-20T10:00:00.000Z",
   updated_at: "2026-03-20T10:00:00.000Z",
   project: null,
+  contract: null,
 };
 
 describe("financeiro utils", () => {

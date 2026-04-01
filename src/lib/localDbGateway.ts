@@ -23,6 +23,7 @@ export const LOCAL_DB_TABLES = new Set([
   "profiles",
   "projects",
   "financial_entries",
+  "financial_contracts",
   "time_sessions",
   "tasks",
   "subtasks",

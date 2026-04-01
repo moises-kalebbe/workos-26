@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS financial_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT NOT NULL,
   project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+  financial_contract_id UUID,
   type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
   category TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -30,6 +31,9 @@ CREATE INDEX IF NOT EXISTS idx_financial_entries_user_status
 
 CREATE INDEX IF NOT EXISTS idx_financial_entries_user_project
   ON financial_entries(user_id, project_id);
+
+CREATE INDEX IF NOT EXISTS idx_financial_entries_user_contract
+  ON financial_entries(user_id, financial_contract_id);
 
 DROP TRIGGER IF EXISTS tr_financial_entries_updated ON financial_entries;
 CREATE TRIGGER tr_financial_entries_updated

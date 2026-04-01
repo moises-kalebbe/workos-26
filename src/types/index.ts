@@ -35,6 +35,7 @@ export interface FinancialEntry {
   id: string;
   user_id: string;
   project_id: string | null;
+  financial_contract_id: string | null;
   type: FinancialEntryType;
   category: string;
   title: string;
@@ -50,6 +51,31 @@ export interface FinancialEntry {
   alert_days_before: number;
   is_platform_cost: boolean;
   payment_url: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FinancialContractStatus = "active" | "inactive";
+
+export interface FinancialContract {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  type: FinancialEntryType;
+  name: string;
+  counterparty_name: string;
+  category: string;
+  amount: number;
+  currency: string;
+  recurrence: FinancialEntryRecurrence;
+  due_day: number;
+  alert_days_before: number;
+  start_date: string;
+  end_date: string | null;
+  status: FinancialContractStatus;
+  payment_url: string | null;
+  is_platform_cost: boolean;
   notes: string | null;
   created_at: string;
   updated_at: string;

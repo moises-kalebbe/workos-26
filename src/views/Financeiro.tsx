@@ -4,35 +4,50 @@ import {
   AlertTriangle,
   ArrowDownCircle,
   ArrowUpCircle,
-  BadgeCheck,
+  BarChart3,
   CalendarClock,
+  CheckCircle2,
   CreditCard,
   ExternalLink,
   Landmark,
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   Wallet,
 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { financeiroApi } from "@/features/financeiro/api";
-import { useFinanceiroFeature } from "@/features/financeiro/hooks";
+import {
+  buildExecutiveSnapshot,
+  buildMissingForecastEntries,
+  buildMonthlyTrend,
+  buildProjectionTimeline,
+  filterEntriesForExecutiveView,
+  summarizeActionableEntries,
+  type FinanceiroPeriodPreset,
+} from "@/features/financeiro/analytics";
 import type {
+  FinanceiroContractStatus,
+  FinanceiroContractWithProject,
   FinanceiroEntryRecurrence,
   FinanceiroEntryStatus,
   FinanceiroEntryType,
   FinanceiroEntryWithProject,
-  FinanceiroFilter,
+  FinanceiroReportingBasis,
   FinanceiroVisualStatus,
 } from "@/features/financeiro/types";
 import {
+  buildFinanceiroSearchText,
   describeFinanceiroAmount,
   formatEntryTypeLabel,
   formatRecurrenceLabel,
   formatVisualStatusLabel,
   getFinanceiroVisualStatus,
+  sortFinanceiroEntries,
 } from "@/features/financeiro/utils";
 import { EmptyState } from "@/components/system/empty-state";
 import { LoadingState } from "@/components/system/loading-state";
@@ -40,6 +55,7 @@ import { PageHeader } from "@/components/system/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -48,18 +64,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatMoney } from "@/lib/utils";
-import type { FinancialEntry, Project } from "@/types";
+import type { FinancialContract, FinancialEntry, Project } from "@/types";
 
 type FinanceiroProject = Pick<Project, "id" | "name" | "client" | "color">;
+type ExecutiveStatusFilter = "all" | "actionable" | "pending" | "paid" | "overdue" | "upcoming";
 
 type EntryFormState = {
   type: FinanceiroEntryType;
   projectId: string;
+  contractId: string;
   category: string;
   title: string;
   description: string;
   counterpartyName: string;
   amount: string;
+  currency: string;
   status: FinanceiroEntryStatus;
   dueDate: string;
   paidAt: string;
@@ -71,25 +90,39 @@ type EntryFormState = {
   notes: string;
 };
 
-const FILTER_OPTIONS: { label: string; value: FinanceiroFilter }[] = [
-  { label: "Todos", value: "all" },
-  { label: "Entradas", value: "income" },
-  { label: "Saidas", value: "expense" },
-  { label: "A vencer", value: "upcoming" },
-  { label: "Vencidos", value: "overdue" },
-  { label: "Pagos", value: "paid" },
-  { label: "Plataformas", value: "platform" },
-];
+type ContractFormState = {
+  type: FinanceiroEntryType;
+  projectId: string;
+  name: string;
+  counterpartyName: string;
+  category: string;
+  amount: string;
+  currency: string;
+  recurrence: FinanceiroEntryRecurrence;
+  dueDay: string;
+  alertDaysBefore: string;
+  startDate: string;
+  endDate: string;
+  status: FinanceiroContractStatus;
+  paymentUrl: string;
+  isPlatformCost: boolean;
+  notes: string;
+};
 
-const TYPE_OPTIONS: { label: string; value: FinanceiroEntryType }[] = [
+const ENTRY_TYPE_OPTIONS: { label: string; value: FinanceiroEntryType }[] = [
   { label: "Entrada", value: "income" },
   { label: "Saida", value: "expense" },
 ];
 
-const STATUS_OPTIONS: { label: string; value: FinanceiroEntryStatus }[] = [
+const ENTRY_STATUS_OPTIONS: { label: string; value: FinanceiroEntryStatus }[] = [
   { label: "Pendente", value: "pending" },
   { label: "Pago", value: "paid" },
   { label: "Atrasado", value: "overdue" },
+];
+
+const CONTRACT_STATUS_OPTIONS: { label: string; value: FinanceiroContractStatus }[] = [
+  { label: "Ativo", value: "active" },
+  { label: "Inativo", value: "inactive" },
 ];
 
 const RECURRENCE_OPTIONS: { label: string; value: FinanceiroEntryRecurrence }[] = [
@@ -98,19 +131,51 @@ const RECURRENCE_OPTIONS: { label: string; value: FinanceiroEntryRecurrence }[] 
   { label: "Anual", value: "yearly" },
 ];
 
+const PERIOD_OPTIONS: { label: string; value: FinanceiroPeriodPreset }[] = [
+  { label: "Mes atual", value: "month" },
+  { label: "6 meses", value: "6m" },
+  { label: "12 meses", value: "12m" },
+  { label: "24 meses", value: "24m" },
+  { label: "Customizado", value: "custom" },
+];
+
+const BASIS_OPTIONS: { label: string; value: FinanceiroReportingBasis }[] = [
+  { label: "Competencia", value: "competence" },
+  { label: "Caixa", value: "cash" },
+];
+
+const STATUS_FILTER_OPTIONS: { label: string; value: ExecutiveStatusFilter }[] = [
+  { label: "Todos", value: "all" },
+  { label: "Acionaveis", value: "actionable" },
+  { label: "Pendentes", value: "pending" },
+  { label: "Proximos", value: "upcoming" },
+  { label: "Vencidos", value: "overdue" },
+  { label: "Pagos", value: "paid" },
+];
+
+const PROJECTION_OPTIONS = [6, 12, 24] as const;
+
+const chartConfig = {
+  income: { label: "Receita", color: "#2DD4BF" },
+  expense: { label: "Despesa", color: "#F59E0B" },
+  profit: { label: "Lucro", color: "#38BDF8" },
+};
+
 function todayDateInput() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function defaultFormState(): EntryFormState {
+function defaultEntryFormState(): EntryFormState {
   return {
     type: "expense",
     projectId: "none",
+    contractId: "none",
     category: "",
     title: "",
     description: "",
     counterpartyName: "",
     amount: "",
+    currency: "BRL",
     status: "pending",
     dueDate: todayDateInput(),
     paidAt: "",
@@ -119,6 +184,27 @@ function defaultFormState(): EntryFormState {
     alertDaysBefore: "7",
     isPlatformCost: false,
     paymentUrl: "",
+    notes: "",
+  };
+}
+
+function defaultContractFormState(): ContractFormState {
+  return {
+    type: "expense",
+    projectId: "none",
+    name: "",
+    counterpartyName: "",
+    category: "",
+    amount: "",
+    currency: "BRL",
+    recurrence: "monthly",
+    dueDay: "1",
+    alertDaysBefore: "7",
+    startDate: todayDateInput(),
+    endDate: "",
+    status: "active",
+    paymentUrl: "",
+    isPlatformCost: false,
     notes: "",
   };
 }
@@ -147,6 +233,11 @@ function parseAmount(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function parseInteger(value: string, fallback: number) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function normalizeStatusForSave(form: EntryFormState) {
   if (form.status === "paid" || form.paidAt) return "paid";
   if (form.status === "overdue") return "overdue";
@@ -158,21 +249,38 @@ function normalizeStatusForSave(form: EntryFormState) {
   return dueAt < today ? "overdue" : "pending";
 }
 
-function mapEntriesWithProjects(entries: FinancialEntry[], projects: FinanceiroProject[]): FinanceiroEntryWithProject[] {
+function mapContractsWithProjects(contracts: FinancialContract[], projects: FinanceiroProject[]): FinanceiroContractWithProject[] {
   const projectMap = new Map(projects.map((project) => [project.id, project]));
-  return entries.map((entry) => ({
-    ...entry,
-    project: entry.project_id ? projectMap.get(entry.project_id) || null : null,
+  return contracts.map((contract) => ({
+    ...contract,
+    project: contract.project_id ? projectMap.get(contract.project_id) || null : null,
   }));
 }
 
-function groupEntries(entries: FinanceiroEntryWithProject[]) {
-  return {
-    overdue: entries.filter((entry) => getFinanceiroVisualStatus(entry) === "overdue"),
-    upcoming: entries.filter((entry) => getFinanceiroVisualStatus(entry) === "upcoming"),
-    paid: entries.filter((entry) => getFinanceiroVisualStatus(entry) === "paid"),
-    pending: entries.filter((entry) => getFinanceiroVisualStatus(entry) === "pending"),
-  };
+function mapEntriesWithRelations(
+  entries: FinancialEntry[],
+  projects: FinanceiroProject[],
+  contracts: FinanceiroContractWithProject[],
+): FinanceiroEntryWithProject[] {
+  const projectMap = new Map(projects.map((project) => [project.id, project]));
+  const contractMap = new Map(contracts.map((contract) => [contract.id, contract]));
+
+  return entries.map((entry) => {
+    const contract = entry.financial_contract_id ? contractMap.get(entry.financial_contract_id) || null : null;
+    return {
+      ...entry,
+      amount: typeof entry.amount === "number" ? entry.amount : parseAmount(String(entry.amount)),
+      project: entry.project_id ? projectMap.get(entry.project_id) || null : null,
+      contract: contract
+        ? {
+            id: contract.id,
+            name: contract.name,
+            status: contract.status,
+            payment_url: contract.payment_url,
+          }
+        : null,
+    };
+  });
 }
 
 function statusClassName(status: FinanceiroVisualStatus) {
@@ -186,6 +294,55 @@ function statusClassName(status: FinanceiroVisualStatus) {
     default:
       return "border-border bg-background/40 text-muted-foreground";
   }
+}
+
+function buildEntryPayload(form: EntryFormState, userId: string) {
+  const savedStatus = normalizeStatusForSave(form);
+  const paidAt = savedStatus === "paid" ? fromDateTimeLocalInput(form.paidAt) || new Date().toISOString() : null;
+
+  return {
+    user_id: userId,
+    project_id: form.projectId === "none" ? null : form.projectId,
+    financial_contract_id: form.contractId === "none" ? null : form.contractId,
+    type: form.type,
+    category: form.category.trim(),
+    title: form.title.trim(),
+    description: form.description.trim() || null,
+    counterparty_name: form.counterpartyName.trim(),
+    amount: parseAmount(form.amount),
+    currency: form.currency.trim() || "BRL",
+    status: savedStatus,
+    due_date: form.dueDate,
+    paid_at: paidAt,
+    competency_date: form.competencyDate || null,
+    recurrence: form.recurrence,
+    alert_days_before: parseInteger(form.alertDaysBefore, 7),
+    is_platform_cost: form.isPlatformCost,
+    payment_url: form.paymentUrl.trim() || null,
+    notes: form.notes.trim() || null,
+  };
+}
+
+function buildContractPayload(form: ContractFormState, userId: string) {
+  return {
+    user_id: userId,
+    project_id: form.projectId === "none" ? null : form.projectId,
+    type: form.type,
+    name: form.name.trim(),
+    counterparty_name: form.counterpartyName.trim(),
+    category: form.category.trim(),
+    amount: parseAmount(form.amount),
+    currency: form.currency.trim() || "BRL",
+    recurrence: form.recurrence,
+    due_day: parseInteger(form.dueDay, 1),
+    alert_days_before: parseInteger(form.alertDaysBefore, 7),
+    start_date: form.startDate,
+    end_date: form.endDate || null,
+    status: form.status,
+    payment_url: form.paymentUrl.trim() || null,
+    is_platform_cost: form.isPlatformCost,
+    notes: form.notes.trim() || null,
+  };
 }
 
 function StatsCard({
@@ -226,590 +383,862 @@ function StatsCard({
   );
 }
 
+function MoneyDelta({ value }: { value: number }) {
+  return <span className={cn("font-semibold", value >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatMoney(value)}</span>;
+}
+
 export default function FinanceiroPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
+
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingEntry, setSavingEntry] = useState(false);
+  const [savingContract, setSavingContract] = useState(false);
+  const [syncingForecast, setSyncingForecast] = useState(false);
+
   const [projects, setProjects] = useState<FinanceiroProject[]>([]);
   const [entries, setEntries] = useState<FinanceiroEntryWithProject[]>([]);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FinanceiroFilter>("all");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [contracts, setContracts] = useState<FinanceiroContractWithProject[]>([]);
+
+  const [entryDialogOpen, setEntryDialogOpen] = useState(false);
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<FinanceiroEntryWithProject | null>(null);
-  const [form, setForm] = useState<EntryFormState>(defaultFormState);
+  const [editingContract, setEditingContract] = useState<FinanceiroContractWithProject | null>(null);
+  const [entryForm, setEntryForm] = useState<EntryFormState>(defaultEntryFormState);
+  const [contractForm, setContractForm] = useState<ContractFormState>(defaultContractFormState);
+
+  const [activeTab, setActiveTab] = useState("executivo");
+  const [basis, setBasis] = useState<FinanceiroReportingBasis>("competence");
+  const [periodPreset, setPeriodPreset] = useState<FinanceiroPeriodPreset>("month");
+  const [projectionMonths, setProjectionMonths] = useState<(typeof PROJECTION_OPTIONS)[number]>(6);
+  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [contractFilter, setContractFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<ExecutiveStatusFilter>("all");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [search, setSearch] = useState("");
+
+  const now = useMemo(() => new Date(), []);
 
   useEffect(() => {
     if (searchParams?.get("compose") === "entry") {
-      setDialogOpen(true);
+      setActiveTab("lancamentos");
+      setEntryDialogOpen(true);
     }
   }, [searchParams]);
 
-  async function loadData() {
+  async function loadData(allowForecastSync = true) {
     if (!user) return;
     setLoading(true);
 
-    const [projectsRes, entriesRes] = await Promise.all([
+    const [projectsRes, contractsRes, entriesRes] = await Promise.all([
       financeiroApi.db.from("projects").select("id, name, client, color").order("name"),
+      financeiroApi.db.from("financial_contracts").select("*").order("name"),
       financeiroApi.db.from("financial_entries").select("*").order("due_date", { ascending: true }),
     ]);
 
-    if (projectsRes.error) {
-      toast.error("Nao foi possivel carregar as empresas.");
+    if (projectsRes.error || contractsRes.error || entriesRes.error) {
+      toast.error("Nao foi possivel carregar o financeiro.");
+      setLoading(false);
+      return;
     }
 
-    if (entriesRes.error) {
-      toast.error("Nao foi possivel carregar os lancamentos financeiros.");
+    const loadedProjects = (projectsRes.data || []) as FinanceiroProject[];
+    const loadedContracts = mapContractsWithProjects((contractsRes.data || []) as FinancialContract[], loadedProjects);
+    const loadedEntries = mapEntriesWithRelations((entriesRes.data || []) as FinancialEntry[], loadedProjects, loadedContracts);
+
+    if (allowForecastSync) {
+      const missingForecastEntries = buildMissingForecastEntries(loadedContracts, loadedEntries, now, 24);
+
+      if (missingForecastEntries.length > 0) {
+        setSyncingForecast(true);
+        const insertRes = await financeiroApi.db.from("financial_entries").insert(missingForecastEntries);
+        setSyncingForecast(false);
+
+        if (insertRes.error) {
+          toast.error("Falha ao materializar a previsao dos contratos.");
+        } else {
+          toast.success(`${missingForecastEntries.length} parcelas futuras geradas a partir dos contratos.`);
+          await loadData(false);
+          return;
+        }
+      }
     }
 
-    const nextProjects = (projectsRes.data || []) as FinanceiroProject[];
-    const nextEntries = (entriesRes.data || []) as FinancialEntry[];
-
-    setProjects(nextProjects);
-    setEntries(mapEntriesWithProjects(nextEntries, nextProjects));
+    setProjects(loadedProjects);
+    setContracts(loadedContracts);
+    setEntries(loadedEntries);
     setLoading(false);
   }
 
   useEffect(() => {
-    if (user) {
-      void loadData();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    void loadData();
   }, [user]);
 
-  function resetForm() {
+  const baseScopedEntries = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return entries.filter((entry) => {
+      if (typeFilter !== "all" && entry.type !== typeFilter) return false;
+      if (projectFilter !== "all" && entry.project_id !== projectFilter) return false;
+      if (contractFilter !== "all" && entry.financial_contract_id !== contractFilter) return false;
+      if (!normalizedSearch) return true;
+      return buildFinanceiroSearchText(entry).includes(normalizedSearch);
+    });
+  }, [contractFilter, entries, projectFilter, search, typeFilter]);
+
+  const visibleEntries = useMemo(
+    () =>
+      filterEntriesForExecutiveView(baseScopedEntries, {
+        basis,
+        preset: periodPreset,
+        now,
+        customStart,
+        customEnd,
+        type: "all",
+        projectId: "all",
+        contractId: "all",
+        status: statusFilter,
+        search: "",
+        getVisualStatus: getFinanceiroVisualStatus,
+      }),
+    [baseScopedEntries, basis, customEnd, customStart, now, periodPreset, statusFilter],
+  );
+
+  const actionableSummary = useMemo(
+    () => summarizeActionableEntries(baseScopedEntries, getFinanceiroVisualStatus, now),
+    [baseScopedEntries, now],
+  );
+
+  const executiveSnapshot = useMemo(() => {
+    const snapshot = buildExecutiveSnapshot(visibleEntries, basis, getFinanceiroVisualStatus, now);
+    return {
+      ...snapshot,
+      operation: actionableSummary,
+    };
+  }, [actionableSummary, basis, now, visibleEntries]);
+
+  const monthlyTrend = useMemo(() => buildMonthlyTrend(baseScopedEntries, basis, now, 12), [baseScopedEntries, basis, now]);
+  const projectionTimeline = useMemo(() => buildProjectionTimeline(baseScopedEntries, now, projectionMonths), [baseScopedEntries, now, projectionMonths]);
+
+  const operationalQueue = useMemo(
+    () =>
+      sortFinanceiroEntries(
+        baseScopedEntries.filter((entry) => {
+          const visualStatus = getFinanceiroVisualStatus(entry, now);
+          return visualStatus === "overdue" || visualStatus === "upcoming";
+        }),
+        now,
+      ),
+    [baseScopedEntries, now],
+  );
+
+  const visibleContracts = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return contracts.filter((contract) => {
+      if (typeFilter !== "all" && contract.type !== typeFilter) return false;
+      if (projectFilter !== "all" && contract.project_id !== projectFilter) return false;
+      if (contractFilter !== "all" && contract.id !== contractFilter) return false;
+      if (!normalizedSearch) return true;
+      return [contract.name, contract.category, contract.counterparty_name, contract.project?.name, contract.project?.client]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedSearch);
+    });
+  }, [contractFilter, contracts, projectFilter, search, typeFilter]);
+
+  function openCreateEntryDialog() {
     setEditingEntry(null);
-    setForm(defaultFormState());
+    setEntryForm(defaultEntryFormState());
+    setEntryDialogOpen(true);
   }
 
-  function openCreateDialog() {
-    resetForm();
-    setDialogOpen(true);
-  }
-
-  function openEditDialog(entry: FinanceiroEntryWithProject) {
+  function openEditEntryDialog(entry: FinanceiroEntryWithProject) {
     setEditingEntry(entry);
-    setForm({
+    setEntryForm({
       type: entry.type,
       projectId: entry.project_id || "none",
+      contractId: entry.financial_contract_id || "none",
       category: entry.category,
       title: entry.title,
       description: entry.description || "",
       counterpartyName: entry.counterparty_name,
       amount: String(entry.amount),
+      currency: entry.currency,
       status: entry.status,
       dueDate: toDateInput(entry.due_date),
       paidAt: toDateTimeLocalInput(entry.paid_at),
       competencyDate: toDateInput(entry.competency_date),
       recurrence: entry.recurrence,
-      alertDaysBefore: String(entry.alert_days_before || 7),
+      alertDaysBefore: String(entry.alert_days_before),
       isPlatformCost: entry.is_platform_cost,
       paymentUrl: entry.payment_url || "",
       notes: entry.notes || "",
     });
-    setDialogOpen(true);
+    setEntryDialogOpen(true);
   }
 
-  async function saveEntry() {
+  function openCreateContractDialog() {
+    setEditingContract(null);
+    setContractForm(defaultContractFormState());
+    setContractDialogOpen(true);
+  }
+
+  function openEditContractDialog(contract: FinanceiroContractWithProject) {
+    setEditingContract(contract);
+    setContractForm({
+      type: contract.type,
+      projectId: contract.project_id || "none",
+      name: contract.name,
+      counterpartyName: contract.counterparty_name,
+      category: contract.category,
+      amount: String(contract.amount),
+      currency: contract.currency,
+      recurrence: contract.recurrence,
+      dueDay: String(contract.due_day),
+      alertDaysBefore: String(contract.alert_days_before),
+      startDate: toDateInput(contract.start_date),
+      endDate: toDateInput(contract.end_date),
+      status: contract.status,
+      paymentUrl: contract.payment_url || "",
+      isPlatformCost: contract.is_platform_cost,
+      notes: contract.notes || "",
+    });
+    setContractDialogOpen(true);
+  }
+
+  async function handleSaveEntry() {
     if (!user) return;
-    if (!form.title.trim() || !form.category.trim() || !form.counterpartyName.trim() || !form.dueDate || !form.amount) {
-      toast.error("Preencha titulo, categoria, contraparte, valor e vencimento.");
+    if (!entryForm.title.trim() || !entryForm.category.trim() || !entryForm.counterpartyName.trim()) {
+      toast.error("Preencha titulo, categoria e contraparte.");
       return;
     }
 
-    setSaving(true);
-
-    const payload = {
-      project_id: form.projectId === "none" ? null : form.projectId,
-      type: form.type,
-      category: form.category.trim(),
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      counterparty_name: form.counterpartyName.trim(),
-      amount: parseAmount(form.amount),
-      currency: "BRL",
-      status: normalizeStatusForSave(form),
-      due_date: form.dueDate,
-      paid_at: fromDateTimeLocalInput(form.paidAt),
-      competency_date: form.competencyDate || null,
-      recurrence: form.recurrence,
-      alert_days_before: Number.parseInt(form.alertDaysBefore, 10) || 7,
-      is_platform_cost: form.isPlatformCost,
-      payment_url: form.paymentUrl.trim() || null,
-      notes: form.notes.trim() || null,
-    };
-
+    setSavingEntry(true);
+    const payload = buildEntryPayload(entryForm, user.id);
     const query = editingEntry
-      ? financeiroApi.db.from("financial_entries").update(payload).eq("id", editingEntry.id)
-      : financeiroApi.db.from("financial_entries").insert(payload);
+      ? financeiroApi.db.from("financial_entries").update(payload).eq("id", editingEntry.id).select().single()
+      : financeiroApi.db.from("financial_entries").insert(payload).select().single();
 
-    const { error } = await query;
+    const result = await query;
+    setSavingEntry(false);
 
-    if (error) {
-      toast.error(editingEntry ? "Erro ao atualizar lancamento." : "Erro ao criar lancamento.");
-      setSaving(false);
+    if (result.error) {
+      toast.error("Nao foi possivel salvar o lancamento.");
       return;
     }
 
     toast.success(editingEntry ? "Lancamento atualizado." : "Lancamento criado.");
-    setDialogOpen(false);
-    resetForm();
-    await loadData();
-    setSaving(false);
+    setEntryDialogOpen(false);
+    setEditingEntry(null);
+    setEntryForm(defaultEntryFormState());
+    await loadData(false);
   }
 
-  async function deleteEntry(id: string) {
-    const { error } = await financeiroApi.db.from("financial_entries").delete().eq("id", id);
-    if (error) {
-      toast.error("Erro ao excluir lancamento.");
+  async function handleDeleteEntry(entryId: string) {
+    const confirmed = window.confirm("Excluir este lancamento?");
+    if (!confirmed) return;
+
+    const result = await financeiroApi.db.from("financial_entries").delete().eq("id", entryId);
+    if (result.error) {
+      toast.error("Nao foi possivel excluir o lancamento.");
       return;
     }
 
     toast.success("Lancamento excluido.");
-    await loadData();
+    await loadData(false);
   }
 
-  async function markAsPaid(entry: FinanceiroEntryWithProject) {
-    const { error } = await financeiroApi.db
-      .from("financial_entries")
-      .update({ status: "paid", paid_at: new Date().toISOString() })
-      .eq("id", entry.id);
-
-    if (error) {
-      toast.error("Erro ao marcar lancamento como pago.");
+  async function handleSaveContract() {
+    if (!user) return;
+    if (!contractForm.name.trim() || !contractForm.category.trim() || !contractForm.counterpartyName.trim()) {
+      toast.error("Preencha nome, categoria e contraparte.");
       return;
     }
 
-    toast.success("Lancamento marcado como pago.");
+    setSavingContract(true);
+    const payload = buildContractPayload(contractForm, user.id);
+    const query = editingContract
+      ? financeiroApi.db.from("financial_contracts").update(payload).eq("id", editingContract.id).select().single()
+      : financeiroApi.db.from("financial_contracts").insert(payload).select().single();
+
+    const result = await query;
+    setSavingContract(false);
+
+    if (result.error) {
+      toast.error("Nao foi possivel salvar o contrato.");
+      return;
+    }
+
+    toast.success(editingContract ? "Contrato atualizado." : "Contrato criado.");
+    setContractDialogOpen(false);
+    setEditingContract(null);
+    setContractForm(defaultContractFormState());
     await loadData();
   }
 
-  const { filteredEntries, metrics } = useFinanceiroFeature({ entries, filter, search });
-  const groupedEntries = useMemo(() => groupEntries(filteredEntries), [filteredEntries]);
+  async function handleToggleContractStatus(contract: FinanceiroContractWithProject, nextStatus: FinanceiroContractStatus) {
+    const result = await financeiroApi.db
+      .from("financial_contracts")
+      .update({
+        status: nextStatus,
+        end_date: nextStatus === "inactive" ? contract.end_date || todayDateInput() : null,
+      })
+      .eq("id", contract.id);
+
+    if (result.error) {
+      toast.error("Nao foi possivel atualizar o status do contrato.");
+      return;
+    }
+
+    toast.success(nextStatus === "active" ? "Contrato reativado." : "Contrato pausado.");
+    await loadData(false);
+  }
+
+  async function handleCloseContract(contract: FinanceiroContractWithProject) {
+    const confirmed = window.confirm("Encerrar este contrato e parar novas parcelas futuras?");
+    if (!confirmed) return;
+
+    const result = await financeiroApi.db
+      .from("financial_contracts")
+      .update({
+        status: "inactive",
+        end_date: todayDateInput(),
+      })
+      .eq("id", contract.id);
+
+    if (result.error) {
+      toast.error("Nao foi possivel encerrar o contrato.");
+      return;
+    }
+
+    toast.success("Contrato encerrado.");
+    await loadData(false);
+  }
+
+  async function handleResyncForecast() {
+    await loadData(true);
+  }
+
+  if (!user) {
+    return <LoadingState message="Autenticando..." />;
+  }
 
   if (loading) {
     return <LoadingState message="Carregando financeiro..." />;
   }
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6">
       <PageHeader
         title="Financeiro"
-        description="Controle manual de entradas, saidas, vencimentos e alertas por empresa no stack atual."
+        description="Operacao, gestao e projecao no mesmo painel, com contratos recorrentes como fonte oficial de previsao."
         actions={
-          <Button onClick={openCreateDialog} className="h-11 rounded-2xl bg-primary px-5 text-primary-foreground hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo lancamento
-          </Button>
+          <>
+            <Button variant="outline" onClick={handleResyncForecast} disabled={syncingForecast}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {syncingForecast ? "Sincronizando previsao..." : "Reprocessar previsao"}
+            </Button>
+            <Button variant="outline" onClick={openCreateContractDialog}>
+              <Landmark className="mr-2 h-4 w-4" />
+              Novo contrato
+            </Button>
+            <Button onClick={openCreateEntryDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo lancamento
+            </Button>
+          </>
         }
       />
 
-      <section className="grid gap-4 xl:grid-cols-4">
-        <StatsCard icon={ArrowUpCircle} label="A receber" value={formatMoney(metrics.receivableOpen)} helper="Receitas vencidas ou dentro da janela de alerta" tone="success" />
-        <StatsCard icon={ArrowDownCircle} label="A pagar" value={formatMoney(metrics.payableOpen)} helper="Custos vencidos ou dentro da janela de alerta" tone="warning" />
-        <StatsCard icon={AlertTriangle} label="Vencidos" value={String(metrics.overdueCount).padStart(2, "0")} helper="Lancamentos fora do prazo" tone={metrics.overdueCount > 0 ? "danger" : "default"} />
-        <StatsCard icon={CalendarClock} label="Proximos" value={String(metrics.upcomingCount).padStart(2, "0")} helper="Vencem dentro da janela de alerta" tone={metrics.upcomingCount > 0 ? "warning" : "default"} />
-      </section>
-
       <Card className="rounded-2xl border-border bg-card/95">
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <CardTitle className="text-lg">Operacao financeira</CardTitle>
-            <CardDescription>Filtre, busque e acompanhe o pipeline de lancamentos.</CardDescription>
-          </div>
-          <div className="relative max-w-md flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por titulo, contraparte, categoria ou empresa"
-              className="h-11 rounded-2xl border-border bg-background/60 pl-10"
-            />
+        <CardHeader className="gap-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle>Painel executivo</CardTitle>
+              <CardDescription>Filtros globais para operacao, historico e projecao.</CardDescription>
+            </div>
+            <div className="relative w-full max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Buscar por titulo, contraparte, categoria, cliente ou projeto"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex flex-wrap gap-2">
-            {FILTER_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setFilter(option.value)}
-                className={cn(
-                  "rounded-full border px-3 py-2 text-xs transition-colors",
-                  filter === option.value
-                    ? "border-primary/25 bg-primary/10 text-primary"
-                    : "border-border bg-background/40 text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <div className="space-y-2">
+            <Label>Criterio</Label>
+            <Select value={basis} onValueChange={(value) => setBasis(value as FinanceiroReportingBasis)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {BASIS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <Tabs defaultValue="pipeline">
-            <TabsList className="h-auto rounded-2xl border border-border bg-background/40 p-1">
-              <TabsTrigger value="pipeline" className="rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                Pipeline
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                Calendario
-              </TabsTrigger>
-              <TabsTrigger value="paid" className="rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                Pagos
-              </TabsTrigger>
-            </TabsList>
+          <div className="space-y-2">
+            <Label>Periodo</Label>
+            <Select value={periodPreset} onValueChange={(value) => setPeriodPreset(value as FinanceiroPeriodPreset)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIOD_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <TabsContent value="pipeline" className="mt-5 space-y-5">
-              {filteredEntries.length === 0 ? (
-                <EmptyState
-                  icon={Landmark}
-                  title="Nenhum lancamento encontrado"
-                  description="Ajuste os filtros ou crie o primeiro registro financeiro manual."
-                />
-              ) : (
-                <>
-                  <EntryGroup title="Atrasados" subtitle="Pagamentos e recebimentos fora do prazo" entries={groupedEntries.overdue} onEdit={openEditDialog} onDelete={deleteEntry} onMarkAsPaid={markAsPaid} />
-                  <EntryGroup title="Proximos vencimentos" subtitle="Contas dentro da janela de alerta" entries={groupedEntries.upcoming} onEdit={openEditDialog} onDelete={deleteEntry} onMarkAsPaid={markAsPaid} />
-                  <EntryGroup title="Pendencias futuras" subtitle="Lancamentos ainda sem risco imediato" entries={groupedEntries.pending} onEdit={openEditDialog} onDelete={deleteEntry} onMarkAsPaid={markAsPaid} />
-                </>
-              )}
-            </TabsContent>
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as "all" | "income" | "expense")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {ENTRY_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <TabsContent value="calendar" className="mt-5 space-y-3">
-              {filteredEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum registro disponivel para a linha de vencimentos.</p>
-              ) : (
-                filteredEntries.map((entry) => {
-                  const visualStatus = getFinanceiroVisualStatus(entry);
+          <div className="space-y-2">
+            <Label>Projeto</Label>
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Contrato</Label>
+            <Select value={contractFilter} onValueChange={setContractFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {contracts.map((contract) => (
+                  <SelectItem key={contract.id} value={contract.id}>{contract.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ExecutiveStatusFilter)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {periodPreset === "custom" ? (
+            <>
+              <div className="space-y-2">
+                <Label>Data inicial</Label>
+                <Input type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Data final</Label>
+                <Input type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} />
+              </div>
+            </>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="executivo">Executivo</TabsTrigger>
+          <TabsTrigger value="lancamentos">Lancamentos</TabsTrigger>
+          <TabsTrigger value="contratos">Contratos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="executivo" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <StatsCard icon={ArrowUpCircle} label="A Receber Agora" value={formatMoney(executiveSnapshot.operation.receivableNow)} helper="Receitas vencidas ou ja dentro da janela de alerta." tone="success" />
+            <StatsCard icon={ArrowDownCircle} label="A Pagar Agora" value={formatMoney(executiveSnapshot.operation.payableNow)} helper="Despesas vencidas ou dentro da janela operacional." tone="warning" />
+            <StatsCard icon={AlertTriangle} label="Vencidos" value={String(executiveSnapshot.operation.overdueCount).padStart(2, "0")} helper="Lancamentos fora do prazo e exigindo acao imediata." tone="danger" />
+            <StatsCard icon={CalendarClock} label="Proximos" value={String(executiveSnapshot.operation.upcomingCount).padStart(2, "0")} helper="Lancamentos prestes a vencer dentro da janela de alerta." tone="warning" />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <StatsCard icon={Wallet} label="Receita Do Mes" value={formatMoney(executiveSnapshot.month.income)} helper={`Realizado por ${basis === "cash" ? "caixa" : "competencia"} no mes corrente.`} tone="success" />
+            <StatsCard icon={CreditCard} label="Despesa Do Mes" value={formatMoney(executiveSnapshot.month.expense)} helper={`Saidas registradas por ${basis === "cash" ? "caixa" : "competencia"}.`} tone="warning" />
+            <StatsCard icon={BarChart3} label="Lucro Do Mes" value={formatMoney(executiveSnapshot.month.profit)} helper="Receita menos despesa no mes atual." tone={executiveSnapshot.month.profit >= 0 ? "success" : "danger"} />
+            <StatsCard icon={CalendarClock} label="Previsto Do Mes" value={formatMoney(executiveSnapshot.month.planned)} helper="Saldo projetado do mes com pendencias ainda nao liquidadas." tone={executiveSnapshot.month.planned >= 0 ? "success" : "warning"} />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Card className="rounded-2xl border-border bg-card/95"><CardHeader className="pb-3"><CardTitle className="text-base">Faturamento 6 meses</CardTitle></CardHeader><CardContent><MoneyDelta value={executiveSnapshot.rolling.income6m} /></CardContent></Card>
+            <Card className="rounded-2xl border-border bg-card/95"><CardHeader className="pb-3"><CardTitle className="text-base">Despesas 6 meses</CardTitle></CardHeader><CardContent><MoneyDelta value={-executiveSnapshot.rolling.expense6m} /></CardContent></Card>
+            <Card className="rounded-2xl border-border bg-card/95"><CardHeader className="pb-3"><CardTitle className="text-base">Faturamento no ano</CardTitle></CardHeader><CardContent><MoneyDelta value={executiveSnapshot.rolling.incomeYear} /></CardContent></Card>
+            <Card className="rounded-2xl border-border bg-card/95"><CardHeader className="pb-3"><CardTitle className="text-base">Despesas no ano</CardTitle></CardHeader><CardContent><MoneyDelta value={-executiveSnapshot.rolling.expenseYear} /></CardContent></Card>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+            <Card className="rounded-2xl border-border bg-card/95">
+              <CardHeader>
+                <CardTitle>Evolucao mensal</CardTitle>
+                <CardDescription>Serie historica de 12 meses com receita, despesa e lucro.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[320px] w-full">
+                  <BarChart data={monthlyTrend}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} />
+                    <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartLegend content={<ChartLegendContent />} />
+                    <Bar dataKey="income" fill="var(--color-income)" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="expense" fill="var(--color-expense)" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="profit" fill="var(--color-profit)" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card/95">
+              <CardHeader className="flex flex-row items-start justify-between gap-3">
+                <div>
+                  <CardTitle>Projecao futura</CardTitle>
+                  <CardDescription>Horizonte de 6, 12 ou 24 meses com contratos ativos e lancamentos futuros.</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  {PROJECTION_OPTIONS.map((months) => (
+                    <Button key={months} variant={projectionMonths === months ? "default" : "outline"} size="sm" onClick={() => setProjectionMonths(months)}>
+                      {months}m
+                    </Button>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {projectionTimeline.map((point) => (
+                  <div key={point.monthKey} className="rounded-xl border border-border/70 bg-background/40 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{point.label}</p>
+                        <p className="text-xs text-muted-foreground">Receita {formatMoney(point.income)} - Despesa {formatMoney(point.expense)}</p>
+                      </div>
+                      <MoneyDelta value={point.profit} />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="rounded-2xl border-border bg-card/95">
+            <CardHeader>
+              <CardTitle>Fila operacional</CardTitle>
+              <CardDescription>Itens que exigem acao agora: vencidos ou dentro da janela de alerta.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {operationalQueue.length ? (
+                operationalQueue.map((entry) => {
+                  const visualStatus = getFinanceiroVisualStatus(entry, now);
                   return (
-                    <div key={entry.id} className="grid gap-3 rounded-2xl border border-border bg-background/25 p-4 md:grid-cols-[150px_1fr_auto] md:items-center">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Vencimento</p>
-                        <p className="mt-1 text-sm font-semibold text-foreground">{new Date(entry.due_date).toLocaleDateString("pt-BR")}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{entry.title}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {entry.counterparty_name} | {entry.project?.name || "Sem empresa"} | {formatRecurrenceLabel(entry.recurrence)}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={statusClassName(visualStatus)}>{formatVisualStatusLabel(visualStatus)}</Badge>
-                        <span className="font-mono text-sm font-semibold text-foreground">{formatMoney(entry.amount)}</span>
+                    <div key={entry.id} className="rounded-2xl border border-border/80 bg-background/40 p-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className={statusClassName(visualStatus)}>{formatVisualStatusLabel(visualStatus)}</Badge>
+                            <Badge variant="outline">{formatEntryTypeLabel(entry.type)}</Badge>
+                            {entry.contract ? <Badge variant="outline">Contrato</Badge> : null}
+                            {entry.is_platform_cost ? <Badge variant="outline">Plataforma</Badge> : null}
+                          </div>
+                          <div>
+                            <p className="text-lg font-semibold text-foreground">{entry.title}</p>
+                            <p className="text-sm text-muted-foreground">{entry.project?.name || "Sem projeto"} - {entry.counterparty_name} - {entry.category}</p>
+                          </div>
+                          <p className="text-sm text-foreground">{describeFinanceiroAmount(entry.type, entry.amount)}</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</Badge>
+                          <Badge variant="outline">{formatRecurrenceLabel(entry.recurrence)}</Badge>
+                          {entry.payment_url ? (
+                            <Button asChild variant="outline" size="sm">
+                              <a href={entry.payment_url} target="_blank" rel="noreferrer">
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Abrir pagamento
+                              </a>
+                            </Button>
+                          ) : null}
+                          <Button variant="outline" size="sm" onClick={() => openEditEntryDialog(entry)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
                 })
+              ) : (
+                <EmptyState icon={CheckCircle2} title="Nenhuma acao operacional agora" description="Nao existem lancamentos vencidos ou dentro da janela de alerta com os filtros atuais." />
               )}
-            </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <TabsContent value="paid" className="mt-5">
-              <EntryGroup title="Pagos recentes" subtitle="Historico recente de caixa resolvido" entries={groupedEntries.paid} onEdit={openEditDialog} onDelete={deleteEntry} onMarkAsPaid={markAsPaid} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        <TabsContent value="lancamentos" className="space-y-6">
+          <Card className="rounded-2xl border-border bg-card/95">
+            <CardHeader>
+              <CardTitle>Lancamentos</CardTitle>
+              <CardDescription>Historico realizado e previsto materializado, com vinculo opcional a contrato.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {sortFinanceiroEntries(visibleEntries, now).length ? (
+                sortFinanceiroEntries(visibleEntries, now).map((entry) => {
+                  const visualStatus = getFinanceiroVisualStatus(entry, now);
+                  return (
+                    <div key={entry.id} className="rounded-2xl border border-border/80 bg-background/40 p-4">
+                      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className={statusClassName(visualStatus)}>{formatVisualStatusLabel(visualStatus)}</Badge>
+                            <Badge variant="outline">{formatEntryTypeLabel(entry.type)}</Badge>
+                            <Badge variant="outline">{formatRecurrenceLabel(entry.recurrence)}</Badge>
+                            {entry.contract ? <Badge variant="outline">{entry.contract.name}</Badge> : <Badge variant="outline">Avulso</Badge>}
+                          </div>
+                          <div>
+                            <p className="text-lg font-semibold text-foreground">{entry.title}</p>
+                            <p className="text-sm text-muted-foreground">{entry.project?.name || "Sem projeto"} - {entry.counterparty_name} - {entry.category}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                            <span>{describeFinanceiroAmount(entry.type, entry.amount)}</span>
+                            <span>Competencia {entry.competency_date ? new Date(entry.competency_date).toLocaleDateString("pt-BR") : "nao definida"}</span>
+                            <span>Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</span>
+                            <span>Base {entry.paid_at ? "realizado" : "previsto"}</span>
+                          </div>
+                          {entry.notes ? <p className="text-sm text-muted-foreground">{entry.notes}</p> : null}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {entry.payment_url ? (
+                            <Button asChild variant="outline" size="sm">
+                              <a href={entry.payment_url} target="_blank" rel="noreferrer">
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Abrir pagamento
+                              </a>
+                            </Button>
+                          ) : null}
+                          <Button variant="outline" size="sm" onClick={() => openEditEntryDialog(entry)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => void handleDeleteEntry(entry.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <EmptyState icon={Wallet} title="Nenhum lancamento encontrado" description="Ajuste os filtros ou crie um novo lancamento manual." />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) resetForm();
-        }}
-      >
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-3xl">
+        <TabsContent value="contratos" className="space-y-6">
+          <Card className="rounded-2xl border-border bg-card/95">
+            <CardHeader>
+              <CardTitle>Contratos recorrentes</CardTitle>
+              <CardDescription>Fonte estrutural da previsao. Pause, encerre ou edite sem perder o historico ja gerado.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {visibleContracts.length ? (
+                visibleContracts.map((contract) => (
+                  <div key={contract.id} className="rounded-2xl border border-border/80 bg-background/40 p-4">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={contract.status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-border bg-background/40 text-muted-foreground"}>
+                            {contract.status === "active" ? "Ativo" : "Inativo"}
+                          </Badge>
+                          <Badge variant="outline">{formatEntryTypeLabel(contract.type)}</Badge>
+                          <Badge variant="outline">{formatRecurrenceLabel(contract.recurrence)}</Badge>
+                          {contract.is_platform_cost ? <Badge variant="outline">Plataforma</Badge> : null}
+                        </div>
+                        <div>
+                          <p className="text-lg font-semibold text-foreground">{contract.name}</p>
+                          <p className="text-sm text-muted-foreground">{contract.project?.name || "Sem projeto"} - {contract.counterparty_name} - {contract.category}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                          <span>{describeFinanceiroAmount(contract.type, contract.amount)}</span>
+                          <span>Dia {contract.due_day}</span>
+                          <span>Alerta {contract.alert_days_before} dias</span>
+                          <span>Inicio {new Date(contract.start_date).toLocaleDateString("pt-BR")}</span>
+                          <span>Fim {contract.end_date ? new Date(contract.end_date).toLocaleDateString("pt-BR") : "em aberto"}</span>
+                        </div>
+                        {contract.notes ? <p className="text-sm text-muted-foreground">{contract.notes}</p> : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {contract.payment_url ? (
+                          <Button asChild variant="outline" size="sm">
+                            <a href={contract.payment_url} target="_blank" rel="noreferrer">
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              Abrir pagamento
+                            </a>
+                          </Button>
+                        ) : null}
+                        <Button variant="outline" size="sm" onClick={() => openEditContractDialog(contract)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => void handleToggleContractStatus(contract, contract.status === "active" ? "inactive" : "active")}>
+                          {contract.status === "active" ? "Pausar" : "Ativar"}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => void handleCloseContract(contract)}>
+                          Encerrar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState icon={Landmark} title="Nenhum contrato encontrado" description="Crie contratos recorrentes para que a previsao futura seja confiavel." />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={entryDialogOpen} onOpenChange={setEntryDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingEntry ? "Editar lancamento" : "Novo lancamento"}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 pt-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Tipo</Label>
-              <Select value={form.type} onValueChange={(value: FinanceiroEntryType) => setForm((current) => ({ ...current, type: value }))}>
-                <SelectTrigger className="h-11 rounded-2xl border-border bg-background/60">
-                  <SelectValue />
-                </SelectTrigger>
+              <Label>Tipo</Label>
+              <Select value={entryForm.type} onValueChange={(value) => setEntryForm((current) => ({ ...current, type: value as FinanceiroEntryType }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{ENTRY_TYPE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={entryForm.status} onValueChange={(value) => setEntryForm((current) => ({ ...current, status: value as FinanceiroEntryStatus }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{ENTRY_STATUS_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Projeto</Label>
+              <Select value={entryForm.projectId} onValueChange={(value) => setEntryForm((current) => ({ ...current, projectId: value }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="none">Sem projeto</SelectItem>
+                  {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Empresa vinculada</Label>
-              <Select value={form.projectId} onValueChange={(value) => setForm((current) => ({ ...current, projectId: value }))}>
-                <SelectTrigger className="h-11 rounded-2xl border-border bg-background/60">
-                  <SelectValue />
-                </SelectTrigger>
+              <Label>Contrato</Label>
+              <Select value={entryForm.contractId} onValueChange={(value) => setEntryForm((current) => ({ ...current, contractId: value }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sem empresa</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="none">Sem contrato</SelectItem>
+                  {contracts.map((contract) => <SelectItem key={contract.id} value={contract.id}>{contract.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label className="text-xs text-muted-foreground">Nome do lancamento</Label>
-              <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Ex: Fatura Figma, Mensalidade cliente X" className="h-11 rounded-2xl border-border bg-background/60" />
-            </div>
-
+            <div className="space-y-2 md:col-span-2"><Label>Titulo</Label><Input value={entryForm.title} onChange={(event) => setEntryForm((current) => ({ ...current, title: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Categoria</Label><Input value={entryForm.category} onChange={(event) => setEntryForm((current) => ({ ...current, category: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Contraparte</Label><Input value={entryForm.counterpartyName} onChange={(event) => setEntryForm((current) => ({ ...current, counterpartyName: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Valor</Label><Input value={entryForm.amount} onChange={(event) => setEntryForm((current) => ({ ...current, amount: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Moeda</Label><Input value={entryForm.currency} onChange={(event) => setEntryForm((current) => ({ ...current, currency: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Vencimento</Label><Input type="date" value={entryForm.dueDate} onChange={(event) => setEntryForm((current) => ({ ...current, dueDate: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Competencia</Label><Input type="date" value={entryForm.competencyDate} onChange={(event) => setEntryForm((current) => ({ ...current, competencyDate: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Pago em</Label><Input type="datetime-local" value={entryForm.paidAt} onChange={(event) => setEntryForm((current) => ({ ...current, paidAt: event.target.value }))} /></div>
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Cliente / plataforma / fornecedor</Label>
-              <Input value={form.counterpartyName} onChange={(event) => setForm((current) => ({ ...current, counterpartyName: event.target.value }))} placeholder="Ex: Stripe, Google Workspace, Cliente XPTO" className="h-11 rounded-2xl border-border bg-background/60" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Categoria</Label>
-              <Input value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder="Ex: Plataforma, Receita recorrente" className="h-11 rounded-2xl border-border bg-background/60" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Valor</Label>
-              <Input type="number" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} placeholder="0,00" className="h-11 rounded-2xl border-border bg-background/60 font-mono" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Status</Label>
-              <Select value={form.status} onValueChange={(value: FinanceiroEntryStatus) => setForm((current) => ({ ...current, status: value }))}>
-                <SelectTrigger className="h-11 rounded-2xl border-border bg-background/60">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Label>Recorrencia</Label>
+              <Select value={entryForm.recurrence} onValueChange={(value) => setEntryForm((current) => ({ ...current, recurrence: value as FinanceiroEntryRecurrence }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{RECURRENCE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Data de vencimento</Label>
-              <Input type="date" value={form.dueDate} onChange={(event) => setForm((current) => ({ ...current, dueDate: event.target.value }))} className="h-11 rounded-2xl border-border bg-background/60" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Data de pagamento</Label>
-              <Input type="datetime-local" value={form.paidAt} onChange={(event) => setForm((current) => ({ ...current, paidAt: event.target.value }))} className="h-11 rounded-2xl border-border bg-background/60" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Competencia</Label>
-              <Input type="date" value={form.competencyDate} onChange={(event) => setForm((current) => ({ ...current, competencyDate: event.target.value }))} className="h-11 rounded-2xl border-border bg-background/60" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Recorrencia</Label>
-              <Select value={form.recurrence} onValueChange={(value: FinanceiroEntryRecurrence) => setForm((current) => ({ ...current, recurrence: value }))}>
-                <SelectTrigger className="h-11 rounded-2xl border-border bg-background/60">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RECURRENCE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Alerta antes do vencimento (dias)</Label>
-              <Input type="number" min="0" max="365" value={form.alertDaysBefore} onChange={(event) => setForm((current) => ({ ...current, alertDaysBefore: event.target.value }))} className="h-11 rounded-2xl border-border bg-background/60 font-mono" />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label className="text-xs text-muted-foreground">Descricao</Label>
-              <Textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Contexto do lancamento" className="min-h-[88px] rounded-2xl border-border bg-background/60" />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label className="text-xs text-muted-foreground">Link de pagamento</Label>
-              <Input value={form.paymentUrl} onChange={(event) => setForm((current) => ({ ...current, paymentUrl: event.target.value }))} placeholder="https://claude.ai/settings/billing" className="h-11 rounded-2xl border-border bg-background/60" />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label className="text-xs text-muted-foreground">Notas</Label>
-              <Textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Observacoes internas" className="min-h-[88px] rounded-2xl border-border bg-background/60" />
-            </div>
-
-            <div className="flex items-center gap-3 md:col-span-2">
-              <Checkbox checked={form.isPlatformCost} onCheckedChange={(checked) => setForm((current) => ({ ...current, isPlatformCost: Boolean(checked) }))} id="isPlatformCost" />
-              <Label htmlFor="isPlatformCost" className="text-sm text-foreground">
-                Marcar como despesa de plataforma para aparecer nos alertas de renovacao
-              </Label>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-            <p className="text-xs text-muted-foreground">
-              V1 manual: a recorrencia e informativa e nao gera proximas parcelas automaticamente.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-2xl">
-                Cancelar
-              </Button>
-              <Button onClick={saveEntry} disabled={saving} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
-                {saving ? "Salvando..." : editingEntry ? "Salvar alteracoes" : "Criar lancamento"}
-              </Button>
-            </div>
+            <div className="space-y-2"><Label>Dias de alerta</Label><Input type="number" min="0" value={entryForm.alertDaysBefore} onChange={(event) => setEntryForm((current) => ({ ...current, alertDaysBefore: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Link de pagamento</Label><Input placeholder="https://..." value={entryForm.paymentUrl} onChange={(event) => setEntryForm((current) => ({ ...current, paymentUrl: event.target.value }))} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Descricao</Label><Textarea value={entryForm.description} onChange={(event) => setEntryForm((current) => ({ ...current, description: event.target.value }))} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Observacoes</Label><Textarea value={entryForm.notes} onChange={(event) => setEntryForm((current) => ({ ...current, notes: event.target.value }))} /></div>
+            <div className="flex items-center gap-3 md:col-span-2"><Checkbox checked={entryForm.isPlatformCost} onCheckedChange={(checked) => setEntryForm((current) => ({ ...current, isPlatformCost: checked === true }))} /><Label>Custo de plataforma</Label></div>
+            <div className="flex justify-end gap-2 md:col-span-2"><Button variant="outline" onClick={() => setEntryDialogOpen(false)}>Cancelar</Button><Button onClick={() => void handleSaveEntry()} disabled={savingEntry}>{savingEntry ? "Salvando..." : editingEntry ? "Atualizar lancamento" : "Criar lancamento"}</Button></div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
 
-function EntryGroup({
-  title,
-  subtitle,
-  entries,
-  onEdit,
-  onDelete,
-  onMarkAsPaid,
-}: {
-  title: string;
-  subtitle: string;
-  entries: FinanceiroEntryWithProject[];
-  onEdit: (entry: FinanceiroEntryWithProject) => void;
-  onDelete: (id: string) => void;
-  onMarkAsPaid: (entry: FinanceiroEntryWithProject) => void;
-}) {
-  if (entries.length === 0) return null;
+      <Dialog open={contractDialogOpen} onOpenChange={setContractDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editingContract ? "Editar contrato" : "Novo contrato"}</DialogTitle>
+          </DialogHeader>
 
-  return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">{title}</p>
-          <h3 className="mt-1 text-lg font-semibold text-foreground">{subtitle}</h3>
-        </div>
-        <Badge variant="secondary" className="bg-background/60 text-muted-foreground">
-          {entries.length}
-        </Badge>
-      </div>
-
-      <div className="space-y-3">
-        {entries.map((entry) => (
-          <EntryCard key={entry.id} entry={entry} onEdit={onEdit} onDelete={onDelete} onMarkAsPaid={onMarkAsPaid} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function EntryCard({
-  entry,
-  onEdit,
-  onDelete,
-  onMarkAsPaid,
-}: {
-  entry: FinanceiroEntryWithProject;
-  onEdit: (entry: FinanceiroEntryWithProject) => void;
-  onDelete: (id: string) => void;
-  onMarkAsPaid: (entry: FinanceiroEntryWithProject) => void;
-}) {
-  const visualStatus = getFinanceiroVisualStatus(entry);
-
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border p-5 transition-colors",
-        visualStatus === "overdue"
-          ? "border-rose-500/20 bg-rose-500/[0.05]"
-          : visualStatus === "upcoming"
-            ? "border-amber-500/20 bg-amber-500/[0.05]"
-            : "border-border bg-card/95",
-      )}
-    >
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className={statusClassName(visualStatus)}>{formatVisualStatusLabel(visualStatus)}</Badge>
-            <Badge variant="secondary" className="bg-background/60 text-muted-foreground">
-              {formatEntryTypeLabel(entry.type)}
-            </Badge>
-            {entry.is_platform_cost ? (
-              <Badge variant="secondary" className="bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/10">
-                Plataforma
-              </Badge>
-            ) : null}
-            <span className="text-xs text-muted-foreground">{entry.category}</span>
-          </div>
-
-          <p className="mt-2 text-lg font-semibold text-foreground">{entry.title}</p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            <span>{entry.counterparty_name}</span>
-            <span>{entry.project?.name || "Sem empresa vinculada"}</span>
-            <span>{describeFinanceiroAmount(entry.type, entry.amount)}</span>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
-          <div className="rounded-xl border border-border/70 bg-background/35 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Vencimento</p>
-            <div className="mt-2 flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-primary" />
-              <p className="text-sm font-semibold text-foreground">{new Date(entry.due_date).toLocaleDateString("pt-BR")}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={contractForm.type} onValueChange={(value) => setContractForm((current) => ({ ...current, type: value as FinanceiroEntryType }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{ENTRY_TYPE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
-          </div>
-
-          <div className="rounded-xl border border-border/70 bg-background/35 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Recorrencia</p>
-            <div className="mt-2 flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-cyan-300" />
-              <p className="text-sm font-semibold text-foreground">{formatRecurrenceLabel(entry.recurrence)}</p>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={contractForm.status} onValueChange={(value) => setContractForm((current) => ({ ...current, status: value as FinanceiroContractStatus }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{CONTRACT_STATUS_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Projeto</Label>
+              <Select value={contractForm.projectId} onValueChange={(value) => setContractForm((current) => ({ ...current, projectId: value }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem projeto</SelectItem>
+                  {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Recorrencia</Label>
+              <Select value={contractForm.recurrence} onValueChange={(value) => setContractForm((current) => ({ ...current, recurrence: value as FinanceiroEntryRecurrence }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{RECURRENCE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 md:col-span-2"><Label>Nome do contrato</Label><Input value={contractForm.name} onChange={(event) => setContractForm((current) => ({ ...current, name: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Categoria</Label><Input value={contractForm.category} onChange={(event) => setContractForm((current) => ({ ...current, category: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Contraparte</Label><Input value={contractForm.counterpartyName} onChange={(event) => setContractForm((current) => ({ ...current, counterpartyName: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Valor padrao</Label><Input value={contractForm.amount} onChange={(event) => setContractForm((current) => ({ ...current, amount: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Moeda</Label><Input value={contractForm.currency} onChange={(event) => setContractForm((current) => ({ ...current, currency: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Dia do vencimento</Label><Input type="number" min="1" max="31" value={contractForm.dueDay} onChange={(event) => setContractForm((current) => ({ ...current, dueDay: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Dias de alerta</Label><Input type="number" min="0" value={contractForm.alertDaysBefore} onChange={(event) => setContractForm((current) => ({ ...current, alertDaysBefore: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Inicio</Label><Input type="date" value={contractForm.startDate} onChange={(event) => setContractForm((current) => ({ ...current, startDate: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Fim</Label><Input type="date" value={contractForm.endDate} onChange={(event) => setContractForm((current) => ({ ...current, endDate: event.target.value }))} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Link de pagamento</Label><Input placeholder="https://..." value={contractForm.paymentUrl} onChange={(event) => setContractForm((current) => ({ ...current, paymentUrl: event.target.value }))} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Observacoes</Label><Textarea value={contractForm.notes} onChange={(event) => setContractForm((current) => ({ ...current, notes: event.target.value }))} /></div>
+            <div className="flex items-center gap-3 md:col-span-2"><Checkbox checked={contractForm.isPlatformCost} onCheckedChange={(checked) => setContractForm((current) => ({ ...current, isPlatformCost: checked === true }))} /><Label>Custo de plataforma</Label></div>
+            <div className="flex justify-end gap-2 md:col-span-2"><Button variant="outline" onClick={() => setContractDialogOpen(false)}>Cancelar</Button><Button onClick={() => void handleSaveContract()} disabled={savingContract}>{savingContract ? "Salvando..." : editingContract ? "Atualizar contrato" : "Criar contrato"}</Button></div>
           </div>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full bg-background/60 px-2.5 py-1">{entry.project?.client || "Sem cliente"}</span>
-          <span className="rounded-full bg-background/60 px-2.5 py-1">Alerta em {entry.alert_days_before}d</span>
-          <span className="rounded-full bg-background/60 px-2.5 py-1">
-            {entry.paid_at ? `Pago em ${new Date(entry.paid_at).toLocaleDateString("pt-BR")}` : "Ainda nao pago"}
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {entry.payment_url ? (
-            <Button asChild variant="outline" size="sm" className="gap-1 rounded-xl">
-              <a href={entry.payment_url} target="_blank" rel="noreferrer">
-                <ExternalLink className="h-3.5 w-3.5" />
-                Abrir pagamento
-              </a>
-            </Button>
-          ) : null}
-
-          {visualStatus !== "paid" ? (
-            <Button onClick={() => onMarkAsPaid(entry)} size="sm" className="bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20">
-              <BadgeCheck className="mr-1 h-3.5 w-3.5" />
-              Marcar como pago
-            </Button>
-          ) : null}
-
-          <Button variant="outline" size="sm" onClick={() => onEdit(entry)} className="gap-1 rounded-xl">
-            <Pencil className="h-3.5 w-3.5" />
-            Editar
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onDelete(entry.id)} className="gap-1 rounded-xl text-rose-300 hover:text-rose-200">
-            <Trash2 className="h-3.5 w-3.5" />
-            Excluir
-          </Button>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

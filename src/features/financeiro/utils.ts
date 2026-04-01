@@ -27,13 +27,22 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
+export function parseFinanceiroDate(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map((chunk) => Number.parseInt(chunk, 10));
+    return new Date(year, month - 1, day);
+  }
+
+  return new Date(value);
+}
+
 export function getFinanceiroVisualStatus(
   entry: Pick<FinanceiroEntryWithProject, "status" | "due_date" | "paid_at" | "alert_days_before">,
   now = new Date(),
 ): FinanceiroVisualStatus {
   if (entry.status === "paid" || entry.paid_at) return "paid";
 
-  const dueDate = startOfDay(new Date(entry.due_date));
+  const dueDate = startOfDay(parseFinanceiroDate(entry.due_date));
   const today = startOfDay(now);
 
   if (entry.status === "overdue" || dueDate < today) return "overdue";
@@ -133,7 +142,7 @@ export function sortFinanceiroEntries(entries: FinanceiroEntryWithProject[], now
       return statusOrder[visualA] - statusOrder[visualB];
     }
 
-    const dueDiff = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+    const dueDiff = parseFinanceiroDate(a.due_date).getTime() - parseFinanceiroDate(b.due_date).getTime();
     if (dueDiff !== 0) return dueDiff;
 
     return normalizeFinanceiroAmount(b.amount) - normalizeFinanceiroAmount(a.amount);
