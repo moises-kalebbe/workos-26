@@ -73,14 +73,14 @@ export function summarizeFinanceiro(entries: FinanceiroEntryWithProject[], now =
   return entries.reduce<FinanceiroMetrics>(
     (acc, entry) => {
       const visualStatus = getFinanceiroVisualStatus(entry, now);
-      const isOpen = visualStatus !== "paid";
+      const isActionable = visualStatus === "upcoming" || visualStatus === "overdue";
       const amount = normalizeFinanceiroAmount(entry.amount);
 
-      if (entry.type === "income" && isOpen) {
+      if (entry.type === "income" && isActionable) {
         acc.receivableOpen += amount;
       }
 
-      if (entry.type === "expense" && isOpen) {
+      if (entry.type === "expense" && isActionable) {
         acc.payableOpen += amount;
       }
 

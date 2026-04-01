@@ -405,8 +405,8 @@ export default function FinanceiroPage() {
       />
 
       <section className="grid gap-4 xl:grid-cols-4">
-        <StatsCard icon={ArrowUpCircle} label="A receber" value={formatMoney(metrics.receivableOpen)} helper="Receitas abertas para clientes e contratos" tone="success" />
-        <StatsCard icon={ArrowDownCircle} label="A pagar" value={formatMoney(metrics.payableOpen)} helper="Custos operacionais e plataformas pendentes" tone="warning" />
+        <StatsCard icon={ArrowUpCircle} label="A receber" value={formatMoney(metrics.receivableOpen)} helper="Receitas vencidas ou dentro da janela de alerta" tone="success" />
+        <StatsCard icon={ArrowDownCircle} label="A pagar" value={formatMoney(metrics.payableOpen)} helper="Custos vencidos ou dentro da janela de alerta" tone="warning" />
         <StatsCard icon={AlertTriangle} label="Vencidos" value={String(metrics.overdueCount).padStart(2, "0")} helper="Lancamentos fora do prazo" tone={metrics.overdueCount > 0 ? "danger" : "default"} />
         <StatsCard icon={CalendarClock} label="Proximos" value={String(metrics.upcomingCount).padStart(2, "0")} helper="Vencem dentro da janela de alerta" tone={metrics.upcomingCount > 0 ? "warning" : "default"} />
       </section>
