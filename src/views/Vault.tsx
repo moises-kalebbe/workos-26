@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Copy, ExternalLink, Eye, EyeOff, FolderOpen, Import, Loader2, Pencil, Plus, RefreshCcw, Save, Search, Trash2 } from "lucide-react";
+import { Copy, Download, ExternalLink, Eye, EyeOff, FolderOpen, Import, Loader2, Pencil, Plus, RefreshCcw, Save, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { db as clientDb } from "@/lib/dbClient";
 import { DeleteConfirmDialog } from "@/components/system/delete-confirm-dialog";
@@ -26,6 +26,13 @@ import type { Project, VaultEntry } from "@/types";
 type CompanyFolder = { id: string; label: string; description: string; projectId: string | null };
 type CredentialFormState = { service: string; url: string; username: string; password: string; notes: string; projectValue: string };
 type GithubConnectionFormState = { displayName: string; token: string };
+type VaultCredentialTransferItem = { service: string; url: string; username: string; password: string; notes: string };
+type VaultCredentialTransferPayload = {
+  version: 1;
+  exportedAt: string;
+  sourceCompany: string;
+  credentials: VaultCredentialTransferItem[];
+};
 
 const EMPTY_CREDENTIAL_FORM: CredentialFormState = { service: "", url: "", username: "", password: "", notes: "", projectValue: GENERAL_PROJECT_VALUE };
 const EMPTY_GITHUB_CONNECTION_FORM: GithubConnectionFormState = { displayName: "GitHub principal", token: "" };
@@ -45,6 +52,42 @@ function inCompany(projectId: string | null) {
 
 function EmptyState({ message }: { message: string }) {
   return <Card className="border-dashed border-border/70 bg-card/50"><CardContent className="p-8 text-center text-sm text-muted-foreground">{message}</CardContent></Card>;
+}
+
+function normalizeCredentialField(value: string | null | undefined) {
+  return (value || "").trim().toLowerCase();
+}
+
+function isVaultCredentialTransferPayload(value: unknown): value is VaultCredentialTransferPayload {
+  if (!value || typeof value !== "object") return false;
+
+  const payload = value as Partial<VaultCredentialTransferPayload>;
+  if (payload.version !== 1 || typeof payload.exportedAt !== "string" || typeof payload.sourceCompany !== "string" || !Array.isArray(payload.credentials)) {
+    return false;
+  }
+
+  return payload.credentials.every((item) => {
+    if (!item || typeof item !== "object") return false;
+    const credential = item as Partial<VaultCredentialTransferItem>;
+    return (
+      typeof credential.service === "string" &&
+      typeof credential.url === "string" &&
+      typeof credential.username === "string" &&
+      typeof credential.password === "string" &&
+      typeof credential.notes === "string"
+    );
+  });
+}
+
+function buildCredentialTransferFileName(label: string) {
+  const slug = label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `vault-credentials-${slug || "cofre"}.json`;
 }
 
 export default function VaultPage() {
@@ -79,6 +122,7 @@ export default function VaultPage() {
   const [windowsImportProjectValue, setWindowsImportProjectValue] = useState(GENERAL_PROJECT_VALUE);
   const [windowsImportTags, setWindowsImportTags] = useState("windows-import");
   const [windowsImportContent, setWindowsImportContent] = useState("");
+  const credentialImportInputRef = useRef<HTMLInputElement | null>(null);
 
   async function authorizedFetch(input: string, init?: RequestInit) {
     const { data: { session } } = await clientDb.auth.getSession();
@@ -219,6 +263,118 @@ export default function VaultPage() {
     }
   }
 
+  function exportCredentials() {
+    if (filteredCredentials.length === 0) {
+      toast.error("Nao ha credenciais para exportar nesta pasta.");
+      return;
+    }
+
+    const payload: VaultCredentialTransferPayload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      sourceCompany: selectedFolder?.label || GENERAL_PROJECT_LABEL,
+      credentials: filteredCredentials.map((entry) => ({
+        service: entry.service || "",
+        url: entry.url || "",
+        username: entry.username || "",
+        password: decodeBrowserSecret(entry.encrypted_password),
+        notes: entry.notes || "",
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl;
+    anchor.download = buildCredentialTransferFileName(payload.sourceCompany);
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(downloadUrl);
+    toast.success(`${payload.credentials.length} credencial(is) exportada(s).`);
+  }
+
+  function openCredentialImport() {
+    credentialImportInputRef.current?.click();
+  }
+
+  async function importCredentials(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file || !user) {
+      return;
+    }
+
+    setMutating(true);
+    try {
+      const rawContent = await file.text();
+      const parsed = JSON.parse(rawContent) as unknown;
+
+      if (!isVaultCredentialTransferPayload(parsed)) {
+        throw new Error("Arquivo invalido para importacao de credenciais.");
+      }
+
+      const projectId = projectIdFromSelectValue(selectedCompanyId);
+      const project = projectId ? projectMap.get(projectId) : null;
+      const sourceLabel = parsed.sourceCompany.trim() || "origem desconhecida";
+      const candidates = parsed.credentials.filter((item) =>
+        [item.service, item.url, item.username, item.password, item.notes].some((value) => value.trim().length > 0),
+      );
+
+      if (candidates.length === 0) {
+        throw new Error("O arquivo nao possui credenciais para importar.");
+      }
+
+      let createdCount = 0;
+      let updatedCount = 0;
+
+      for (const item of candidates) {
+        const encoded = encodeBrowserSecret(item.password);
+        const existing = vaultEntries.find((entry) =>
+          inCompany(entry.project_id) === selectedCompanyId &&
+          normalizeCredentialField(entry.service) === normalizeCredentialField(item.service) &&
+          normalizeCredentialField(entry.url) === normalizeCredentialField(item.url) &&
+          normalizeCredentialField(entry.username) === normalizeCredentialField(item.username),
+        );
+
+        const importNote = `Importado de ${sourceLabel} em ${new Date().toLocaleString("pt-BR")}.`;
+        const payload = {
+          user_id: user.id,
+          project_id: projectId,
+          client: project?.name || null,
+          service: item.service.trim() || null,
+          url: item.url.trim() || null,
+          username: item.username.trim() || null,
+          encrypted_password: encoded.encrypted,
+          iv: encoded.iv,
+          notes: [item.notes.trim(), importNote].filter(Boolean).join("\n\n"),
+        };
+
+        const result = existing
+          ? await clientDb.from("vault_entries").update(payload).eq("id", existing.id)
+          : await clientDb.from("vault_entries").insert(payload);
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        if (existing) {
+          updatedCount += 1;
+        } else {
+          createdCount += 1;
+        }
+      }
+
+      toast.success(`Importacao concluida: ${createdCount} criada(s), ${updatedCount} atualizada(s).`);
+      await loadData();
+    } catch (error) {
+      toast.error((error as Error).message || "Falha ao importar credenciais.");
+    } finally {
+      setMutating(false);
+    }
+  }
+
   async function updateRepositoryCompany(repositoryId: string, projectValue: string) {
     setMutating(true);
     try {
@@ -290,6 +446,13 @@ export default function VaultPage() {
 
   return (
     <div className="space-y-6">
+      <input
+        ref={credentialImportInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(event) => void importCredentials(event)}
+      />
       <PageHeader
         title="Cofre"
         description="Hub operacional por empresa com credenciais, repositorios, envs e importacoes."
@@ -340,6 +503,24 @@ export default function VaultPage() {
             </TabsContent>
 
             <TabsContent value="credentials" className="space-y-4">
+              <Card className="border-border/70 bg-card/70">
+                <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <CardTitle>Transferir credenciais</CardTitle>
+                    <CardDescription>Exporte a pasta ativa em JSON e importe no outro ambiente para recriar ou atualizar os acessos.</CardDescription>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={exportCredentials} disabled={filteredCredentials.length === 0 || mutating}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Exportar JSON
+                    </Button>
+                    <Button variant="outline" onClick={openCredentialImport} disabled={mutating}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Importar JSON
+                    </Button>
+                  </div>
+                </CardHeader>
+              </Card>
               {filteredCredentials.length === 0 ? <EmptyState message="Nenhuma credencial encontrada nesta pasta." /> : null}
               <div className="grid gap-4 xl:grid-cols-2">
                 {filteredCredentials.map((entry) => {
