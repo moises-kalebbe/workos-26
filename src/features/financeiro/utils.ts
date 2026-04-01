@@ -12,6 +12,11 @@ export type FinanceiroMetrics = {
   platformAlertCount: number;
 };
 
+function normalizeFinanceiroAmount(value: number | string | null | undefined) {
+  const parsed = typeof value === "number" ? value : Number.parseFloat(String(value ?? 0));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -69,22 +74,23 @@ export function summarizeFinanceiro(entries: FinanceiroEntryWithProject[], now =
     (acc, entry) => {
       const visualStatus = getFinanceiroVisualStatus(entry, now);
       const isOpen = visualStatus !== "paid";
+      const amount = normalizeFinanceiroAmount(entry.amount);
 
       if (entry.type === "income" && isOpen) {
-        acc.receivableOpen += entry.amount;
+        acc.receivableOpen += amount;
       }
 
       if (entry.type === "expense" && isOpen) {
-        acc.payableOpen += entry.amount;
+        acc.payableOpen += amount;
       }
 
       if (visualStatus === "overdue") {
-        acc.overdueTotal += entry.amount;
+        acc.overdueTotal += amount;
         acc.overdueCount += 1;
       }
 
       if (visualStatus === "upcoming") {
-        acc.upcomingTotal += entry.amount;
+        acc.upcomingTotal += amount;
         acc.upcomingCount += 1;
       }
 
@@ -130,7 +136,7 @@ export function sortFinanceiroEntries(entries: FinanceiroEntryWithProject[], now
     const dueDiff = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     if (dueDiff !== 0) return dueDiff;
 
-    return b.amount - a.amount;
+    return normalizeFinanceiroAmount(b.amount) - normalizeFinanceiroAmount(a.amount);
   });
 }
 
@@ -178,5 +184,5 @@ export function formatRecurrenceLabel(value: FinanceiroEntryWithProject["recurre
 }
 
 export function describeFinanceiroAmount(type: FinanceiroEntryWithProject["type"], amount: number) {
-  return `${type === "income" ? "Receber" : "Pagar"} ${formatMoney(amount)}`;
+  return `${type === "income" ? "Receber" : "Pagar"} ${formatMoney(normalizeFinanceiroAmount(amount))}`;
 }
