@@ -19,13 +19,17 @@ recurring_candidates AS (
     COALESCE(ne.project_id, '00000000-0000-0000-0000-000000000000'::uuid),
     ne.type,
     ne.canonical_name
+    ,
+    ne.amount,
+    ne.recurrence,
+    GREATEST(1, LEAST(31, EXTRACT(DAY FROM ne.due_date)::int))
   )
     ne.user_id,
     ne.project_id,
     ne.type,
-    ne.canonical_name AS name,
+    ne.title AS name,
     ne.canonical_name AS counterparty_name,
-    ne.category,
+    COALESCE(NULLIF(ne.category, ''), 'Recorrente') AS category,
     ne.amount,
     ne.currency,
     ne.recurrence,
@@ -44,6 +48,9 @@ recurring_candidates AS (
     COALESCE(ne.project_id, '00000000-0000-0000-0000-000000000000'::uuid),
     ne.type,
     ne.canonical_name,
+    ne.amount,
+    ne.recurrence,
+    GREATEST(1, LEAST(31, EXTRACT(DAY FROM ne.due_date)::int)),
     ne.updated_at DESC
 ),
 inserted_contracts AS (
@@ -91,23 +98,19 @@ inserted_contracts AS (
     WHERE fc.user_id = candidate.user_id
       AND fc.project_id IS NOT DISTINCT FROM candidate.project_id
       AND fc.type = candidate.type
-      AND fc.name = candidate.name
+      AND fc.counterparty_name = candidate.counterparty_name
+      AND fc.amount = candidate.amount
+      AND fc.recurrence = candidate.recurrence
+      AND fc.due_day = candidate.due_day
   )
-  RETURNING id, user_id, project_id, type, name
+  RETURNING id, user_id, project_id, type, counterparty_name, amount, recurrence, due_day
 ),
 all_contracts AS (
-  SELECT id, user_id, project_id, type, name FROM inserted_contracts
+  SELECT id, user_id, project_id, type, counterparty_name, amount, recurrence, due_day FROM inserted_contracts
   UNION ALL
-  SELECT fc.id, fc.user_id, fc.project_id, fc.type, fc.name
+  SELECT fc.id, fc.user_id, fc.project_id, fc.type, fc.counterparty_name, fc.amount, fc.recurrence, fc.due_day
   FROM financial_contracts fc
-  WHERE fc.name IN (
-    'Golden Belle',
-    'Lu Burger',
-    'Rumo ao Lucro',
-    'Rumo à Máxima Potência',
-    'AstraNumérica',
-    'Claude Code'
-  )
+  WHERE fc.counterparty_name IN ('Golden Belle', 'Lu Burger', 'Rumo ao Lucro', 'Rumo à Máxima Potência', 'AstraNumérica', 'Claude Code')
 ),
 normalized_updates AS (
   SELECT
@@ -115,7 +118,10 @@ normalized_updates AS (
     ne.user_id,
     ne.project_id,
     ne.type,
-    ne.canonical_name
+    ne.canonical_name,
+    ne.amount,
+    ne.recurrence,
+    GREATEST(1, LEAST(31, EXTRACT(DAY FROM ne.due_date)::int)) AS due_day
   FROM normalized_entries ne
   WHERE ne.canonical_name IS NOT NULL
 )
@@ -126,6 +132,9 @@ JOIN all_contracts contract
   ON contract.user_id = source.user_id
  AND contract.project_id IS NOT DISTINCT FROM source.project_id
  AND contract.type = source.type
- AND contract.name = source.canonical_name
+ AND contract.counterparty_name = source.canonical_name
+ AND contract.amount = source.amount
+ AND contract.recurrence = source.recurrence
+ AND contract.due_day = source.due_day
 WHERE fe.id = source.id
   AND fe.financial_contract_id IS NULL;
