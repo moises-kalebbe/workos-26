@@ -104,27 +104,27 @@ function getRangeFromPreset(
   if (preset === "month") {
     return {
       start: startOfMonth(now),
-      end: startOfDay(now),
+      end: endOfMonth(now),
     };
   }
 
   if (preset === "6m") {
     return {
       start: startOfMonth(addMonths(now, -5)),
-      end: startOfDay(now),
+      end: endOfMonth(now),
     };
   }
 
   if (preset === "12m") {
     return {
       start: startOfMonth(addMonths(now, -11)),
-      end: startOfDay(now),
+      end: endOfMonth(now),
     };
   }
 
   return {
     start: startOfMonth(addMonths(now, -23)),
-    end: startOfDay(now),
+    end: endOfMonth(now),
   };
 }
 
