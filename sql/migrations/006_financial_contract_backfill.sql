@@ -1,39 +1,50 @@
-WITH recurring_candidates AS (
-  SELECT DISTINCT ON (fe.user_id, COALESCE(fe.project_id, '00000000-0000-0000-0000-000000000000'::uuid), fe.type, fe.title)
-    fe.user_id,
-    fe.project_id,
-    fe.type,
-    fe.title AS name,
-    fe.counterparty_name,
-    fe.category,
-    fe.amount,
-    fe.currency,
-    fe.recurrence,
-    GREATEST(1, LEAST(31, EXTRACT(DAY FROM fe.due_date)::int)) AS due_day,
-    COALESCE(fe.alert_days_before, 7) AS alert_days_before,
-    MIN(COALESCE(fe.competency_date, fe.due_date)) OVER (
-      PARTITION BY fe.user_id, fe.project_id, fe.type, fe.title
-    ) AS start_date,
-    CASE WHEN fe.status = 'paid' THEN 'inactive' ELSE 'active' END AS status,
-    fe.payment_url,
-    COALESCE(fe.is_platform_cost, false) AS is_platform_cost,
-    fe.notes
+WITH normalized_entries AS (
+  SELECT
+    fe.*,
+    CASE
+      WHEN lower(coalesce(fe.counterparty_name, '')) = 'claude code' THEN 'Claude Code'
+      WHEN lower(coalesce(fe.counterparty_name, '')) = 'golden belle' THEN 'Golden Belle'
+      WHEN lower(coalesce(fe.counterparty_name, '')) = 'lu burger' THEN 'Lu Burger'
+      WHEN lower(coalesce(fe.counterparty_name, '')) = 'rumo ao lucro' THEN 'Rumo ao Lucro'
+      WHEN lower(coalesce(fe.counterparty_name, '')) = 'rumo à máxima potência' THEN 'Rumo à Máxima Potência'
+      WHEN lower(coalesce(fe.counterparty_name, '')) IN ('astra numérica', 'astra numerica', 'astra') THEN 'AstraNumérica'
+      ELSE NULL
+    END AS canonical_name
   FROM financial_entries fe
   WHERE fe.recurrence IN ('monthly', 'yearly')
-    AND fe.title IN (
-      'Golden Belle',
-      'Lu Burger',
-      'Rumo ao Lucro',
-      'Rumo à Máxima Potência',
-      'AstraNumérica',
-      'Claude Code'
-    )
+),
+recurring_candidates AS (
+  SELECT DISTINCT ON (
+    ne.user_id,
+    COALESCE(ne.project_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    ne.type,
+    ne.canonical_name
+  )
+    ne.user_id,
+    ne.project_id,
+    ne.type,
+    ne.canonical_name AS name,
+    ne.canonical_name AS counterparty_name,
+    ne.category,
+    ne.amount,
+    ne.currency,
+    ne.recurrence,
+    GREATEST(1, LEAST(31, EXTRACT(DAY FROM ne.due_date)::int)) AS due_day,
+    COALESCE(ne.alert_days_before, 7) AS alert_days_before,
+    MIN(COALESCE(ne.competency_date, ne.due_date)) OVER (
+      PARTITION BY ne.user_id, ne.project_id, ne.type, ne.canonical_name
+    ) AS start_date,
+    ne.payment_url,
+    COALESCE(ne.is_platform_cost, false) AS is_platform_cost,
+    ne.notes
+  FROM normalized_entries ne
+  WHERE ne.canonical_name IS NOT NULL
   ORDER BY
-    fe.user_id,
-    COALESCE(fe.project_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    fe.type,
-    fe.title,
-    fe.updated_at DESC
+    ne.user_id,
+    COALESCE(ne.project_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    ne.type,
+    ne.canonical_name,
+    ne.updated_at DESC
 ),
 inserted_contracts AS (
   INSERT INTO financial_contracts (
@@ -97,12 +108,24 @@ all_contracts AS (
     'AstraNumérica',
     'Claude Code'
   )
+),
+normalized_updates AS (
+  SELECT
+    ne.id,
+    ne.user_id,
+    ne.project_id,
+    ne.type,
+    ne.canonical_name
+  FROM normalized_entries ne
+  WHERE ne.canonical_name IS NOT NULL
 )
 UPDATE financial_entries fe
 SET financial_contract_id = contract.id
-FROM all_contracts contract
-WHERE fe.financial_contract_id IS NULL
-  AND fe.user_id = contract.user_id
-  AND fe.project_id IS NOT DISTINCT FROM contract.project_id
-  AND fe.type = contract.type
-  AND fe.title = contract.name;
+FROM normalized_updates source
+JOIN all_contracts contract
+  ON contract.user_id = source.user_id
+ AND contract.project_id IS NOT DISTINCT FROM source.project_id
+ AND contract.type = source.type
+ AND contract.name = source.canonical_name
+WHERE fe.id = source.id
+  AND fe.financial_contract_id IS NULL;
