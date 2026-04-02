@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  appendClerkResetHeaders,
-  getGoogleOauthAccessToken,
-  requireAuth,
-} from "@/lib/auth";
+import { appendClerkResetHeaders, requireAuth } from "@/lib/auth";
 import {
   deleteGoogleToken,
   encodeEventId,
@@ -29,35 +25,7 @@ function unauthorizedJsonResponse() {
   return response;
 }
 
-async function syncGoogleTokenFromClerk(userId: string) {
-  const oauthToken = await getGoogleOauthAccessToken(userId);
-  if (!oauthToken) {
-    return false;
-  }
-
-  await storeGoogleToken(userId, {
-    access_token: oauthToken.token,
-    expires_at: oauthToken.expiresAt,
-  });
-
-  return true;
-}
-
 async function getAccessTokenForUser(userId: string) {
-  const tokenResult = await getValidAccessToken(userId);
-  if (!("error" in tokenResult)) {
-    return tokenResult;
-  }
-
-  if (tokenResult.error !== "not_connected") {
-    return tokenResult;
-  }
-
-  const synced = await syncGoogleTokenFromClerk(userId);
-  if (!synced) {
-    return tokenResult;
-  }
-
   return getValidAccessToken(userId);
 }
 
@@ -159,21 +127,6 @@ export async function POST(request: Request) {
         refresh_token: body.refresh_token,
         expires_at: body.expires_at,
       });
-      return jsonResponse({ success: true });
-    }
-
-    if (action === "sync-clerk-token") {
-      const synced = await syncGoogleTokenFromClerk(user.id);
-      if (!synced) {
-        return jsonResponse(
-          {
-            error: "not_connected",
-            message: "Google Calendar not connected in Clerk",
-          },
-          404,
-        );
-      }
-
       return jsonResponse({ success: true });
     }
 
