@@ -146,6 +146,11 @@ function buildOrderClause(order: Array<{ column: string; ascending: boolean }>) 
     .join(", ")}`;
 }
 
+function shiftParameterPlaceholders(sqlText: string, offset: number) {
+  if (offset <= 0) return sqlText;
+  return sqlText.replace(/\$(\d+)/g, (_, value: string) => `$${Number(value) + offset}`);
+}
+
 function maybeProjectJoin(table: string, select: string | undefined) {
   if (!select?.includes("project:projects")) {
     return {
@@ -289,9 +294,13 @@ export async function executeLocalDbQuery(table: string, userId: string, payload
     const setValues = Object.values(values);
     const assignments = columns.map((column, index) => `${quoteIdentifier(column)} = $${index + 1}`);
     const where = buildWhereClause(table, userId, filters);
+    const whereClause = shiftParameterPlaceholders(
+      where.clause.replaceAll("t.", ""),
+      setValues.length,
+    );
 
     return sql.unsafe(
-      `UPDATE ${quoteIdentifier(table)} SET ${assignments.join(", ")} ${where.clause.replaceAll("t.", "")} RETURNING *`,
+      `UPDATE ${quoteIdentifier(table)} SET ${assignments.join(", ")} ${whereClause} RETURNING *`,
       [...setValues, ...where.values] as any[],
     );
   }
