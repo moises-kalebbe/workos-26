@@ -387,6 +387,28 @@ function MoneyDelta({ value }: { value: number }) {
   return <span className={cn("font-semibold", value >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatMoney(value)}</span>;
 }
 
+function groupProjectionByYear(points: Array<{ monthKey: string; label: string; income: number; expense: number; profit: number }>) {
+  const grouped = new Map<string, { monthKey: string; label: string; income: number; expense: number; profit: number }>();
+
+  for (const point of points) {
+    const year = point.monthKey.slice(0, 4);
+    const current = grouped.get(year) || {
+      monthKey: year,
+      label: year,
+      income: 0,
+      expense: 0,
+      profit: 0,
+    };
+
+    current.income += point.income;
+    current.expense += point.expense;
+    current.profit += point.profit;
+    grouped.set(year, current);
+  }
+
+  return Array.from(grouped.values());
+}
+
 function matchesExecutiveStatusFilter(
   entry: FinanceiroEntryWithProject,
   statusFilter: ExecutiveStatusFilter,
@@ -551,6 +573,10 @@ export default function FinanceiroPage() {
     () => buildProjectionTimeline(baseScopedEntries, visibleContracts, now, projectionMonths),
     [baseScopedEntries, now, projectionMonths, visibleContracts],
   );
+  const projectionDisplayPoints = useMemo(
+    () => (projectionMonths <= 6 ? projectionTimeline : groupProjectionByYear(projectionTimeline)),
+    [projectionMonths, projectionTimeline],
+  );
 
   const periodCardCopy = useMemo(() => {
     if (periodPreset === "month") {
@@ -583,6 +609,17 @@ export default function FinanceiroPage() {
     if (periodPreset === "custom") return "Serie mensal limitada ao intervalo customizado selecionado.";
     return `Serie mensal alinhada ao recorte de ${periodPreset.replace("m", " meses")}.`;
   }, [periodPreset]);
+  const projectionDescription = useMemo(() => {
+    if (projectionMonths <= 6) {
+      return "Horizonte mensal de 6 meses com contratos ativos e lancamentos futuros.";
+    }
+
+    if (projectionMonths === 12) {
+      return "Horizonte de 12 meses consolidado por ano para evitar repeticao mensal.";
+    }
+
+    return "Horizonte de 24 meses consolidado por ano para leitura executiva.";
+  }, [projectionMonths]);
 
   const operationalQueue = useMemo(
     () =>
@@ -1003,7 +1040,7 @@ export default function FinanceiroPage() {
               <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <div>
                   <CardTitle>Projecao futura</CardTitle>
-                  <CardDescription>Horizonte de 6, 12 ou 24 meses com contratos ativos e lancamentos futuros.</CardDescription>
+                  <CardDescription>{projectionDescription}</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   {PROJECTION_OPTIONS.map((months) => (
@@ -1014,7 +1051,7 @@ export default function FinanceiroPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {projectionTimeline.map((point) => (
+                {projectionDisplayPoints.map((point) => (
                   <div key={point.monthKey} className="rounded-xl border border-border/70 bg-background/40 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
