@@ -5,14 +5,18 @@ import {
   buildGoogleOauthUrl,
   getSignInRedirectUrl,
   GOOGLE_OAUTH_STATE_COOKIE,
+  GOOGLE_OAUTH_USER_COOKIE,
 } from "@/lib/googleOAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  let userId: string;
+
   try {
-    await requireAuth(request);
+    const user = await requireAuth(request);
+    userId = user.id;
   } catch {
     return NextResponse.redirect(getSignInRedirectUrl(request));
   }
@@ -24,6 +28,15 @@ export async function GET(request: NextRequest) {
     response.cookies.set({
       name: GOOGLE_OAUTH_STATE_COOKIE,
       value: state,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 10,
+    });
+    response.cookies.set({
+      name: GOOGLE_OAUTH_USER_COOKIE,
+      value: userId,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

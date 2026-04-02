@@ -4,6 +4,7 @@ const GOOGLE_CALENDAR_SCOPES = [
 ];
 
 export const GOOGLE_OAUTH_STATE_COOKIE = "google_calendar_oauth_state";
+export const GOOGLE_OAUTH_USER_COOKIE = "google_calendar_oauth_user";
 
 function getPublicAppOrigin(request: Request) {
   const configuredOrigin =
