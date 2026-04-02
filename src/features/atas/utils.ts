@@ -1,5 +1,9 @@
 import type { CalendarEvent } from "@/hooks/useGoogleCalendar";
-import type { MeetingMinutesItem, MeetingMinutesStatus } from "@/types";
+import type {
+  MeetingMinutesChecklistEntry,
+  MeetingMinutesItem,
+  MeetingMinutesStatus,
+} from "@/types";
 
 export const MEETING_MINUTES_STATUS_LABEL: Record<MeetingMinutesStatus, string> = {
   pending: "Pendente",
@@ -40,8 +44,58 @@ export function normalizeMeetingMinutesItem(
     ...item,
     status: normalizeMeetingMinutesStatus(item.status),
     detail: item.detail || null,
+    checklist_json: normalizeChecklistEntries(item.checklist_json),
     completed_at: item.completed_at || null,
   };
+}
+
+function isChecklistEntry(value: unknown): value is MeetingMinutesChecklistEntry {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.title === "string" &&
+    typeof entry.completed === "boolean"
+  );
+}
+
+export function normalizeChecklistEntries(value: unknown): MeetingMinutesChecklistEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isChecklistEntry)
+    .map((entry) => ({
+      id: entry.id,
+      title: entry.title.trim(),
+      completed: entry.completed,
+    }))
+    .filter((entry) => entry.title.length > 0);
+}
+
+export function parseChecklistFromText(value: string) {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines.map((line, index) => {
+    const normalized = line.replace(/^[-*•]\s*/, "");
+    return {
+      id: `item_${index + 1}`,
+      title: normalized,
+      completed: false,
+    } satisfies MeetingMinutesChecklistEntry;
+  });
+}
+
+export function deriveMeetingStatusFromChecklist(
+  checklist: MeetingMinutesChecklistEntry[],
+  fallback: MeetingMinutesStatus,
+) {
+  if (!checklist.length) return fallback;
+  const completedCount = checklist.filter((item) => item.completed).length;
+  if (completedCount === 0) return "pending";
+  if (completedCount === checklist.length) return "resolved";
+  return "in_progress";
 }
 
 export function buildMeetingMinutesSummary(items: MeetingMinutesItem[]) {

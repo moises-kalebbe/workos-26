@@ -232,6 +232,12 @@ export interface SkillDocument {
 
 export type MeetingMinutesStatus = "pending" | "in_progress" | "resolved";
 
+export interface MeetingMinutesChecklistEntry {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface MeetingMinutesItem {
   id: string;
   user_id: string;
@@ -241,6 +247,7 @@ export interface MeetingMinutesItem {
   meeting_summary: string;
   title: string;
   detail: string | null;
+  checklist_json: MeetingMinutesChecklistEntry[];
   status: MeetingMinutesStatus;
   completed_at: string | null;
   created_at: string;

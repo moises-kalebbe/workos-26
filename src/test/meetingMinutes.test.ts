@@ -18,6 +18,7 @@ const baseItem = (overrides: Partial<MeetingMinutesItem>): MeetingMinutesItem =>
   meeting_summary: "Weekly sync",
   title: "Confirmar pendencia",
   detail: null,
+  checklist_json: [],
   status: "pending",
   completed_at: null,
   created_at: "2026-03-31T13:05:00.000Z",

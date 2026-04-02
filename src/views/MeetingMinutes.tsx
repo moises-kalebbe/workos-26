@@ -30,9 +30,11 @@ import {
   applyMeetingMinutesStatus,
   buildMeetingMinutesMeetingOptions,
   buildMeetingMinutesSummary,
+  deriveMeetingStatusFromChecklist,
   filterMeetingMinutes,
   MEETING_MINUTES_STATUS_LABEL,
   normalizeMeetingMinutesItem,
+  parseChecklistFromText,
   sortMeetingMinutes,
   type MeetingMinutesMeetingOption,
 } from "@/features/atas/utils";
@@ -40,10 +42,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { db } from "@/lib/dbClient";
 import { cn } from "@/lib/utils";
-import type { MeetingMinutesItem, MeetingMinutesStatus } from "@/types";
+import type {
+  MeetingMinutesChecklistEntry,
+  MeetingMinutesItem,
+  MeetingMinutesStatus,
+} from "@/types";
 
 const ALL_STATUS_VALUE = "__all_status__";
 const ALL_MEETINGS_VALUE = "__all_meetings__";
+
+function withGeneratedChecklistIds(entries: MeetingMinutesChecklistEntry[]) {
+  return entries.map((entry, index) => ({
+    ...entry,
+    id: entry.id || `item_${index + 1}_${Date.now()}`,
+  }));
+}
 
 function formatMeetingOptionLabel(meeting: MeetingMinutesMeetingOption) {
   const start = parseISO(meeting.start);
@@ -222,6 +235,8 @@ export default function MeetingMinutesPage() {
     }
 
     setCreating(true);
+    const parsedChecklist = withGeneratedChecklistIds(parseChecklistFromText(newDetail));
+    const initialStatus = deriveMeetingStatusFromChecklist(parsedChecklist, "pending");
 
     const { data, error } = await db
       .from("agenda_meeting_topics")
@@ -232,8 +247,9 @@ export default function MeetingMinutesPage() {
         meeting_summary: meeting.summary,
         title: newTitle.trim(),
         detail: newDetail.trim() || null,
-        status: "pending",
-        completed_at: null,
+        checklist_json: parsedChecklist,
+        status: initialStatus,
+        completed_at: initialStatus === "resolved" ? new Date().toISOString() : null,
       })
       .select("*")
       .single();
@@ -260,6 +276,12 @@ export default function MeetingMinutesPage() {
     status: MeetingMinutesStatus,
   ) => {
     const nextItem = applyMeetingMinutesStatus(item, status, new Date().toISOString());
+    const nextChecklist = item.checklist_json.length
+      ? item.checklist_json.map((entry) => ({
+          ...entry,
+          completed: status === "resolved" ? true : status === "pending" ? false : entry.completed,
+        }))
+      : item.checklist_json;
     setMutatingItemId(item.id);
 
     const { data, error } = await db
@@ -267,6 +289,7 @@ export default function MeetingMinutesPage() {
       .update({
         status: nextItem.status,
         completed_at: nextItem.completed_at,
+        checklist_json: nextChecklist,
       })
       .eq("id", item.id)
       .select("*")
@@ -276,6 +299,41 @@ export default function MeetingMinutesPage() {
 
     if (error || !data) {
       toast.error("Nao foi possivel atualizar o status.");
+      return;
+    }
+
+    const normalized = normalizeMeetingMinutesItem(data as MeetingMinutesItem);
+    setItems((current) =>
+      sortMeetingMinutes(
+        current.map((currentItem) =>
+          currentItem.id === normalized.id ? normalized : currentItem,
+        ),
+      ),
+    );
+  };
+
+  const toggleChecklistEntry = async (item: MeetingMinutesItem, entryId: string, checked: boolean) => {
+    const nextChecklist = item.checklist_json.map((entry) =>
+      entry.id === entryId ? { ...entry, completed: checked } : entry,
+    );
+    const nextStatus = deriveMeetingStatusFromChecklist(nextChecklist, item.status);
+    const completedAt = nextStatus === "resolved" ? new Date().toISOString() : null;
+
+    setMutatingItemId(item.id);
+    const { data, error } = await db
+      .from("agenda_meeting_topics")
+      .update({
+        checklist_json: nextChecklist,
+        status: nextStatus,
+        completed_at: completedAt,
+      })
+      .eq("id", item.id)
+      .select("*")
+      .single();
+    setMutatingItemId(null);
+
+    if (error || !data) {
+      toast.error("Nao foi possivel atualizar checklist.");
       return;
     }
 
@@ -311,14 +369,27 @@ export default function MeetingMinutesPage() {
     }
 
     setSavingEdit(true);
+    const currentItem = items.find((item) => item.id === editingItemId);
+    const parsedChecklist = withGeneratedChecklistIds(parseChecklistFromText(editingDetail));
+    const mergedChecklist = parsedChecklist.length
+      ? parsedChecklist.map((entry) => {
+          const existing = currentItem?.checklist_json.find((item) => item.title === entry.title);
+          return existing ? { ...entry, completed: existing.completed } : entry;
+        })
+      : currentItem?.checklist_json || [];
+    const statusFromChecklist = deriveMeetingStatusFromChecklist(
+      mergedChecklist,
+      editingStatus,
+    );
 
     const { data, error } = await db
       .from("agenda_meeting_topics")
       .update({
         title: editingTitle.trim(),
         detail: editingDetail.trim() || null,
-        status: editingStatus,
-        completed_at: editingStatus === "resolved" ? new Date().toISOString() : null,
+        checklist_json: mergedChecklist,
+        status: statusFromChecklist,
+        completed_at: statusFromChecklist === "resolved" ? new Date().toISOString() : null,
       })
       .eq("id", editingItemId)
       .select("*")
@@ -593,7 +664,37 @@ export default function MeetingMinutesPage() {
                           </p>
 
                           {item.detail && (
-                            <p className="mt-2 text-sm text-muted-foreground">{item.detail}</p>
+                            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                              {item.detail}
+                            </p>
+                          )}
+
+                          {item.checklist_json.length > 0 && (
+                            <div className="mt-3 space-y-2 rounded-lg border border-border/60 bg-background/40 p-3">
+                              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                                Checklist da reuniao
+                              </p>
+                              <div className="space-y-1.5">
+                                {item.checklist_json.map((entry) => (
+                                  <label
+                                    key={entry.id}
+                                    className="flex items-start gap-2 text-sm text-foreground"
+                                  >
+                                    <Checkbox
+                                      checked={entry.completed}
+                                      disabled={mutatingItemId === item.id}
+                                      onCheckedChange={(checked) => {
+                                        void toggleChecklistEntry(item, entry.id, Boolean(checked));
+                                      }}
+                                      className="mt-0.5"
+                                    />
+                                    <span className={cn("whitespace-pre-wrap break-words", entry.completed && "line-through text-muted-foreground")}>
+                                      {entry.title}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
                           )}
 
                           <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
