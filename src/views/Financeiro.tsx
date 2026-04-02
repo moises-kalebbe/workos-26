@@ -569,14 +569,6 @@ export default function FinanceiroPage() {
     () => buildMonthlyTrend(statusScopedEntries, basis, now, periodPreset, customStart, customEnd),
     [basis, customEnd, customStart, now, periodPreset, statusScopedEntries],
   );
-  const projectionTimeline = useMemo(
-    () => buildProjectionTimeline(baseScopedEntries, visibleContracts, now, projectionMonths),
-    [baseScopedEntries, now, projectionMonths, visibleContracts],
-  );
-  const projectionDisplayPoints = useMemo(
-    () => (projectionMonths <= 6 ? projectionTimeline : groupProjectionByYear(projectionTimeline)),
-    [projectionMonths, projectionTimeline],
-  );
 
   const periodCardCopy = useMemo(() => {
     if (periodPreset === "month") {
@@ -647,6 +639,15 @@ export default function FinanceiroPage() {
         .includes(normalizedSearch);
     });
   }, [contractFilter, contracts, projectFilter, search, typeFilter]);
+
+  const projectionTimeline = useMemo(
+    () => buildProjectionTimeline(baseScopedEntries, visibleContracts, now, projectionMonths),
+    [baseScopedEntries, now, projectionMonths, visibleContracts],
+  );
+  const projectionDisplayPoints = useMemo(
+    () => (projectionMonths <= 6 ? projectionTimeline : groupProjectionByYear(projectionTimeline)),
+    [projectionMonths, projectionTimeline],
+  );
 
   function openCreateEntryDialog() {
     setEditingEntry(null);

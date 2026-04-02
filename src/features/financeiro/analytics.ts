@@ -60,6 +60,13 @@ export type FinanceiroProjectionPoint = {
 };
 
 export type FinanceiroForecastEntryInput = Omit<FinanceiroEntryWithProject, "id" | "created_at" | "updated_at" | "project">;
+type FinanceiroProjectionEntry = Pick<
+  FinanceiroEntryWithProject,
+  "type" | "amount" | "due_date" | "competency_date"
+> | Pick<
+  FinanceiroForecastEntryInput,
+  "type" | "amount" | "due_date" | "competency_date"
+>;
 
 function normalizeFinanceiroAmount(value: number | string | null | undefined) {
   const parsed = typeof value === "number" ? value : Number.parseFloat(String(value ?? 0));
@@ -102,7 +109,7 @@ function getEntryDateByBasis(entry: FinanceiroEntryWithProject, basis: Financeir
   return startOfDay(parseFinanceiroDate(entry.competency_date || entry.due_date));
 }
 
-function getProjectionDate(entry: FinanceiroEntryWithProject) {
+function getProjectionDate(entry: FinanceiroProjectionEntry) {
   return startOfDay(parseFinanceiroDate(entry.competency_date || entry.due_date));
 }
 
