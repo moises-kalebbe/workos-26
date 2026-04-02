@@ -645,6 +645,13 @@ export default function MeetingMinutesPage() {
           ) : (
             <div className="space-y-3">
               {filteredItems.map((item) => (
+                (() => {
+                  const checklistEntries = item.checklist_json.length
+                    ? item.checklist_json
+                    : parseChecklistFromText(item.detail || "");
+                  const showPlainDetail = Boolean(item.detail) && checklistEntries.length === 0;
+
+                  return (
                 <article
                   key={item.id}
                   className={cn(
@@ -688,18 +695,13 @@ export default function MeetingMinutesPage() {
                             {item.meeting_summary} - {formatMeetingSnapshot(item.meeting_start_at)}
                           </p>
 
-                          {item.detail && (
+                          {showPlainDetail && item.detail && (
                             <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">
                               {item.detail}
                             </p>
                           )}
 
-                          {(() => {
-                            const checklistEntries = item.checklist_json.length
-                              ? item.checklist_json
-                              : parseChecklistFromText(item.detail || "");
-                            if (!checklistEntries.length) return null;
-                            return (
+                          {checklistEntries.length > 0 && (
                             <div className="mt-3 space-y-2 rounded-lg border border-border/60 bg-background/40 p-3">
                               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                                 Checklist da reuniao
@@ -730,8 +732,7 @@ export default function MeetingMinutesPage() {
                                 ))}
                               </div>
                             </div>
-                            );
-                          })()}
+                          )}
 
                           <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                             <Link
@@ -788,6 +789,8 @@ export default function MeetingMinutesPage() {
                     </div>
                   </div>
                 </article>
+                  );
+                })()
               ))}
             </div>
           )}
