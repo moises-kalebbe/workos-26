@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, CheckCircle2, ClipboardList, Pencil, RefreshCw } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardList, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/system/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -310,6 +310,26 @@ export default function MeetingMinutesPage() {
         ),
       ),
     );
+  };
+
+  const deleteItem = async (item: MeetingMinutesItem) => {
+    const confirmed = window.confirm("Excluir este item da ata? Esta acao nao pode ser desfeita.");
+    if (!confirmed) return;
+
+    setMutatingItemId(item.id);
+    const { error } = await db
+      .from("agenda_meeting_topics")
+      .delete()
+      .eq("id", item.id);
+    setMutatingItemId(null);
+
+    if (error) {
+      toast.error("Nao foi possivel excluir o item.");
+      return;
+    }
+
+    setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
+    toast.success("Item excluido.");
   };
 
   const toggleChecklistEntry = async (
@@ -748,9 +768,22 @@ export default function MeetingMinutesPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => openEditDialog(item)}
+                        disabled={mutatingItemId === item.id}
                       >
                         <Pencil className="mr-1 h-3.5 w-3.5" />
                         Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => {
+                          void deleteItem(item);
+                        }}
+                        disabled={mutatingItemId === item.id}
+                      >
+                        <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        Excluir
                       </Button>
                     </div>
                   </div>
