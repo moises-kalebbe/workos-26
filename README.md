@@ -30,6 +30,11 @@ npm run db:check
 npm run dev
 ```
 
+## Deploy automatico
+- O push em `main` publica a imagem Docker em `ghcr.io/moi-kalebbe/workos-26`.
+- Se voce configurar `DEPLOY_WEBHOOK_URL` nos secrets do GitHub, o workflow tambem dispara o deploy da stack no fim do push.
+- Mantive a imagem com as tags `latest` e `${{ github.sha }}` para facilitar rollback e promocao.
+
 ## Banco de dados local
 - O desenvolvimento local deve usar o mesmo usuario, database e senha definidos no stack Docker/Portainer.
 - Configure `DATABASE_URL` em `.env` com a mesma senha usada em `POSTGRES_PASSWORD` no stack.
