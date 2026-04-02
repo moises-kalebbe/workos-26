@@ -387,6 +387,18 @@ function MoneyDelta({ value }: { value: number }) {
   return <span className={cn("font-semibold", value >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatMoney(value)}</span>;
 }
 
+function matchesExecutiveStatusFilter(
+  entry: FinanceiroEntryWithProject,
+  statusFilter: ExecutiveStatusFilter,
+  now: Date,
+) {
+  const visualStatus = getFinanceiroVisualStatus(entry, now);
+
+  if (statusFilter === "all") return true;
+  if (statusFilter === "actionable") return visualStatus === "overdue" || visualStatus === "upcoming";
+  return visualStatus === statusFilter;
+}
+
 export default function FinanceiroPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -487,9 +499,14 @@ export default function FinanceiroPage() {
     });
   }, [contractFilter, entries, projectFilter, search, typeFilter]);
 
+  const statusScopedEntries = useMemo(
+    () => baseScopedEntries.filter((entry) => matchesExecutiveStatusFilter(entry, statusFilter, now)),
+    [baseScopedEntries, now, statusFilter],
+  );
+
   const visibleEntries = useMemo(
     () =>
-      filterEntriesForExecutiveView(baseScopedEntries, {
+      filterEntriesForExecutiveView(statusScopedEntries, {
         basis,
         preset: periodPreset,
         now,
@@ -498,11 +515,11 @@ export default function FinanceiroPage() {
         type: "all",
         projectId: "all",
         contractId: "all",
-        status: statusFilter,
+        status: "all",
         search: "",
         getVisualStatus: getFinanceiroVisualStatus,
       }),
-    [baseScopedEntries, basis, customEnd, customStart, now, periodPreset, statusFilter],
+    [basis, customEnd, customStart, now, periodPreset, statusScopedEntries],
   );
 
   const actionableSummary = useMemo(
@@ -511,15 +528,61 @@ export default function FinanceiroPage() {
   );
 
   const executiveSnapshot = useMemo(() => {
-    const snapshot = buildExecutiveSnapshot(visibleEntries, basis, getFinanceiroVisualStatus, now);
+    const snapshot = buildExecutiveSnapshot(
+      statusScopedEntries,
+      basis,
+      getFinanceiroVisualStatus,
+      now,
+      periodPreset,
+      customStart,
+      customEnd,
+    );
     return {
       ...snapshot,
       operation: actionableSummary,
     };
-  }, [actionableSummary, basis, now, visibleEntries]);
+  }, [actionableSummary, basis, customEnd, customStart, now, periodPreset, statusScopedEntries]);
 
-  const monthlyTrend = useMemo(() => buildMonthlyTrend(baseScopedEntries, basis, now, 12), [baseScopedEntries, basis, now]);
-  const projectionTimeline = useMemo(() => buildProjectionTimeline(baseScopedEntries, now, projectionMonths), [baseScopedEntries, now, projectionMonths]);
+  const monthlyTrend = useMemo(
+    () => buildMonthlyTrend(statusScopedEntries, basis, now, periodPreset, customStart, customEnd),
+    [basis, customEnd, customStart, now, periodPreset, statusScopedEntries],
+  );
+  const projectionTimeline = useMemo(
+    () => buildProjectionTimeline(baseScopedEntries, visibleContracts, now, projectionMonths),
+    [baseScopedEntries, now, projectionMonths, visibleContracts],
+  );
+
+  const periodCardCopy = useMemo(() => {
+    if (periodPreset === "month") {
+      return {
+        incomeLabel: "Receita Do Mes",
+        expenseLabel: "Despesa Do Mes",
+        profitLabel: "Lucro Do Mes",
+        plannedLabel: "Previsto Do Mes",
+        incomeHelper: `Realizado por ${basis === "cash" ? "caixa" : "competencia"} no mes corrente.`,
+        expenseHelper: `Saidas registradas por ${basis === "cash" ? "caixa" : "competencia"} no mes corrente.`,
+        profitHelper: "Receita menos despesa no mes atual.",
+        plannedHelper: "Saldo projetado do mes com pendencias ainda nao liquidadas.",
+      };
+    }
+
+    return {
+      incomeLabel: "Receita Do Periodo",
+      expenseLabel: "Despesa Do Periodo",
+      profitLabel: "Lucro Do Periodo",
+      plannedLabel: "Previsto Do Periodo",
+      incomeHelper: `Realizado por ${basis === "cash" ? "caixa" : "competencia"} no recorte selecionado.`,
+      expenseHelper: `Saidas registradas por ${basis === "cash" ? "caixa" : "competencia"} no recorte selecionado.`,
+      profitHelper: "Receita menos despesa no periodo filtrado.",
+      plannedHelper: "Saldo projetado dentro do periodo filtrado com pendencias ainda nao liquidadas.",
+    };
+  }, [basis, periodPreset]);
+
+  const trendDescription = useMemo(() => {
+    if (periodPreset === "month") return "Serie do mes atual sem incluir meses fora do recorte.";
+    if (periodPreset === "custom") return "Serie mensal limitada ao intervalo customizado selecionado.";
+    return `Serie mensal alinhada ao recorte de ${periodPreset.replace("m", " meses")}.`;
+  }, [periodPreset]);
 
   const operationalQueue = useMemo(
     () =>
@@ -877,24 +940,48 @@ export default function FinanceiroPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatsCard icon={Wallet} label="Receita Do Mes" value={formatMoney(executiveSnapshot.month.income)} helper={`Realizado por ${basis === "cash" ? "caixa" : "competencia"} no mes corrente.`} tone="success" />
-            <StatsCard icon={CreditCard} label="Despesa Do Mes" value={formatMoney(executiveSnapshot.month.expense)} helper={`Saidas registradas por ${basis === "cash" ? "caixa" : "competencia"}.`} tone="warning" />
-            <StatsCard icon={BarChart3} label="Lucro Do Mes" value={formatMoney(executiveSnapshot.month.profit)} helper="Receita menos despesa no mes atual." tone={executiveSnapshot.month.profit >= 0 ? "success" : "danger"} />
-            <StatsCard icon={CalendarClock} label="Previsto Do Mes" value={formatMoney(executiveSnapshot.month.planned)} helper="Saldo projetado do mes com pendencias ainda nao liquidadas." tone={executiveSnapshot.month.planned >= 0 ? "success" : "warning"} />
+            <StatsCard icon={Wallet} label={periodCardCopy.incomeLabel} value={formatMoney(executiveSnapshot.selectedPeriod.income)} helper={periodCardCopy.incomeHelper} tone="success" />
+            <StatsCard icon={CreditCard} label={periodCardCopy.expenseLabel} value={formatMoney(executiveSnapshot.selectedPeriod.expense)} helper={periodCardCopy.expenseHelper} tone="warning" />
+            <StatsCard icon={BarChart3} label={periodCardCopy.profitLabel} value={formatMoney(executiveSnapshot.selectedPeriod.profit)} helper={periodCardCopy.profitHelper} tone={executiveSnapshot.selectedPeriod.profit >= 0 ? "success" : "danger"} />
+            <StatsCard icon={CalendarClock} label={periodCardCopy.plannedLabel} value={formatMoney(executiveSnapshot.selectedPeriod.planned)} helper={periodCardCopy.plannedHelper} tone={executiveSnapshot.selectedPeriod.planned >= 0 ? "success" : "warning"} />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Card className="rounded-2xl border-border bg-card/95"><CardHeader className="pb-3"><CardTitle className="text-base">Faturamento 6 meses</CardTitle></CardHeader><CardContent><MoneyDelta value={executiveSnapshot.rolling.income6m} /></CardContent></Card>
-            <Card className="rounded-2xl border-border bg-card/95"><CardHeader className="pb-3"><CardTitle className="text-base">Despesas 6 meses</CardTitle></CardHeader><CardContent><MoneyDelta value={-executiveSnapshot.rolling.expense6m} /></CardContent></Card>
-            <Card className="rounded-2xl border-border bg-card/95"><CardHeader className="pb-3"><CardTitle className="text-base">Faturamento no ano</CardTitle></CardHeader><CardContent><MoneyDelta value={executiveSnapshot.rolling.incomeYear} /></CardContent></Card>
-            <Card className="rounded-2xl border-border bg-card/95"><CardHeader className="pb-3"><CardTitle className="text-base">Despesas no ano</CardTitle></CardHeader><CardContent><MoneyDelta value={-executiveSnapshot.rolling.expenseYear} /></CardContent></Card>
+            <Card className="rounded-2xl border-border bg-card/95">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Faturamento 6 meses</CardTitle>
+                <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
+              </CardHeader>
+              <CardContent><MoneyDelta value={executiveSnapshot.fixedKpis.income6m} /></CardContent>
+            </Card>
+            <Card className="rounded-2xl border-border bg-card/95">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Despesas 6 meses</CardTitle>
+                <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
+              </CardHeader>
+              <CardContent><MoneyDelta value={-executiveSnapshot.fixedKpis.expense6m} /></CardContent>
+            </Card>
+            <Card className="rounded-2xl border-border bg-card/95">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Faturamento no ano</CardTitle>
+                <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
+              </CardHeader>
+              <CardContent><MoneyDelta value={executiveSnapshot.fixedKpis.incomeYear} /></CardContent>
+            </Card>
+            <Card className="rounded-2xl border-border bg-card/95">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Despesas no ano</CardTitle>
+                <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
+              </CardHeader>
+              <CardContent><MoneyDelta value={-executiveSnapshot.fixedKpis.expenseYear} /></CardContent>
+            </Card>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
             <Card className="rounded-2xl border-border bg-card/95">
               <CardHeader>
                 <CardTitle>Evolucao mensal</CardTitle>
-                <CardDescription>Serie historica de 12 meses com receita, despesa e lucro.</CardDescription>
+                <CardDescription>{trendDescription}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={chartConfig} className="h-[320px] w-full">

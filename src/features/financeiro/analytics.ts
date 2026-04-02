@@ -15,13 +15,27 @@ export type FinanceiroExecutiveSnapshot = {
     overdueCount: number;
     upcomingCount: number;
   };
-  month: {
+  selectedPeriod: {
+    preset: FinanceiroPeriodPreset;
+    start: string;
+    end: string;
+    isMonthView: boolean;
     income: number;
     expense: number;
     profit: number;
     planned: number;
+    breakdown: Array<{
+      id: string;
+      title: string;
+      type: FinanceiroEntryWithProject["type"];
+      amount: number;
+      competency_date: string | null;
+      due_date: string;
+      contract_id: string | null;
+      effective_date: string;
+    }>;
   };
-  rolling: {
+  fixedKpis: {
     income6m: number;
     expense6m: number;
     incomeYear: number;
@@ -76,6 +90,10 @@ function formatMonthLabel(date: Date) {
   return date.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
 }
 
+function toDateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
 function getEntryDateByBasis(entry: FinanceiroEntryWithProject, basis: FinanceiroReportingBasis) {
   if (basis === "cash") {
     return entry.paid_at ? startOfDay(new Date(entry.paid_at)) : null;
@@ -88,7 +106,7 @@ function getProjectionDate(entry: FinanceiroEntryWithProject) {
   return startOfDay(parseFinanceiroDate(entry.competency_date || entry.due_date));
 }
 
-function getRangeFromPreset(
+export function getRangeFromPreset(
   now: Date,
   preset: FinanceiroPeriodPreset,
   customStart?: string,
@@ -96,8 +114,8 @@ function getRangeFromPreset(
 ) {
   if (preset === "custom" && customStart && customEnd) {
     return {
-      start: startOfDay(new Date(customStart)),
-      end: startOfDay(new Date(customEnd)),
+      start: startOfDay(parseFinanceiroDate(customStart)),
+      end: startOfDay(parseFinanceiroDate(customEnd)),
     };
   }
 
@@ -160,21 +178,29 @@ export function buildExecutiveSnapshot(
   basis: FinanceiroReportingBasis,
   getVisualStatus: (entry: FinanceiroEntryWithProject, now?: Date) => FinanceiroVisualStatus,
   now = new Date(),
+  periodPreset: FinanceiroPeriodPreset = "month",
+  customStart?: string,
+  customEnd?: string,
 ): FinanceiroExecutiveSnapshot {
-  const currentMonthStart = startOfMonth(now);
-  const currentMonthEnd = endOfMonth(now);
+  const { start: selectedPeriodStart, end: selectedPeriodEnd } = getRangeFromPreset(now, periodPreset, customStart, customEnd);
   const last6MonthsStart = startOfMonth(addMonths(now, -5));
-  const currentYearStart = new Date(now.getFullYear(), 0, 1);
+  const currentMonthEnd = endOfMonth(now);
+  const currentYearStart = startOfMonth(new Date(now.getFullYear(), 0, 1));
 
   const snapshot: FinanceiroExecutiveSnapshot = {
     operation: summarizeActionableEntries(entries, getVisualStatus, now),
-    month: {
+    selectedPeriod: {
+      preset: periodPreset,
+      start: toDateKey(selectedPeriodStart),
+      end: toDateKey(selectedPeriodEnd),
+      isMonthView: periodPreset === "month",
       income: 0,
       expense: 0,
       profit: 0,
       planned: 0,
+      breakdown: [],
     },
-    rolling: {
+    fixedKpis: {
       income6m: 0,
       expense6m: 0,
       incomeYear: 0,
@@ -187,31 +213,41 @@ export function buildExecutiveSnapshot(
     const datedAt = getEntryDateByBasis(entry, basis);
     const projectionDate = getProjectionDate(entry);
 
-    if (datedAt && datedAt >= currentMonthStart && datedAt <= currentMonthEnd) {
-      if (entry.type === "income") snapshot.month.income += amount;
-      if (entry.type === "expense") snapshot.month.expense += amount;
+    if (datedAt && datedAt >= selectedPeriodStart && datedAt <= selectedPeriodEnd) {
+      if (entry.type === "income") snapshot.selectedPeriod.income += amount;
+      if (entry.type === "expense") snapshot.selectedPeriod.expense += amount;
+      snapshot.selectedPeriod.breakdown.push({
+        id: entry.id,
+        title: entry.title,
+        type: entry.type,
+        amount,
+        competency_date: entry.competency_date,
+        due_date: entry.due_date,
+        contract_id: entry.financial_contract_id,
+        effective_date: toDateKey(datedAt),
+      });
     }
 
     if (datedAt && datedAt >= last6MonthsStart && datedAt <= currentMonthEnd) {
-      if (entry.type === "income") snapshot.rolling.income6m += amount;
-      if (entry.type === "expense") snapshot.rolling.expense6m += amount;
+      if (entry.type === "income") snapshot.fixedKpis.income6m += amount;
+      if (entry.type === "expense") snapshot.fixedKpis.expense6m += amount;
     }
 
     if (datedAt && datedAt >= currentYearStart && datedAt <= currentMonthEnd) {
-      if (entry.type === "income") snapshot.rolling.incomeYear += amount;
-      if (entry.type === "expense") snapshot.rolling.expenseYear += amount;
+      if (entry.type === "income") snapshot.fixedKpis.incomeYear += amount;
+      if (entry.type === "expense") snapshot.fixedKpis.expenseYear += amount;
     }
 
     if (
-      projectionDate >= currentMonthStart &&
-      projectionDate <= currentMonthEnd &&
+      projectionDate >= selectedPeriodStart &&
+      projectionDate <= selectedPeriodEnd &&
       entry.status !== "paid"
     ) {
-      snapshot.month.planned += entry.type === "income" ? amount : -amount;
+      snapshot.selectedPeriod.planned += entry.type === "income" ? amount : -amount;
     }
   }
 
-  snapshot.month.profit = snapshot.month.income - snapshot.month.expense;
+  snapshot.selectedPeriod.profit = snapshot.selectedPeriod.income - snapshot.selectedPeriod.expense;
   return snapshot;
 }
 
@@ -219,10 +255,20 @@ export function buildMonthlyTrend(
   entries: FinanceiroEntryWithProject[],
   basis: FinanceiroReportingBasis,
   now = new Date(),
-  months = 12,
+  preset: FinanceiroPeriodPreset = "12m",
+  customStart?: string,
+  customEnd?: string,
 ) {
+  const { start, end } = getRangeFromPreset(now, preset, customStart, customEnd);
+  const firstMonth = startOfMonth(start);
+  const lastMonth = startOfMonth(end);
+  const months =
+    (lastMonth.getFullYear() - firstMonth.getFullYear()) * 12 +
+    (lastMonth.getMonth() - firstMonth.getMonth()) +
+    1;
+
   const points = Array.from({ length: months }, (_, index) => {
-    const date = addMonths(startOfMonth(now), index - (months - 1));
+    const date = addMonths(firstMonth, index);
     return {
       monthKey: formatMonthKey(date),
       label: formatMonthLabel(date),
@@ -237,6 +283,7 @@ export function buildMonthlyTrend(
   for (const entry of entries) {
     const date = getEntryDateByBasis(entry, basis);
     if (!date) continue;
+    if (date < start || date > end) continue;
     const key = formatMonthKey(date);
     const point = pointMap.get(key);
     if (!point) continue;
@@ -252,10 +299,15 @@ export function buildMonthlyTrend(
 
 export function buildProjectionTimeline(
   entries: FinanceiroEntryWithProject[],
+  contracts: FinanceiroContractWithProject[],
   now = new Date(),
   months = 6,
 ) {
   const firstMonth = startOfMonth(now);
+  const mergedEntries = [
+    ...entries,
+    ...buildMissingForecastEntries(contracts, entries, now, months),
+  ];
   const points = Array.from({ length: months }, (_, index) => {
     const date = addMonths(firstMonth, index);
     return {
@@ -269,7 +321,7 @@ export function buildProjectionTimeline(
 
   const pointMap = new Map(points.map((point) => [point.monthKey, point]));
 
-  for (const entry of entries) {
+  for (const entry of mergedEntries) {
     const date = getProjectionDate(entry);
     if (date < firstMonth) continue;
     const point = pointMap.get(formatMonthKey(date));
