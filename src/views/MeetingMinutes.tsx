@@ -312,8 +312,13 @@ export default function MeetingMinutesPage() {
     );
   };
 
-  const toggleChecklistEntry = async (item: MeetingMinutesItem, entryId: string, checked: boolean) => {
-    const nextChecklist = item.checklist_json.map((entry) =>
+  const toggleChecklistEntry = async (
+    item: MeetingMinutesItem,
+    sourceChecklist: MeetingMinutesChecklistEntry[],
+    entryId: string,
+    checked: boolean,
+  ) => {
+    const nextChecklist = sourceChecklist.map((entry) =>
       entry.id === entryId ? { ...entry, completed: checked } : entry,
     );
     const nextStatus = deriveMeetingStatusFromChecklist(nextChecklist, item.status);
@@ -669,13 +674,18 @@ export default function MeetingMinutesPage() {
                             </p>
                           )}
 
-                          {item.checklist_json.length > 0 && (
+                          {(() => {
+                            const checklistEntries = item.checklist_json.length
+                              ? item.checklist_json
+                              : parseChecklistFromText(item.detail || "");
+                            if (!checklistEntries.length) return null;
+                            return (
                             <div className="mt-3 space-y-2 rounded-lg border border-border/60 bg-background/40 p-3">
                               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                                 Checklist da reuniao
                               </p>
                               <div className="space-y-1.5">
-                                {item.checklist_json.map((entry) => (
+                                {checklistEntries.map((entry) => (
                                   <label
                                     key={entry.id}
                                     className="flex items-start gap-2 text-sm text-foreground"
@@ -684,7 +694,12 @@ export default function MeetingMinutesPage() {
                                       checked={entry.completed}
                                       disabled={mutatingItemId === item.id}
                                       onCheckedChange={(checked) => {
-                                        void toggleChecklistEntry(item, entry.id, Boolean(checked));
+                                        void toggleChecklistEntry(
+                                          item,
+                                          checklistEntries,
+                                          entry.id,
+                                          Boolean(checked),
+                                        );
                                       }}
                                       className="mt-0.5"
                                     />
@@ -695,7 +710,8 @@ export default function MeetingMinutesPage() {
                                 ))}
                               </div>
                             </div>
-                          )}
+                            );
+                          })()}
 
                           <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                             <Link
