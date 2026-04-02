@@ -24,6 +24,7 @@ function resolveDescription(pathname: string) {
   if (pathname.startsWith("/tracker")) return "Acompanhe tempo, foco e valor gerado em cada sessao.";
   if (pathname.startsWith("/kanban")) return "Organize execucao, prazos e proxima acao sem perder contexto.";
   if (pathname.startsWith("/agenda")) return "Centralize compromissos, links e ritmo do seu dia.";
+  if (pathname.startsWith("/atas")) return "Acompanhe decisoes de reunioes como checklist com status e contexto.";
   if (pathname.startsWith("/skills")) return "Consulte conhecimento reutilizavel e acione a skill certa mais rapido.";
   if (pathname.startsWith("/second-brain")) return "Conecte ideias, notas e referencias em um fluxo unico.";
   if (pathname.startsWith("/vault")) return "Gerencie acessos e credenciais por empresa com clareza.";

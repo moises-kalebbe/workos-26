@@ -38,6 +38,7 @@ export const LOCAL_DB_TABLES = new Set([
   "vault_github_connections",
   "agenda_event_metadata",
   "agenda_preferences",
+  "agenda_meeting_topics",
   "google_tokens",
 ]);
 

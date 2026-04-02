@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Calendar,
   CalendarDays,
@@ -71,57 +73,6 @@ import {
   RESPONSE_STATUS_LABEL,
 } from "@/config/priorities";
 import type { Project } from "@/types";
-
-const GOOGLE_CALENDAR_SCOPES = [
-  "https://www.googleapis.com/auth/calendar.events",
-  "https://www.googleapis.com/auth/calendar",
-];
-
-type ClerkExternalAccount = {
-  provider?: string;
-  approvedScopes?: string[] | string;
-  verification?: {
-    status?: string | null;
-    externalVerificationRedirectURL?: URL | { href?: string } | string | null;
-  } | null;
-  reauthorize?: (params: {
-    additionalScopes?: string[];
-    redirectUrl?: string;
-  }) => Promise<ClerkExternalAccount>;
-};
-
-type ClerkUserWithExternalAccounts = {
-  externalAccounts?: ClerkExternalAccount[];
-  createExternalAccount?: (params: {
-    strategy: string;
-    redirectUrl?: string;
-    additionalScopes?: string[];
-  }) => Promise<ClerkExternalAccount>;
-};
-
-function getExternalRedirectUrl(account: ClerkExternalAccount | null | undefined) {
-  const redirect = account?.verification?.externalVerificationRedirectURL;
-  if (!redirect) return null;
-  if (typeof redirect === "string") return redirect;
-  if ("href" in redirect && typeof redirect.href === "string") return redirect.href;
-  if (redirect instanceof URL) return redirect.href;
-  return null;
-}
-
-function normalizeApprovedScopes(scopes: ClerkExternalAccount["approvedScopes"]) {
-  if (Array.isArray(scopes)) {
-    return scopes;
-  }
-
-  if (typeof scopes === "string") {
-    return scopes
-      .split(/\s+/)
-      .map((scope) => scope.trim())
-      .filter((scope) => scope.length > 0);
-  }
-
-  return [];
-}
 
 function sanitizeDescription(value: string | null) {
   if (!value) return null;
@@ -472,6 +423,12 @@ function EventCard({
             <ExternalLink className="h-3 w-3" />
           </a>
 
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/atas?meeting=${encodeURIComponent(event.id)}`}>
+              Ver atas
+            </Link>
+          </Button>
+
           {showPendingActions && (
             <div className="flex gap-2">
               <Button
@@ -526,6 +483,7 @@ function EventCard({
 
 export default function AgendaPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
 
   const {
     events,
@@ -544,49 +502,8 @@ export default function AgendaPage() {
   } = useGoogleCalendar();
 
   const handleConnectGoogle = async () => {
-    const clerkUser = user as ClerkUserWithExternalAccounts | null;
-    if (!clerkUser) return;
-
     try {
-      const agendaUrl = `${window.location.origin}/agenda`;
-      const googleAccount = clerkUser.externalAccounts?.find(
-        (account) => account.provider === "google" || account.provider === "oauth_google",
-      );
-
-      const existingVerificationUrl = getExternalRedirectUrl(googleAccount);
-      if (
-        googleAccount?.verification?.status &&
-        googleAccount.verification.status !== "verified" &&
-        existingVerificationUrl
-      ) {
-        window.location.href = existingVerificationUrl;
-        return;
-      }
-
-      let accountResult: ClerkExternalAccount | null | undefined;
-
-      if (googleAccount?.reauthorize) {
-        const approvedScopes = new Set(normalizeApprovedScopes(googleAccount.approvedScopes));
-        const missingScopes = GOOGLE_CALENDAR_SCOPES.filter((scope) => !approvedScopes.has(scope));
-
-        accountResult = await googleAccount.reauthorize({
-          additionalScopes: missingScopes.length > 0 ? missingScopes : GOOGLE_CALENDAR_SCOPES,
-          redirectUrl: agendaUrl,
-        });
-      } else if (clerkUser.createExternalAccount) {
-        accountResult = await clerkUser.createExternalAccount({
-          strategy: "oauth_google",
-          redirectUrl: agendaUrl,
-          additionalScopes: GOOGLE_CALENDAR_SCOPES,
-        });
-      }
-
-      const verificationRedirectUrl = getExternalRedirectUrl(accountResult);
-      if (!verificationRedirectUrl) {
-        throw new Error("Clerk nao retornou URL de autorizacao do Google");
-      }
-
-      window.location.href = verificationRedirectUrl;
+      window.location.href = "/api/google-calendar/connect";
     } catch (err) {
       console.error("Google Calendar connect error", err);
       toast.error(err instanceof Error ? err.message : "Erro ao conectar Google Calendar");
@@ -610,6 +527,33 @@ export default function AgendaPage() {
   const [meetingAttendees, setMeetingAttendees] = useState("");
   const [createMeetLink, setCreateMeetLink] = useState(true);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
+
+  useEffect(() => {
+    if (!searchParams) {
+      return;
+    }
+
+    const googleStatus = searchParams.get("google");
+    const googleMessage = searchParams.get("message");
+
+    if (!googleStatus) {
+      return;
+    }
+
+    if (googleStatus === "connected") {
+      toast.success("Google Calendar conectado");
+    } else if (googleStatus === "denied") {
+      toast.error("Conexao com Google cancelada");
+    } else if (googleStatus === "error") {
+      toast.error(googleMessage || "Falha ao conectar Google Calendar");
+    }
+
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.delete("google");
+    nextUrl.searchParams.delete("message");
+    const normalizedUrl = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+    window.history.replaceState({}, "", normalizedUrl);
+  }, [searchParams]);
   const [projects, setProjects] = useState<Project[]>([]);
 
   const weekRange = useMemo(() => {

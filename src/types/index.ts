@@ -230,6 +230,23 @@ export interface SkillDocument {
   last_downloaded_at: string | null;
 }
 
+export type MeetingMinutesStatus = "pending" | "in_progress" | "resolved";
+
+export interface MeetingMinutesItem {
+  id: string;
+  user_id: string;
+  meeting_event_id: string;
+  meeting_series_key: string;
+  meeting_start_at: string;
+  meeting_summary: string;
+  title: string;
+  detail: string | null;
+  status: MeetingMinutesStatus;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type SecondBrainStatus = "inbox" | "note" | "archived";
 export type SecondBrainLinkType = "manual" | "wikilink";
 
