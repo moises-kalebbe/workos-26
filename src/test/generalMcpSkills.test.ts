@@ -8,7 +8,7 @@ describe("generalMcpSkills", () => {
     expect(GENERAL_MCP_SKILLS_SEED.every((skill) => skill.contentMd.includes("##"))).toBe(true);
     expect(
       GENERAL_MCP_SKILLS_SEED.find((skill) => skill.slug === "setup-mcp-n8n-supabase")?.contentMd,
-    ).toContain("## Exemplo de configuracao");
+    ).toContain("## Exemplo de configuração");
   });
 
   it("updates outdated seed records and preserves manual records", () => {

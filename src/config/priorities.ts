@@ -36,11 +36,11 @@ export const KANBAN_PRIORITIES = [
 
 export const KANBAN_URGENCY_OPTIONS = [
   { value: "urgent", label: "Urgente" },
-  { value: "not_urgent", label: "Nao urgente" },
+  { value: "not_urgent", label: "Não urgente" },
 ] as const;
 
 export const KANBAN_IMPORTANCE_OPTIONS = [
   { value: "important", label: "Importante" },
-  { value: "not_important", label: "Nao importante" },
+  { value: "not_important", label: "Não importante" },
 ] as const;
 

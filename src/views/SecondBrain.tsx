@@ -93,8 +93,8 @@ function buildTagsInput(tags: string[]) {
 
 function getStatusDescription(status: SecondBrainNote["status"]) {
   if (status === "inbox") return "Capturada e aguardando organizacao.";
-  if (status === "archived") return "Guardada no historico da base.";
-  return "Nota ativa e pronta para conexoes.";
+  if (status === "archived") return "Guardada no histórico da base.";
+  return "Nota ativa e pronta para conexões.";
 }
 
 export default function SecondBrainPage() {
@@ -357,7 +357,7 @@ export default function SecondBrainPage() {
   async function handleSaveNote() {
     if (!selectedNote || !user) return;
     if (!editorTitle.trim()) {
-      toast.error("Titulo e obrigatorio");
+      toast.error("Título e obrigatório");
       return;
     }
 
@@ -444,9 +444,9 @@ export default function SecondBrainPage() {
     const validation = canCreateManualLink(selectedNote.id, targetNoteId, links);
     if (!validation.ok) {
       if (validation.reason === "self_link") {
-        toast.error("Uma nota nao pode linkar para ela mesma");
+        toast.error("Uma nota não pode linkar para ela mesma");
       } else if (validation.reason === "duplicate") {
-        toast.error("Essa conexao ja existe");
+        toast.error("Essa conexão já existe");
       } else {
         toast.error("Selecione uma nota valida");
       }
@@ -465,12 +465,12 @@ export default function SecondBrainPage() {
 
       if (error) throw error;
 
-      toast.success("Conexao criada");
+      toast.success("Conexão criada");
       setManualTargetId("");
       await loadData();
       setSelectedNoteId(selectedNote.id);
     } catch (error) {
-      toast.error((error as Error).message || "Falha ao criar conexao");
+      toast.error((error as Error).message || "Falha ao criar conexão");
     } finally {
       setMutating(false);
     }
@@ -500,7 +500,7 @@ export default function SecondBrainPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Second Brain</h1>
           <p className="text-sm text-muted-foreground">
-            Capture rapido, organize melhor e conecte notas em uma base viva de conhecimento.
+            Capture rápido, organize melhor e conecte notas em uma base viva de conhecimento.
           </p>
         </div>
 
@@ -519,12 +519,12 @@ export default function SecondBrainPage() {
         <div className="rounded-2xl border border-border bg-card/90 p-4">
           <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Ativas</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.activeCount}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Notas prontas para consulta e conexao.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Notas prontas para consulta e conexão.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card/90 p-4">
           <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Arquivadas</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.archivedCount}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Historico preservado fora do fluxo principal.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Histórico preservado fora do fluxo principal.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card/90 p-4">
           <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Tags em alta</p>
@@ -544,7 +544,7 @@ export default function SecondBrainPage() {
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Captura rapida</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Captura rápida</p>
             <h2 className="mt-1 text-xl font-semibold text-foreground">Jogue primeiro no Inbox</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Cole ideias, trechos, links ou insights sem se preocupar em organizar tudo agora.
@@ -555,7 +555,7 @@ export default function SecondBrainPage() {
 
         <div className="space-y-3">
           <div className="space-y-2">
-            <Label>Conteudo</Label>
+            <Label>Conteúdo</Label>
             <Textarea
               value={captureContent}
               onChange={(event) => setCaptureContent(event.target.value)}
@@ -621,7 +621,7 @@ export default function SecondBrainPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               className="pl-9"
-              placeholder="Buscar por titulo, conteudo, tags"
+              placeholder="Buscar por título, conteúdo, tags"
             />
           </div>
 
@@ -671,7 +671,7 @@ export default function SecondBrainPage() {
                   </div>
 
                   <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                    {note.content_md.slice(0, 120) || "Sem conteudo ainda."}
+                    {note.content_md.slice(0, 120) || "Sem conteúdo ainda."}
                   </p>
 
                   <p className="mt-2 text-[11px] text-muted-foreground">
@@ -700,7 +700,7 @@ export default function SecondBrainPage() {
               <div>
                 <h2 className="text-base font-semibold text-foreground">Teia de conhecimento</h2>
                 <p className="text-sm text-muted-foreground">
-                  Esta area agora e o centro visual da tela. Explore relacoes e abra notas direto pelo grafo.
+                  Esta área agora e o centro visual da tela. Explore relacoes e abra notas direto pelo grafo.
                 </p>
               </div>
               <Badge variant="secondary">{graphData.nodes.length} nos</Badge>
@@ -711,7 +711,7 @@ export default function SecondBrainPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Centro atual</p>
                 <p className="mt-2 text-lg font-medium text-foreground">{selectedNote.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {outgoingLinks.length} conexao(oes) saindo desta nota e {suggestions.length} sugestao(oes) relacionadas.
+                  {outgoingLinks.length} conexão(oes) saindo desta nota e {suggestions.length} sugestao(oes) relacionadas.
                 </p>
               </div>
             )}
@@ -804,7 +804,7 @@ export default function SecondBrainPage() {
 
                 <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_240px]">
                   <div className="space-y-2">
-                    <Label>Titulo</Label>
+                    <Label>Título</Label>
                     <Input value={editorTitle} onChange={(event) => setEditorTitle(event.target.value)} />
                   </div>
 
@@ -872,7 +872,7 @@ export default function SecondBrainPage() {
 
                 <div className="grid gap-3 rounded-2xl border border-border bg-background p-4 md:grid-cols-[1fr_auto]">
                   <div className="space-y-2">
-                    <Label>Conexao manual</Label>
+                    <Label>Conexão manual</Label>
                     <Select value={manualTargetId} onValueChange={setManualTargetId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecionar nota para conectar" />
@@ -901,9 +901,9 @@ export default function SecondBrainPage() {
 
                 <div className="grid gap-3 lg:grid-cols-2">
                   <div className="rounded-2xl border border-border bg-background p-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conexoes atuais</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conexões atuais</p>
                     {outgoingLinks.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Sem conexoes saindo desta nota.</p>
+                      <p className="text-xs text-muted-foreground">Sem conexões saindo desta nota.</p>
                     ) : (
                       <div className="space-y-2">
                         {outgoingLinks.map((link) => (
@@ -956,7 +956,7 @@ export default function SecondBrainPage() {
                 <div className="rounded-2xl border border-border bg-[#0b1220] p-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview</p>
                   <article className="prose prose-sm max-w-none overflow-auto prose-invert prose-headings:text-white prose-p:leading-7 prose-li:leading-7 prose-strong:text-white">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{editorContent || "_Sem conteudo_"}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{editorContent || "_Sem conteúdo_"}</ReactMarkdown>
                   </article>
                 </div>
               </>

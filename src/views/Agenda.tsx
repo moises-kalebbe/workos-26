@@ -155,7 +155,7 @@ function getEventMomentLabel(event: CalendarEvent, now: Date) {
   }
 
   return {
-    label: "Proxima",
+    label: "Próxima",
     className: "border-border bg-background text-muted-foreground",
   };
 }
@@ -291,7 +291,7 @@ function EventCard({
       const projectId = projectIdFromSelectValue(projectValue);
       const projectName = projects.find((project) => project.id === projectId)?.name || null;
       await onSaveMetadata(event.seriesKey, priority, parseTagsInput(tagsInput), projectId, projectName);
-      toast.success("Classificacao da reuniao atualizada");
+      toast.success("Classificacao da reunião atualizada");
     } catch (err) {
       toast.error((err as Error).message || "Erro ao salvar metadados");
     } finally {
@@ -353,13 +353,13 @@ function EventCard({
 
           {showAcceptedState && (
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
-              Presenca confirmada. Esta reuniao ja foi aceita por voce.
+              Presenca confirmada. Esta reunião já foi aceita por você.
             </div>
           )}
 
           {showDeclinedState && eventBucket !== "past" && (
             <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
-              Convite recusado. A reuniao continua visivel para contexto, mas nao esta mais pendente.
+              Convite recusado. A reunião continua visível para contexto, mas não esta mais pendente.
             </div>
           )}
 
@@ -472,7 +472,7 @@ function EventCard({
 
           {!event.canRespond && (
             <span className="text-xs text-muted-foreground">
-              {event.isOrganizer ? "Organizada por voce" : RESPONSE_STATUS_LABEL[event.selfResponseStatus]}
+              {event.isOrganizer ? "Organizada por você" : RESPONSE_STATUS_LABEL[event.selfResponseStatus]}
             </span>
           )}
         </div>
@@ -543,7 +543,7 @@ export default function AgendaPage() {
     if (googleStatus === "connected") {
       toast.success("Google Calendar conectado");
     } else if (googleStatus === "denied") {
-      toast.error("Conexao com Google cancelada");
+      toast.error("Conexão com Google cancelada");
     } else if (googleStatus === "error") {
       toast.error(googleMessage || "Falha ao conectar Google Calendar");
     }
@@ -582,7 +582,7 @@ export default function AgendaPage() {
         .order("name");
 
       if (projectError) {
-        toast.error("Nao foi possivel carregar empresas para associacao na agenda");
+        toast.error("Não foi possível carregar empresas para associacao na agenda");
         return;
       }
 
@@ -617,7 +617,7 @@ export default function AgendaPage() {
   const persistPreferences = (next: AgendaPreferences) => {
     setPreferences(next);
     void savePreferences(next).catch(() => {
-      toast.error("Nao foi possivel salvar preferencia de agenda");
+      toast.error("Não foi possível salvar preferencia de agenda");
     });
   };
 
@@ -737,7 +737,7 @@ export default function AgendaPage() {
     setRespondingEventId(eventId);
     try {
       await respondToInvite(eventId, status);
-      toast.success(status === "accepted" ? "Reuniao aceita" : "Reuniao recusada");
+      toast.success(status === "accepted" ? "Reunião aceita" : "Reunião recusada");
     } catch (err) {
       toast.error((err as Error).message || "Falha ao responder convite");
     } finally {
@@ -762,7 +762,7 @@ export default function AgendaPage() {
 
   const handleCreateMeeting = async () => {
     if (!meetingSummary.trim()) {
-      toast.error("Titulo da reuniao e obrigatorio");
+      toast.error("Título da reunião e obrigatório");
       return;
     }
 
@@ -770,7 +770,7 @@ export default function AgendaPage() {
     const endIso = new Date(`${meetingDate}T${meetingEndTime}:00`).toISOString();
 
     if (new Date(endIso).getTime() <= new Date(startIso).getTime()) {
-      toast.error("Horario final precisa ser maior que o inicial");
+      toast.error("Horário final precisa ser maior que o inicial");
       return;
     }
 
@@ -788,7 +788,7 @@ export default function AgendaPage() {
         createMeet: createMeetLink,
       });
 
-      toast.success("Reuniao criada no Google Calendar");
+      toast.success("Reunião criada no Google Calendar");
       setMeetingDialogOpen(false);
       setMeetingSummary("");
       setMeetingDescription("");
@@ -796,7 +796,7 @@ export default function AgendaPage() {
       setMeetingAttendees("");
       setCreateMeetLink(true);
     } catch (err) {
-      toast.error((err as Error).message || "Erro ao criar reuniao");
+      toast.error((err as Error).message || "Erro ao criar reunião");
     } finally {
       setCreatingMeeting(false);
     }
@@ -814,7 +814,7 @@ export default function AgendaPage() {
           <CalendarDays className="mx-auto mb-4 h-12 w-12 text-primary" />
           <p className="mb-2 text-lg font-medium text-foreground">Conecte seu Google Calendar</p>
           <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
-            Veja eventos, responda convites e crie reunioes direto no WorkOS.
+            Veja eventos, responda convites e crie reuniões direto no WorkOS.
           </p>
           {error && <p className="mb-4 text-sm text-danger">{error}</p>}
           <Button onClick={handleConnectGoogle} className="gap-2">
@@ -841,19 +841,19 @@ export default function AgendaPage() {
             <DialogTrigger asChild>
               <Button className="gap-1">
                 <Plus className="h-4 w-4" />
-                Nova reuniao
+                Nova reunião
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-xl">
               <DialogHeader>
-                <DialogTitle>Criar reuniao</DialogTitle>
-                <DialogDescription>Crie reuniao no Google Calendar com convidados e Google Meet opcional.</DialogDescription>
+                <DialogTitle>Criar reunião</DialogTitle>
+                <DialogDescription>Crie reunião no Google Calendar com convidados e Google Meet opcional.</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Titulo</Label>
-                  <Input value={meetingSummary} onChange={(event) => setMeetingSummary(event.target.value)} placeholder="Assunto da reuniao" />
+                  <Label>Título</Label>
+                  <Input value={meetingSummary} onChange={(event) => setMeetingSummary(event.target.value)} placeholder="Assunto da reunião" />
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
@@ -888,24 +888,24 @@ export default function AgendaPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Descricao</Label>
+                  <Label>Descrição</Label>
                   <Textarea
                     value={meetingDescription}
                     onChange={(event) => setMeetingDescription(event.target.value)}
-                    placeholder="Pauta da reuniao"
+                    placeholder="Pauta da reunião"
                   />
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
                   <div>
                     <p className="text-sm font-medium text-foreground">Criar link Google Meet</p>
-                    <p className="text-xs text-muted-foreground">Ative para gerar videoconferencia automaticamente</p>
+                    <p className="text-xs text-muted-foreground">Ative para gerar videoconferência automaticamente</p>
                   </div>
                   <Switch checked={createMeetLink} onCheckedChange={setCreateMeetLink} />
                 </div>
 
                 <Button onClick={() => void handleCreateMeeting()} className="w-full" disabled={creatingMeeting}>
-                  {creatingMeeting ? "Criando..." : "Criar reuniao"}
+                  {creatingMeeting ? "Criando..." : "Criar reunião"}
                 </Button>
               </div>
             </DialogContent>
@@ -946,7 +946,7 @@ export default function AgendaPage() {
         <div className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
-            <span>{error || "Permissao insuficiente no Google Calendar para escrita."}</span>
+            <span>{error || "Permissão insuficiente no Google Calendar para escrita."}</span>
           </div>
           <Button size="sm" variant="outline" onClick={handleConnectGoogle}>
             Reconectar Google
@@ -964,17 +964,17 @@ export default function AgendaPage() {
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Em andamento</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.live}</p>
-            <p className="text-xs text-muted-foreground">Reunioes acontecendo agora.</p>
+            <p className="text-xs text-muted-foreground">Reuniões acontecendo agora.</p>
           </div>
           <div className="rounded-lg border border-border bg-background/60 p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Confirmadas</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.confirmed}</p>
-            <p className="text-xs text-muted-foreground">Proximas reunioes ja aceitas.</p>
+            <p className="text-xs text-muted-foreground">Próximas reuniões já aceitas.</p>
           </div>
           <div className="rounded-lg border border-border bg-background/60 p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Encerradas</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.past}</p>
-            <p className="text-xs text-muted-foreground">Eventos que ja aconteceram.</p>
+            <p className="text-xs text-muted-foreground">Eventos que já aconteceram.</p>
           </div>
         </div>
 
@@ -1015,8 +1015,8 @@ export default function AgendaPage() {
                 <SelectValue placeholder="Ordenacao" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="priority_then_time">Prioridade e horario</SelectItem>
-                <SelectItem value="time_only">Somente horario</SelectItem>
+                <SelectItem value="priority_then_time">Prioridade e horário</SelectItem>
+                <SelectItem value="time_only">Somente horário</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1129,7 +1129,7 @@ export default function AgendaPage() {
                 <div className="space-y-4">
                   <AgendaGroup
                     title="Pendentes de resposta"
-                    description="Reunioes que ainda precisam da sua confirmacao."
+                    description="Reuniões que ainda precisam da sua confirmação."
                     count={groupedEvents.pending.length}
                     events={groupedEvents.pending}
                     projects={projects}
@@ -1150,8 +1150,8 @@ export default function AgendaPage() {
                     onSaveMetadata={handleSaveMetadata}
                   />
                   <AgendaGroup
-                    title="Proximas ja aceitas"
-                    description="Reunioes futuras que ja estao confirmadas."
+                    title="Próximas já aceitas"
+                    description="Reuniões futuras que já estão confirmadas."
                     count={groupedEvents.confirmed.length}
                     events={groupedEvents.confirmed}
                     projects={projects}
@@ -1161,8 +1161,8 @@ export default function AgendaPage() {
                     onSaveMetadata={handleSaveMetadata}
                   />
                   <AgendaGroup
-                    title="Ja encerradas"
-                    description="Historico do que ja aconteceu neste dia."
+                    title="Já encerradas"
+                    description="Histórico do que já aconteceu neste dia."
                     count={groupedEvents.past.length}
                     events={groupedEvents.past}
                     projects={projects}

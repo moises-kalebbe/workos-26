@@ -42,7 +42,7 @@ export async function parseMarkdownFile(file: File): Promise<{ title: string; co
   const content = await file.text();
   const firstHeadingMatch = content.match(/^#\s+(.+)$/m);
   const fallbackTitle = file.name.replace(/\.md$/i, "");
-  const title = (firstHeadingMatch?.[1]?.trim() || fallbackTitle || "Skill sem titulo").trim();
+  const title = (firstHeadingMatch?.[1]?.trim() || fallbackTitle || "Skill sem título").trim();
 
   const summaryLine = content
     .split("\n")

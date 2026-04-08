@@ -173,7 +173,7 @@ export function formatVisualStatusLabel(status: FinanceiroVisualStatus) {
     case "overdue":
       return "Atrasado";
     case "upcoming":
-      return "Proximo";
+      return "Próximo";
     case "paid":
       return "Pago";
     default:

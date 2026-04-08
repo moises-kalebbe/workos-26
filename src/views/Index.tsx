@@ -63,19 +63,19 @@ type DashboardFinancialEntry = FinancialEntry & {
 
 const MOTIVATIONAL_PHRASES = {
   overdue: [
-    "Ajuste a primeira pendencia e o resto do dia respira melhor.",
-    "O atraso diminui quando voce fecha a proxima entrega certa.",
+    "Ajuste a primeira pendência e o resto do dia respira melhor.",
+    "O atraso diminui quando você fecha a próxima entrega certa.",
     "Voltar para o controle comeca por uma prioridade resolvida.",
   ],
   focus: [
-    "Menos frentes abertas, mais resultado visivel.",
+    "Menos frentes abertas, mais resultado visível.",
     "Foco curto e consistente entrega mais que correria espalhada.",
     "Uma tarefa bem fechada vale mais que varias pela metade.",
   ],
   meeting: [
-    "Entre na proxima reuniao com clareza sobre a sua entrega principal.",
-    "Reuniao boa comeca antes, com a prioridade do dia definida.",
-    "Organize o proximo passo antes da call e ganhe o resto do dia.",
+    "Entre na próxima reunião com clareza sobre a sua entrega principal.",
+    "Reunião boa comeca antes, com a prioridade do dia definida.",
+    "Organize o próximo passo antes da call e ganhe o resto do dia.",
   ],
   default: [
     "Constancia curta e bem feita ganha do excesso.",
@@ -140,31 +140,31 @@ export default function IndexPage() {
     ]);
 
     if (profileRes.error) {
-      toast.error("Nao foi possivel carregar o timezone do perfil.");
+      toast.error("Não foi possível carregar o timezone do perfil.");
     } else if (profileRes.data?.timezone) {
       setTimezone(profileRes.data.timezone);
     }
 
     if (projectRes.error) {
-      toast.error("Nao foi possivel carregar as empresas.");
+      toast.error("Não foi possível carregar as empresas.");
     } else {
       setProjects((projectRes.data || []) as unknown as Project[]);
     }
 
     if (taskRes.error) {
-      toast.error("Nao foi possivel carregar as tarefas do Kanban.");
+      toast.error("Não foi possível carregar as tarefas do Kanban.");
     } else {
       setTasks((taskRes.data || []) as unknown as DashboardTaskRow[]);
     }
 
     if (sessionRes.error) {
-      toast.error("Nao foi possivel carregar a linha do tempo.");
+      toast.error("Não foi possível carregar a linha do tempo.");
     } else {
       setSessions((sessionRes.data || []) as unknown as DashboardSessionRow[]);
     }
 
     if (financialRes.error) {
-      toast.error("Nao foi possivel carregar o resumo financeiro.");
+      toast.error("Não foi possível carregar o resumo financeiro.");
     } else {
       setFinancialEntries((financialRes.data || []) as DashboardFinancialEntry[]);
     }
@@ -278,7 +278,7 @@ export default function IndexPage() {
         }
       }
 
-      const stageLabel = task.column_index === 1 ? "Em andamento" : index === 0 ? "Agora" : index < 3 ? "Proximo" : "Depois";
+      const stageLabel = task.column_index === 1 ? "Em andamento" : index === 0 ? "Agora" : index < 3 ? "Próximo" : "Depois";
 
       return {
         ...task,
@@ -320,17 +320,17 @@ export default function IndexPage() {
     const nextTask = kanbanFocus.timeline[0] || null;
 
     const meetingSummary = !meetingsConnected
-      ? "Agenda nao conectada"
+      ? "Agenda não conectada"
       : todayMeetings.length === 0
-        ? "sem reunioes hoje"
+        ? "sem reuniões hoje"
         : upcomingMeeting
           ? upcomingMeeting.allDay
-            ? "ha uma reuniao de dia inteiro"
+            ? "ha uma reunião de dia inteiro"
             : `sua proxima reuniao e as ${new Date(upcomingMeeting.start).toLocaleTimeString("pt-BR", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}`
-          : "as reunioes de hoje ja terminaram";
+          : "as reuniões de hoje já terminaram";
 
     const taskSummary =
       kanbanFocus.openCount === 0
@@ -403,11 +403,11 @@ export default function IndexPage() {
             </div>
           ) : !meetingsConnected ? (
             <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-              Google Calendar nao conectado. Conecte na Agenda para ver as reunioes de hoje aqui.
+              Google Calendar não conectado. Conecte na Agenda para ver as reuniões de hoje aqui.
             </div>
           ) : todayMeetings.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-              Nenhuma reuniao para hoje.
+              Nenhuma reunião para hoje.
             </div>
           ) : (
             <div className="grid gap-2 xl:grid-cols-2">
@@ -440,7 +440,7 @@ export default function IndexPage() {
                         <CalendarClock className="h-3.5 w-3.5" />
                         <span>
                           {meetingEnded
-                            ? "Reuniao encerrada"
+                            ? "Reunião encerrada"
                             : meeting.allDay
                             ? "Compromisso do dia"
                             : `Comeca ${new Date(meeting.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
@@ -478,7 +478,7 @@ export default function IndexPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar do dia</p>
-                <h2 className="mt-1 text-2xl font-semibold text-foreground">Linha de execucao das tarefas abertas</h2>
+                <h2 className="mt-1 text-2xl font-semibold text-foreground">Linha de execução das tarefas abertas</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Ordem sugerida baseada em prioridade, urgencia, importancia e prazo do Kanban.
                 </p>
@@ -516,7 +516,7 @@ export default function IndexPage() {
               </div>
             ) : kanbanFocus.timeline.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
-                Nenhuma tarefa aberta no Kanban. Quando voce criar tarefas, a ordem recomendada aparece aqui.
+                Nenhuma tarefa aberta no Kanban. Quando você criar tarefas, a ordem recomendada aparece aqui.
               </div>
             ) : (
               <div className="space-y-3">
@@ -571,7 +571,7 @@ export default function IndexPage() {
 
               <div className="mt-4 grid gap-2">
                 <div className="rounded-lg border border-border px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Proxima reuniao</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Próxima reunião</p>
                   <p className="mt-1 text-sm font-medium text-foreground">
                     {dashboardSummary.nextMeeting
                       ? dashboardSummary.nextMeeting.allDay
@@ -580,12 +580,12 @@ export default function IndexPage() {
                             hour: "2-digit",
                             minute: "2-digit",
                           })} · ${dashboardSummary.nextMeeting.summary}`
-                      : "Sem reunioes pendentes hoje"}
+                      : "Sem reuniões pendentes hoje"}
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-border px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Proxima entrega</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Próxima entrega</p>
                   <p className="mt-1 text-sm font-medium text-foreground">
                     {dashboardSummary.nextTask
                       ? `${dashboardSummary.nextTask.title} · ${dashboardSummary.nextTask.dueLabel}`
@@ -618,7 +618,7 @@ export default function IndexPage() {
         saving={dailyReflection.saving}
         footer={(
           <Button asChild variant="outline">
-            <Link href="/evolucao">Abrir historico</Link>
+            <Link href="/evolucao">Abrir histórico</Link>
           </Button>
         )}
       />
@@ -668,7 +668,7 @@ export default function IndexPage() {
           <div className="rounded-xl border border-border bg-background/30 p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Landmark className="h-4 w-4 text-primary" />
-              <p className="text-[11px] uppercase tracking-wide">Proximos</p>
+              <p className="text-[11px] uppercase tracking-wide">Próximos</p>
             </div>
             <p className="mt-2 text-2xl font-semibold text-foreground">{financialMetrics.upcomingCount}</p>
           </div>
@@ -679,9 +679,9 @@ export default function IndexPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-foreground">Linha do tempo de hoje</h2>
-            <p className="text-xs text-muted-foreground">Sessoes por horario no timezone {timezone}</p>
+            <p className="text-xs text-muted-foreground">Sessões por horário no timezone {timezone}</p>
           </div>
-          <Badge variant="secondary">{timelineBlocks.length} sessoes</Badge>
+          <Badge variant="secondary">{timelineBlocks.length} sessões</Badge>
         </div>
 
         {loading ? (
@@ -690,7 +690,7 @@ export default function IndexPage() {
           </div>
         ) : timelineBlocks.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-            Sem sessoes hoje ainda.
+            Sem sessões hoje ainda.
           </div>
         ) : (
           <div className="space-y-3">
@@ -763,7 +763,7 @@ export default function IndexPage() {
           </div>
         ) : projectsWithTodayStats.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-            Nenhuma empresa cadastrada. Crie em Configuracoes &gt; Empresas.
+            Nenhuma empresa cadastrada. Crie em Configurações &gt; Empresas.
           </div>
         ) : (
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">

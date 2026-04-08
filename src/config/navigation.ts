@@ -23,7 +23,7 @@ export type NavItem = {
 
 export const DASHBOARD_NAV_ITEMS: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: BookOpen, label: "Evolucao", path: "/evolucao" },
+  { icon: BookOpen, label: "Evolução", path: "/evolucao" },
   { icon: Timer, label: "Time Tracker", path: "/tracker" },
   { icon: Columns3, label: "Kanban", path: "/kanban" },
   { icon: Calendar, label: "Agenda", path: "/agenda" },
@@ -32,12 +32,12 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
   { icon: Brain, label: "Skills", path: "/skills" },
   { icon: BrainCircuit, label: "Second Brain", path: "/second-brain" },
   { icon: Lock, label: "Cofre", path: "/vault" },
-  { icon: BarChart3, label: "Relatorios", path: "/reports" },
+  { icon: BarChart3, label: "Relatórios", path: "/reports" },
 ];
 
 export const SETTINGS_NAV_ITEM: NavItem = {
   icon: Settings,
-  label: "Configuracoes",
+  label: "Configurações",
   path: "/settings",
 };
 

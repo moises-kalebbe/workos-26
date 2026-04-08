@@ -137,7 +137,7 @@ export default function MeetingMinutesPage() {
       if (cancelled) return;
 
       if (error) {
-        toast.error("Nao foi possivel carregar as atas.");
+        toast.error("Não foi possível carregar as atas.");
         setLoadingItems(false);
         return;
       }
@@ -219,18 +219,18 @@ export default function MeetingMinutesPage() {
 
   const createItem = async () => {
     if (!newMeetingId) {
-      toast.error("Selecione uma reuniao.");
+      toast.error("Selecione uma reunião.");
       return;
     }
 
     if (!newTitle.trim()) {
-      toast.error("O titulo do item e obrigatorio.");
+      toast.error("O título do item e obrigatório.");
       return;
     }
 
     const meeting = meetingOptionById.get(newMeetingId);
     if (!meeting) {
-      toast.error("A reuniao selecionada nao esta disponivel.");
+      toast.error("A reunião selecionada não esta disponível.");
       return;
     }
 
@@ -257,7 +257,7 @@ export default function MeetingMinutesPage() {
     setCreating(false);
 
     if (error || !data) {
-      toast.error("Nao foi possivel criar o item da ata.");
+      toast.error("Não foi possível criar o item da ata.");
       return;
     }
 
@@ -298,7 +298,7 @@ export default function MeetingMinutesPage() {
     setMutatingItemId(null);
 
     if (error || !data) {
-      toast.error("Nao foi possivel atualizar o status.");
+      toast.error("Não foi possível atualizar o status.");
       return;
     }
 
@@ -313,7 +313,7 @@ export default function MeetingMinutesPage() {
   };
 
   const deleteItem = async (item: MeetingMinutesItem) => {
-    const confirmed = window.confirm("Excluir este item da ata? Esta acao nao pode ser desfeita.");
+    const confirmed = window.confirm("Excluir este item da ata? Esta ação não pode ser desfeita.");
     if (!confirmed) return;
 
     setMutatingItemId(item.id);
@@ -324,7 +324,7 @@ export default function MeetingMinutesPage() {
     setMutatingItemId(null);
 
     if (error) {
-      toast.error("Nao foi possivel excluir o item.");
+      toast.error("Não foi possível excluir o item.");
       return;
     }
 
@@ -358,7 +358,7 @@ export default function MeetingMinutesPage() {
     setMutatingItemId(null);
 
     if (error || !data) {
-      toast.error("Nao foi possivel atualizar checklist.");
+      toast.error("Não foi possível atualizar checklist.");
       return;
     }
 
@@ -389,7 +389,7 @@ export default function MeetingMinutesPage() {
   const saveEdit = async () => {
     if (!editingItemId) return;
     if (!editingTitle.trim()) {
-      toast.error("O titulo do item e obrigatorio.");
+      toast.error("O título do item e obrigatório.");
       return;
     }
 
@@ -423,7 +423,7 @@ export default function MeetingMinutesPage() {
     setSavingEdit(false);
 
     if (error || !data) {
-      toast.error("Nao foi possivel salvar a edicao.");
+      toast.error("Não foi possível salvar a edição.");
       return;
     }
 
@@ -441,7 +441,7 @@ export default function MeetingMinutesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Atas"
-        description="Transforme decisoes de reuniao em checklist acionavel, com snapshot da reuniao e status de acompanhamento."
+        description="Transforme decisoes de reunião em checklist acionavel, com snapshot da reunião e status de acompanhamento."
         actions={(
           <>
             <Button asChild variant="outline" className="gap-2">
@@ -457,7 +457,7 @@ export default function MeetingMinutesPage() {
               }}
             >
               <RefreshCw className={cn("h-4 w-4", meetingsLoading && "animate-spin")} />
-              Atualizar reunioes
+              Atualizar reuniões
             </Button>
           </>
         )}
@@ -467,12 +467,12 @@ export default function MeetingMinutesPage() {
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pendentes</p>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.pending}</p>
-          <p className="text-xs text-muted-foreground">Itens ainda sem execucao iniciada.</p>
+          <p className="text-xs text-muted-foreground">Itens ainda sem execução iniciada.</p>
         </div>
         <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Em andamento</p>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.in_progress}</p>
-          <p className="text-xs text-muted-foreground">Pendencias em acompanhamento ativo.</p>
+          <p className="text-xs text-muted-foreground">Pendências em acompanhamento ativo.</p>
         </div>
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Resolvidos</p>
@@ -483,7 +483,7 @@ export default function MeetingMinutesPage() {
 
       {!meetingsConnected && connectionReady && (
         <div className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning">
-          Google Calendar nao conectado. Voce ainda pode consultar itens antigos pelas snapshots salvas, mas a criacao de novos itens exige reunioes carregadas.
+          Google Calendar não conectado. Você ainda pode consultar itens antigos pelas snapshots salvas, mas a criação de novos itens exige reuniões carregadas.
         </div>
       )}
 
@@ -491,23 +491,23 @@ export default function MeetingMinutesPage() {
         <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Novo item</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">Checklist da reuniao</h2>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Checklist da reunião</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Vincule cada item a uma reuniao para manter contexto e historico visivel.
+              Vincule cada item a uma reunião para manter contexto e histórico visível.
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Reuniao</Label>
+            <Label>Reunião</Label>
             <Select
               value={createMeetingValue}
               onValueChange={(value) => setNewMeetingId(value === ALL_MEETINGS_VALUE ? "" : value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione uma reuniao" />
+                <SelectValue placeholder="Selecione uma reunião" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_MEETINGS_VALUE}>Selecione uma reuniao</SelectItem>
+                <SelectItem value={ALL_MEETINGS_VALUE}>Selecione uma reunião</SelectItem>
                 {meetingOptions.map((meeting) => (
                   <SelectItem key={meeting.id} value={meeting.id}>
                     {formatMeetingOptionLabel(meeting)}
@@ -518,7 +518,7 @@ export default function MeetingMinutesPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Titulo</Label>
+            <Label>Título</Label>
             <Input
               value={newTitle}
               onChange={(event) => setNewTitle(event.target.value)}
@@ -531,7 +531,7 @@ export default function MeetingMinutesPage() {
             <Textarea
               value={newDetail}
               onChange={(event) => setNewDetail(event.target.value)}
-              placeholder="Contexto, dependencias ou combinados da reuniao"
+              placeholder="Contexto, dependências ou combinados da reunião"
               rows={5}
             />
           </div>
@@ -549,7 +549,7 @@ export default function MeetingMinutesPage() {
 
           {meetingOptions.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Nenhuma reuniao disponivel para vincular no momento.
+              Nenhuma reunião disponível para vincular no momento.
             </p>
           )}
         </section>
@@ -557,10 +557,10 @@ export default function MeetingMinutesPage() {
         <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Visao consolidada</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Visão consolidada</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Itens das atas</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Filtre por reuniao, texto ou status e marque rapidamente o que ja foi concluido.
+                Filtre por reunião, texto ou status e marque rapidamente o que já foi concluido.
               </p>
             </div>
             <Button
@@ -580,7 +580,7 @@ export default function MeetingMinutesPage() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por titulo, detalhe ou reuniao"
+              placeholder="Buscar por título, detalhe ou reunião"
             />
 
             <Select
@@ -609,10 +609,10 @@ export default function MeetingMinutesPage() {
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Todas as reunioes" />
+                <SelectValue placeholder="Todas as reuniões" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_MEETINGS_VALUE}>Todas as reunioes</SelectItem>
+                <SelectItem value={ALL_MEETINGS_VALUE}>Todas as reuniões</SelectItem>
                 {meetingOptions.map((meeting) => (
                   <SelectItem key={meeting.id} value={meeting.id}>
                     {formatMeetingOptionLabel(meeting)}
@@ -639,7 +639,7 @@ export default function MeetingMinutesPage() {
               <CalendarDays className="mx-auto mb-3 h-10 w-10 text-primary/70" />
               <p className="text-sm font-medium text-foreground">Nenhum item encontrado</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Ajuste os filtros ou crie um novo item a partir de uma reuniao.
+                Ajuste os filtros ou crie um novo item a partir de uma reunião.
               </p>
             </div>
           ) : (
@@ -704,7 +704,7 @@ export default function MeetingMinutesPage() {
                           {checklistEntries.length > 0 && (
                             <div className="mt-3 space-y-2 rounded-lg border border-border/60 bg-background/40 p-3">
                               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                                Checklist da reuniao
+                                Checklist da reunião
                               </p>
                               <div className="space-y-1.5">
                                 {checklistEntries.map((entry) => (
@@ -745,7 +745,7 @@ export default function MeetingMinutesPage() {
                               href={`/atas?meeting=${encodeURIComponent(item.meeting_event_id)}`}
                               className="inline-flex items-center rounded-md border border-border px-2 py-1 hover:text-foreground"
                             >
-                              Filtrar esta reuniao
+                              Filtrar esta reunião
                             </Link>
                           </div>
                         </div>
@@ -802,13 +802,13 @@ export default function MeetingMinutesPage() {
           <DialogHeader>
             <DialogTitle>Editar item da ata</DialogTitle>
             <DialogDescription>
-              Ajuste texto e status sem perder o vinculo com a reuniao original.
+              Ajuste texto e status sem perder o vínculo com a reunião original.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Titulo</Label>
+              <Label>Título</Label>
               <Input
                 value={editingTitle}
                 onChange={(event) => setEditingTitle(event.target.value)}

@@ -35,7 +35,7 @@ describe("TopBar", () => {
     expect(screen.getByText("Limeira, SP")).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText("25°C | Quase limpo")).toBeInTheDocument();
+      expect(screen.getByText((_, node) => node?.textContent === "25°C | Quase limpo")).toBeInTheDocument();
     });
   });
 
@@ -63,7 +63,7 @@ describe("TopBar", () => {
 
     render(<TopBar />);
 
-    fireEvent.click(screen.getByRole("button", { name: /abrir busca rapida/i }));
+    fireEvent.click(screen.getByRole("button", { name: /abrir busca rápida/i }));
 
     const kanbanItem = await screen.findByText("Kanban");
     fireEvent.click(kanbanItem);
@@ -85,7 +85,7 @@ describe("TopBar", () => {
 
     render(<TopBar />);
 
-    fireEvent.click(screen.getByRole("button", { name: /abrir busca rapida/i }));
+    fireEvent.click(screen.getByRole("button", { name: /abrir busca rápida/i }));
 
     const financeiroItem = await screen.findByText("Financeiro");
     fireEvent.click(financeiroItem);
@@ -108,12 +108,12 @@ describe("TopBar", () => {
     render(<TopBar />);
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    expect(await screen.findByPlaceholderText("Ir para uma pagina...")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Ir para uma página...")).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText("Ir para uma pagina...")).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("Ir para uma página...")).not.toBeInTheDocument();
     });
   });
 });

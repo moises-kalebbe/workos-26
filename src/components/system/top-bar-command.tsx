@@ -45,19 +45,19 @@ export function TopBarCommand() {
         variant="outline"
         className="h-10 gap-2 rounded-2xl border-border/60 bg-white/[0.03] px-3 text-muted-foreground shadow-none hover:bg-white/[0.06] hover:text-foreground"
         onClick={() => setOpen(true)}
-        aria-label="Abrir busca rapida"
+        aria-label="Abrir busca rápida"
       >
         <Search className="h-4 w-4 text-cyan-300" />
-        <span className="hidden text-sm md:inline">Buscar pagina</span>
+        <span className="hidden text-sm md:inline">Buscar página</span>
         <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-muted-foreground/80">
           Ctrl K
         </span>
       </Button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Ir para uma pagina..." />
+        <CommandInput placeholder="Ir para uma página..." />
         <CommandList>
-          <CommandEmpty>Nenhuma pagina encontrada.</CommandEmpty>
+          <CommandEmpty>Nenhuma página encontrada.</CommandEmpty>
           <CommandGroup heading="Navegacao">
             {NAV_ITEMS.map((item) => (
               <CommandItem key={item.path} value={`${item.label} ${item.path}`} onSelect={() => handleSelect(item.path)}>

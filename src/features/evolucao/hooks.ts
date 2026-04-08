@@ -76,7 +76,7 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
       if (settingsRes.error) throw new Error(settingsRes.error.message);
       setSettings((settingsRes.data || null) as EvolucaoSetting | null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao carregar o diario de evolucao.";
+      const message = error instanceof Error ? error.message : "Falha ao carregar o diário de evolução.";
       toast.error(message);
     } finally {
       setLoading(false);
@@ -144,7 +144,7 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
     const mood = draft.mood;
 
     if (!actionsTakenMd) {
-      toast.error("Escreva quais acoes voce tomou hoje.");
+      toast.error("Escreva quais ações você tomou hoje.");
       return;
     }
 
@@ -154,7 +154,7 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
     }
 
     if (!mood) {
-      toast.error("Escolha como voce terminou o dia.");
+      toast.error("Escolha como você terminou o dia.");
       return;
     }
 
@@ -179,7 +179,7 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
         const next = current.filter((entry) => entry.id !== response.data?.id && entry.entry_date !== response.data?.entry_date);
         return [response.data as EvolucaoEntry, ...next];
       });
-      toast.success("Registro de evolucao salvo.");
+      toast.success("Registro de evolução salvo.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao salvar registro do dia.";
       toast.error(message);

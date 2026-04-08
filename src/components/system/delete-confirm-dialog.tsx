@@ -16,7 +16,7 @@ export function DeleteConfirmDialog({
     <ConfirmActionDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Confirmar exclusao"
+      title="Confirmar exclusão"
       description={`Tem certeza que deseja excluir ${itemLabel}? Esta acao nao pode ser desfeita.`}
       confirmLabel="Excluir"
       onConfirm={onConfirm}

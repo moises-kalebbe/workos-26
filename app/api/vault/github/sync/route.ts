@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
   const token = decodeSecret(connectionRes.data.encrypted_token);
   if (!token) {
-    return NextResponse.json({ error: "Token GitHub invalido na conexao armazenada." }, { status: 400 });
+    return NextResponse.json({ error: "Token GitHub invalido na conexão armazenada." }, { status: 400 });
   }
 
   try {

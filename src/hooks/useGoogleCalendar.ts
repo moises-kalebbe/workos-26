@@ -135,7 +135,7 @@ function getProjectNameFromMetadata(value: EventMetadataRow["project"]): string 
 async function getClerkTokenOrThrow(getToken: () => Promise<string | null>): Promise<string> {
   const token = await getToken();
   if (!token) {
-    throw new Error("Sessao Clerk nao encontrada");
+    throw new Error("Sessão Clerk não encontrada");
   }
   return token;
 }
@@ -235,7 +235,7 @@ export function useGoogleCalendar() {
           setConnectionReady(true);
           setEvents([]);
           setInsufficientScope(true);
-          setError("Permissao insuficiente do Google Calendar. Reconecte e aceite permissoes de edicao.");
+          setError("Permissão insuficiente do Google Calendar. Reconecte e aceite permissões de edição.");
           return;
         }
 
@@ -393,7 +393,7 @@ export function useGoogleCalendar() {
       projectName: string | null = null,
     ) => {
       const userId = getClerkUserId();
-      if (!userId) throw new Error("Usuario nao autenticado");
+      if (!userId) throw new Error("Usuário não autenticado");
       const normalizedTags = uniqueTags(tags);
 
       const { error: saveError } = await dbClient.from("agenda_event_metadata").upsert(
@@ -432,7 +432,7 @@ export function useGoogleCalendar() {
   const loadPreferences = useCallback(async (): Promise<AgendaPreferences> => {
     try {
       const userId = getClerkUserId();
-      if (!userId) throw new Error("Usuario nao autenticado");
+      if (!userId) throw new Error("Usuário não autenticado");
 
       const { data, error: prefError } = await dbClient
         .from("agenda_preferences")
@@ -452,7 +452,7 @@ export function useGoogleCalendar() {
 
   const savePreferences = useCallback(async (preferences: AgendaPreferences) => {
     const userId = getClerkUserId();
-    if (!userId) throw new Error("Usuario nao autenticado");
+    if (!userId) throw new Error("Usuário não autenticado");
 
     const { error: prefError } = await dbClient.from("agenda_preferences").upsert(
       {

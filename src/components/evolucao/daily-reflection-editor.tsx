@@ -29,8 +29,8 @@ export function DailyReflectionEditor({
   ratingOptions,
   saving,
   footer,
-  title = "Evolucao de hoje",
-  description = "Um prompt por dia para registrar acoes concretas e acompanhar seu estado.",
+  title = "Evolução de hoje",
+  description = "Um prompt por dia para registrar ações concretas e acompanhar seu estado.",
 }: {
   draft: EvolucaoDraft;
   loading: boolean;
@@ -51,7 +51,7 @@ export function DailyReflectionEditor({
     <section className="rounded-2xl border border-border bg-card/95 p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Diario guiado</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Diário guiado</p>
           <h2 className="mt-1 text-xl font-semibold text-foreground">{title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
@@ -69,7 +69,7 @@ export function DailyReflectionEditor({
         </div>
       ) : !prompt ? (
         <div className="mt-5 rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
-          Nenhum prompt de evolucao foi encontrado no banco.
+          Nenhum prompt de evolução foi encontrado no banco.
         </div>
       ) : (
         <div className="mt-5 space-y-5">
@@ -79,7 +79,7 @@ export function DailyReflectionEditor({
                 Prompt #{prompt.position}
               </Badge>
               <Badge variant="secondary" className="bg-background/70 text-muted-foreground">
-                Rotacao diaria
+                Rotacao diária
               </Badge>
             </div>
 
@@ -93,11 +93,11 @@ export function DailyReflectionEditor({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Acoes tomadas hoje</Label>
+            <Label className="text-xs text-muted-foreground">Ações tomadas hoje</Label>
             <Textarea
               value={draft.actionsTakenMd}
               onChange={(event) => onUpdateDraft({ actionsTakenMd: event.target.value })}
-              placeholder="Escreva o que voce aplicou, o que funcionou e o que precisa ajustar amanha."
+              placeholder="Escreva o que você aplicou, o que funcionou e o que precisa ajustar amanha."
               className="min-h-[160px] rounded-2xl border-border bg-background/60"
             />
           </div>
@@ -120,7 +120,7 @@ export function DailyReflectionEditor({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Como voce terminou o dia</Label>
+              <Label className="text-xs text-muted-foreground">Como você terminou o dia</Label>
               <Select value={draft.mood} onValueChange={(value) => onUpdateDraft({ mood: value as EvolucaoMood })}>
                 <SelectTrigger className="rounded-2xl border-border bg-background/60">
                   <SelectValue placeholder="Escolha seu estado" />
@@ -143,7 +143,7 @@ export function DailyReflectionEditor({
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
             <div className="text-xs text-muted-foreground">
-              O registro de hoje pode ser editado ao longo do dia e fica salvo no historico.
+              O registro de hoje pode ser editado ao longo do dia e fica salvo no histórico.
             </div>
 
             <div className="flex flex-wrap items-center gap-2">

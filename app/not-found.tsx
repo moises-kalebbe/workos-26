@@ -5,9 +5,9 @@ export default function NotFound() {
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="max-w-md rounded-2xl border border-border bg-card p-8 text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Erro 404</p>
-        <h1 className="mt-3 text-3xl font-bold text-foreground">Pagina nao encontrada</h1>
+        <h1 className="mt-3 text-3xl font-bold text-foreground">Página não encontrada</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          A rota solicitada nao existe ou foi movida para outro local.
+          A rota solicitada não existe ou foi movida para outro local.
         </p>
         <Link
           href="/"

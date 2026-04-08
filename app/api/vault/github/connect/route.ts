@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   });
 
   if (!userResponse.ok) {
-    return NextResponse.json({ error: "Token GitHub invalido ou sem permissao." }, { status: 400 });
+    return NextResponse.json({ error: "Token GitHub invalido ou sem permissão." }, { status: 400 });
   }
 
   const githubUser = (await userResponse.json()) as {

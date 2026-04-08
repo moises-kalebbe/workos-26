@@ -77,8 +77,8 @@ type SeedSkill = {
 const SEED_CATEGORIES: SeedCategory[] = [
   { name: "AI-First Workflows", slug: "ai-first-workflows", description: "Automacao com IA para trabalho de alto valor." },
   { name: "Second Brain / PKM", slug: "second-brain-pkm", description: "Metodos para organizar conhecimento." },
-  { name: "Foco e Tempo", slug: "foco-e-tempo", description: "Execucao focada e blocos de trabalho." },
-  { name: "Priorizacao", slug: "priorizacao", description: "Frameworks para decidir o proximo passo." },
+  { name: "Foco e Tempo", slug: "foco-e-tempo", description: "Execução focada e blocos de trabalho." },
+  { name: "Priorizacao", slug: "priorizacao", description: "Frameworks para decidir o próximo passo." },
   { name: "Habitos e Consistencia", slug: "habitos-consistencia", description: "Rotina para manter progresso continuo." },
 ];
 
@@ -86,14 +86,14 @@ const SEED_SKILLS: SeedSkill[] = [
   {
     title: "AI-First Workflow Basico",
     slug: "ai-first-workflow-basico",
-    summary: "Fluxo pratico para pesquisa, rascunho e revisao com IA.",
+    summary: "Fluxo prático para pesquisa, rascunho e revisão com IA.",
     categorySlug: "ai-first-workflows",
-    steps: ["Definir resultado", "Gerar opcoes com IA", "Revisar fatos", "Publicar e aprender"],
+    steps: ["Definir resultado", "Gerar opções com IA", "Revisar fatos", "Publicar e aprender"],
   },
   {
-    title: "PARA na pratica",
+    title: "PARA na prática",
     slug: "para-na-pratica",
-    summary: "Projetos, Areas, Recursos e Arquivo para reduzir caos.",
+    summary: "Projetos, Áreas, Recursos e Arquivo para reduzir caos.",
     categorySlug: "second-brain-pkm",
     steps: ["Capturar tudo", "Classificar em PARA", "Revisar semanalmente", "Arquivar sem medo"],
   },
@@ -109,14 +109,14 @@ const SEED_SKILLS: SeedSkill[] = [
     slug: "time-blocking-deep-work",
     summary: "Blocos de foco para tarefas de alta concentracao.",
     categorySlug: "foco-e-tempo",
-    steps: ["Reservar blocos", "Evitar multitarefa", "Encerrar com proxima acao", "Revisar agenda"],
+    steps: ["Reservar blocos", "Evitar multitarefa", "Encerrar com próxima ação", "Revisar agenda"],
   },
   {
     title: "GTD Essencial",
     slug: "gtd-essencial",
     summary: "Capturar, clarificar, organizar, refletir e engajar.",
     categorySlug: "foco-e-tempo",
-    steps: ["Capturar tudo", "Definir proxima acao", "Organizar listas", "Revisao semanal"],
+    steps: ["Capturar tudo", "Definir próxima ação", "Organizar listas", "Revisão semanal"],
   },
   {
     title: "Pomodoro e Time Boxing",
@@ -142,9 +142,9 @@ const SEED_SKILLS: SeedSkill[] = [
   {
     title: "Dont Break the Chain",
     slug: "dont-break-the-chain",
-    summary: "Consistencia diaria com cadeia visual de habito.",
+    summary: "Consistencia diária com cadeia visual de habito.",
     categorySlug: "habitos-consistencia",
-    steps: ["Definir habito minimo", "Marcar execucao diaria", "Acompanhar sequencia", "Retomar rapido apos falha"],
+    steps: ["Definir habito mínimo", "Marcar execução diária", "Acompanhar sequência", "Retomar rápido apos falha"],
   },
 ];
 
@@ -331,7 +331,7 @@ export default function SkillsPage() {
           // Refresh data after seeding
           currentData = await fetchData();
         } catch (error) {
-          toast.error((error as Error).message || "Falha ao gerar conteudo inicial");
+          toast.error((error as Error).message || "Falha ao gerar conteúdo inicial");
         } finally {
           setSeeding(false);
         }
@@ -421,7 +421,7 @@ export default function SkillsPage() {
       .single();
 
     if (categoryError) throw categoryError;
-    if (!categoryData?.id) throw new Error("Categoria Geral nao encontrada");
+    if (!categoryData?.id) throw new Error("Categoria Geral não encontrada");
 
     const { data: existingSkills, error: existingSkillsError } = await db
       .from("skill_documents")
@@ -469,7 +469,7 @@ export default function SkillsPage() {
   async function saveCategory() {
     if (!user) return;
     if (!categoryName.trim()) {
-      toast.error("Nome da categoria e obrigatorio");
+      toast.error("Nome da categoria e obrigatório");
       return;
     }
 
@@ -545,7 +545,7 @@ export default function SkillsPage() {
     }
 
     if (!data || data.length === 0) {
-      toast.error("Categoria nao encontrada para exclusao");
+      toast.error("Categoria não encontrada para exclusão");
       return;
     }
 
@@ -600,7 +600,7 @@ export default function SkillsPage() {
   async function saveSkill() {
     if (!user) return;
     if (!skillTitle.trim()) {
-      toast.error("Titulo da skill e obrigatorio");
+      toast.error("Título da skill e obrigatório");
       return;
     }
     if (!skillCategoryId) {
@@ -608,7 +608,7 @@ export default function SkillsPage() {
       return;
     }
     if (!skillMarkdown.trim()) {
-      toast.error("Conteudo markdown e obrigatorio");
+      toast.error("Conteúdo markdown e obrigatório");
       return;
     }
 
@@ -684,7 +684,7 @@ export default function SkillsPage() {
     }
 
     if (!data || data.length === 0) {
-      toast.error("Skill nao encontrada para exclusao");
+      toast.error("Skill não encontrada para exclusão");
       return;
     }
 
@@ -775,7 +775,7 @@ export default function SkillsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Skills Library</h1>
           <p className="text-sm text-muted-foreground">
-            Biblioteca privada de conhecimento em Markdown, organizada para busca, reutilizacao e acao rapida.
+            Biblioteca privada de conhecimento em Markdown, organizada para busca, reutilização e ação rápida.
           </p>
         </div>
 
@@ -809,7 +809,7 @@ export default function SkillsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Descricao</Label>
+                  <Label>Descrição</Label>
                   <Textarea
                     value={categoryDescription}
                     onChange={(event) => setCategoryDescription(event.target.value)}
@@ -841,7 +841,7 @@ export default function SkillsPage() {
               <div className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label>Titulo</Label>
+                    <Label>Título</Label>
                     <Input
                       value={skillTitle}
                       onChange={(event) => setSkillTitle(event.target.value)}
@@ -888,7 +888,7 @@ export default function SkillsPage() {
                   <Input
                     value={skillSummary}
                     onChange={(event) => setSkillSummary(event.target.value)}
-                    placeholder="Descricao curta"
+                    placeholder="Descrição curta"
                   />
                 </div>
 
@@ -1017,7 +1017,7 @@ export default function SkillsPage() {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{category.name}</p>
                         <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                          {category.description || "Sem descricao para esta categoria."}
+                          {category.description || "Sem descrição para esta categoria."}
                         </p>
                       </div>
                       <Badge variant="outline" className="shrink-0 text-[10px]">
@@ -1070,7 +1070,7 @@ export default function SkillsPage() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por titulo ou resumo"
+              placeholder="Buscar por título ou resumo"
               className="pl-9"
             />
           </div>

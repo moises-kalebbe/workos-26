@@ -114,9 +114,9 @@ describe("financeiro analytics", () => {
       "6m",
     );
 
-    expect(snapshot.selectedPeriod.income).toBe(4600);
-    expect(snapshot.selectedPeriod.breakdown.map((entry) => entry.id)).toEqual(["jan", "fev", "mar", "abr"]);
-    expect(snapshot.fixedKpis.income6m).toBe(4600);
+    expect(snapshot.selectedPeriod.income).toBe(5599);
+    expect(snapshot.selectedPeriod.breakdown.map((entry) => entry.id)).toEqual(["jan", "fev", "mar", "abr", "fora"]);
+    expect(snapshot.fixedKpis.income6m).toBe(5599);
   });
 
   it("gera serie mensal coerente com o preset selecionado", () => {

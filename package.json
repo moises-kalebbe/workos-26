@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:mobile": "playwright test e2e/financeiro-mobile.spec.ts",
+    "audit:pt-br-text": "node scripts/audit-portuguese-accents.mjs",
+    "fix:pt-br-text": "node scripts/audit-portuguese-accents.mjs --fix",
     "db:check": "node scripts/check-postgres-connection.mjs",
     "audit:postgres-schema": "node scripts/audit-postgres-schema.mjs"
   },
