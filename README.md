@@ -32,7 +32,10 @@ npm run dev
 
 ## Deploy automatico
 - O push em `main` publica a imagem Docker em `ghcr.io/moises-kalebbe/workos-26`.
-- Se voce configurar `DEPLOY_WEBHOOK_URL` nos secrets do GitHub, o workflow tambem dispara o deploy da stack no fim do push.
+- Para publicar a imagem, configure a repository variable `ENABLE_GHCR_PUBLISH=true`.
+- Para habilitar o deploy no VPS, configure tambem `ENABLE_VPS_DEPLOY=true`.
+- O job de deploy usa as repository variables `VPS_HOST`, `VPS_USER`, `VPS_PORT` e `APP_BASE_URL`.
+- A chave SSH do deploy deve ficar no secret `VPS_SSH_KEY`.
 - Mantive a imagem com as tags `latest` e `${{ github.sha }}` para facilitar rollback e promocao.
 
 ## Banco de dados local

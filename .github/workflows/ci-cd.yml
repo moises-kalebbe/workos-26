@@ -73,7 +73,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    if: vars.ENABLE_GHCR_PUBLISH == 'true'
+    if: github.event_name == 'push' && vars.ENABLE_GHCR_PUBLISH == 'true' && vars.ENABLE_VPS_DEPLOY == 'true'
     needs: publish
     runs-on: ubuntu-latest
     permissions:
@@ -150,7 +150,3 @@ jobs:
           BASE_URL="${APP_BASE_URL:-https://workos.moiseskalebbe.cloud}"
           curl -fsSL "${BASE_URL}/financeiro" >/dev/null
           curl -fsSL "${BASE_URL}/evolucao" >/dev/null
-
-
-
-
