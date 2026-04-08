@@ -370,13 +370,13 @@ function StatsCard({
   return (
     <Card className="rounded-2xl border-border bg-card/95">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
           <Icon className={cn("h-4 w-4", iconClass)} />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">{label}</p>
+          <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.18em] break-words">{label}</p>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
+        <p className="break-words text-2xl font-semibold text-foreground">{value}</p>
         <p className="mt-2 text-sm text-muted-foreground">{helper}</p>
       </CardContent>
     </Card>
@@ -831,25 +831,28 @@ export default function FinanceiroPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <PageHeader
         title="Financeiro"
         description="Operacao, gestao e projecao no mesmo painel, com contratos recorrentes como fonte oficial de previsao."
         actions={
-          <>
-            <Button variant="outline" onClick={handleResyncForecast} disabled={syncingForecast}>
+          <div className="grid w-full gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
+            <Button className="w-full sm:w-auto" variant="outline" onClick={handleResyncForecast} disabled={syncingForecast}>
               <Sparkles className="mr-2 h-4 w-4" />
-              {syncingForecast ? "Sincronizando previsao..." : "Reprocessar previsao"}
+              <span className="sm:hidden">{syncingForecast ? "Sincronizando..." : "Previsao"}</span>
+              <span className="hidden sm:inline">{syncingForecast ? "Sincronizando previsao..." : "Reprocessar previsao"}</span>
             </Button>
-            <Button variant="outline" onClick={openCreateContractDialog}>
+            <Button className="w-full sm:w-auto" variant="outline" onClick={openCreateContractDialog}>
               <Landmark className="mr-2 h-4 w-4" />
-              Novo contrato
+              <span className="sm:hidden">Contrato</span>
+              <span className="hidden sm:inline">Novo contrato</span>
             </Button>
-            <Button onClick={openCreateEntryDialog}>
+            <Button className="w-full sm:w-auto" onClick={openCreateEntryDialog}>
               <Plus className="mr-2 h-4 w-4" />
-              Novo lancamento
+              <span className="sm:hidden">Lancamento</span>
+              <span className="hidden sm:inline">Novo lancamento</span>
             </Button>
-          </>
+          </div>
         }
       />
 
@@ -871,7 +874,7 @@ export default function FinanceiroPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
           <div className="space-y-2">
             <Label>Criterio</Label>
             <Select value={basis} onValueChange={(value) => setBasis(value as FinanceiroReportingBasis)}>
@@ -949,11 +952,11 @@ export default function FinanceiroPage() {
 
           {periodPreset === "custom" ? (
             <>
-              <div className="space-y-2">
+              <div className="space-y-2 xl:col-span-1">
                 <Label>Data inicial</Label>
                 <Input type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 xl:col-span-1">
                 <Label>Data final</Label>
                 <Input type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} />
               </div>
@@ -963,7 +966,7 @@ export default function FinanceiroPage() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3">
           <TabsTrigger value="executivo">Executivo</TabsTrigger>
           <TabsTrigger value="lancamentos">Lancamentos</TabsTrigger>
           <TabsTrigger value="contratos">Contratos</TabsTrigger>
@@ -1021,14 +1024,14 @@ export default function FinanceiroPage() {
                 <CardTitle>Evolucao mensal</CardTitle>
                 <CardDescription>{trendDescription}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-3 pb-4 sm:px-6">
                 <ChartContainer config={chartConfig} className="h-[320px] w-full">
                   <BarChart data={monthlyTrend}>
                     <CartesianGrid vertical={false} />
                     <XAxis dataKey="label" tickLine={false} axisLine={false} />
                     <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
+                    <ChartLegend content={<ChartLegendContent className="flex-wrap justify-start sm:justify-center" />} />
                     <Bar dataKey="income" fill="var(--color-income)" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="expense" fill="var(--color-expense)" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="profit" fill="var(--color-profit)" radius={[6, 6, 0, 0]} />
@@ -1038,14 +1041,20 @@ export default function FinanceiroPage() {
             </Card>
 
             <Card className="rounded-2xl border-border bg-card/95">
-              <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <CardTitle>Projecao futura</CardTitle>
                   <CardDescription>{projectionDescription}</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center">
                   {PROJECTION_OPTIONS.map((months) => (
-                    <Button key={months} variant={projectionMonths === months ? "default" : "outline"} size="sm" onClick={() => setProjectionMonths(months)}>
+                    <Button
+                      key={months}
+                      className="w-full sm:w-auto"
+                      variant={projectionMonths === months ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setProjectionMonths(months)}
+                    >
                       {months}m
                     </Button>
                   ))}
@@ -1054,10 +1063,10 @@ export default function FinanceiroPage() {
               <CardContent className="space-y-3">
                 {projectionDisplayPoints.map((point) => (
                   <div key={point.monthKey} className="rounded-xl border border-border/70 bg-background/40 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground">{point.label}</p>
-                        <p className="text-xs text-muted-foreground">Receita {formatMoney(point.income)} - Despesa {formatMoney(point.expense)}</p>
+                        <p className="break-words text-xs text-muted-foreground">Receita {formatMoney(point.income)} - Despesa {formatMoney(point.expense)}</p>
                       </div>
                       <MoneyDelta value={point.profit} />
                     </div>
@@ -1079,7 +1088,7 @@ export default function FinanceiroPage() {
                   return (
                     <div key={entry.id} className="rounded-2xl border border-border/80 bg-background/40 p-4">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="space-y-2">
+                        <div className="min-w-0 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge className={statusClassName(visualStatus)}>{formatVisualStatusLabel(visualStatus)}</Badge>
                             <Badge variant="outline">{formatEntryTypeLabel(entry.type)}</Badge>
@@ -1087,23 +1096,23 @@ export default function FinanceiroPage() {
                             {entry.is_platform_cost ? <Badge variant="outline">Plataforma</Badge> : null}
                           </div>
                           <div>
-                            <p className="text-lg font-semibold text-foreground">{entry.title}</p>
-                            <p className="text-sm text-muted-foreground">{entry.project?.name || "Sem projeto"} - {entry.counterparty_name} - {entry.category}</p>
+                            <p className="break-words text-lg font-semibold text-foreground">{entry.title}</p>
+                            <p className="break-words text-sm text-muted-foreground">{entry.project?.name || "Sem projeto"} - {entry.counterparty_name} - {entry.category}</p>
                           </div>
                           <p className="text-sm text-foreground">{describeFinanceiroAmount(entry.type, entry.amount)}</p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                           <Badge variant="outline">Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</Badge>
                           <Badge variant="outline">{formatRecurrenceLabel(entry.recurrence)}</Badge>
                           {entry.payment_url ? (
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild className="w-full sm:w-auto" variant="outline" size="sm">
                               <a href={entry.payment_url} target="_blank" rel="noreferrer">
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 Abrir pagamento
                               </a>
                             </Button>
                           ) : null}
-                          <Button variant="outline" size="sm" onClick={() => openEditEntryDialog(entry)}>
+                          <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => openEditEntryDialog(entry)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Editar
                           </Button>
@@ -1132,7 +1141,7 @@ export default function FinanceiroPage() {
                   return (
                     <div key={entry.id} className="rounded-2xl border border-border/80 bg-background/40 p-4">
                       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="space-y-2">
+                        <div className="min-w-0 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge className={statusClassName(visualStatus)}>{formatVisualStatusLabel(visualStatus)}</Badge>
                             <Badge variant="outline">{formatEntryTypeLabel(entry.type)}</Badge>
@@ -1140,8 +1149,8 @@ export default function FinanceiroPage() {
                             {entry.contract ? <Badge variant="outline">{entry.contract.name}</Badge> : <Badge variant="outline">Avulso</Badge>}
                           </div>
                           <div>
-                            <p className="text-lg font-semibold text-foreground">{entry.title}</p>
-                            <p className="text-sm text-muted-foreground">{entry.project?.name || "Sem projeto"} - {entry.counterparty_name} - {entry.category}</p>
+                            <p className="break-words text-lg font-semibold text-foreground">{entry.title}</p>
+                            <p className="break-words text-sm text-muted-foreground">{entry.project?.name || "Sem projeto"} - {entry.counterparty_name} - {entry.category}</p>
                           </div>
                           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                             <span>{describeFinanceiroAmount(entry.type, entry.amount)}</span>
@@ -1149,22 +1158,22 @@ export default function FinanceiroPage() {
                             <span>Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</span>
                             <span>Base {entry.paid_at ? "realizado" : "previsto"}</span>
                           </div>
-                          {entry.notes ? <p className="text-sm text-muted-foreground">{entry.notes}</p> : null}
+                          {entry.notes ? <p className="break-words text-sm text-muted-foreground">{entry.notes}</p> : null}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                           {entry.payment_url ? (
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild className="w-full sm:w-auto" variant="outline" size="sm">
                               <a href={entry.payment_url} target="_blank" rel="noreferrer">
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 Abrir pagamento
                               </a>
                             </Button>
                           ) : null}
-                          <Button variant="outline" size="sm" onClick={() => openEditEntryDialog(entry)}>
+                          <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => openEditEntryDialog(entry)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Editar
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => void handleDeleteEntry(entry.id)}>
+                          <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => void handleDeleteEntry(entry.id)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir
                           </Button>
@@ -1191,7 +1200,7 @@ export default function FinanceiroPage() {
                 visibleContracts.map((contract) => (
                   <div key={contract.id} className="rounded-2xl border border-border/80 bg-background/40 p-4">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                      <div className="space-y-2">
+                      <div className="min-w-0 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge className={contract.status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-border bg-background/40 text-muted-foreground"}>
                             {contract.status === "active" ? "Ativo" : "Inativo"}
@@ -1201,8 +1210,8 @@ export default function FinanceiroPage() {
                           {contract.is_platform_cost ? <Badge variant="outline">Plataforma</Badge> : null}
                         </div>
                         <div>
-                          <p className="text-lg font-semibold text-foreground">{contract.name}</p>
-                          <p className="text-sm text-muted-foreground">{contract.project?.name || "Sem projeto"} - {contract.counterparty_name} - {contract.category}</p>
+                          <p className="break-words text-lg font-semibold text-foreground">{contract.name}</p>
+                          <p className="break-words text-sm text-muted-foreground">{contract.project?.name || "Sem projeto"} - {contract.counterparty_name} - {contract.category}</p>
                         </div>
                         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                           <span>{describeFinanceiroAmount(contract.type, contract.amount)}</span>
@@ -1211,25 +1220,25 @@ export default function FinanceiroPage() {
                           <span>Inicio {new Date(contract.start_date).toLocaleDateString("pt-BR")}</span>
                           <span>Fim {contract.end_date ? new Date(contract.end_date).toLocaleDateString("pt-BR") : "em aberto"}</span>
                         </div>
-                        {contract.notes ? <p className="text-sm text-muted-foreground">{contract.notes}</p> : null}
+                        {contract.notes ? <p className="break-words text-sm text-muted-foreground">{contract.notes}</p> : null}
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                         {contract.payment_url ? (
-                          <Button asChild variant="outline" size="sm">
+                          <Button asChild className="w-full sm:w-auto" variant="outline" size="sm">
                             <a href={contract.payment_url} target="_blank" rel="noreferrer">
                               <ExternalLink className="mr-2 h-4 w-4" />
                               Abrir pagamento
                             </a>
                           </Button>
                         ) : null}
-                        <Button variant="outline" size="sm" onClick={() => openEditContractDialog(contract)}>
+                        <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => openEditContractDialog(contract)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => void handleToggleContractStatus(contract, contract.status === "active" ? "inactive" : "active")}>
+                        <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => void handleToggleContractStatus(contract, contract.status === "active" ? "inactive" : "active")}>
                           {contract.status === "active" ? "Pausar" : "Ativar"}
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => void handleCloseContract(contract)}>
+                        <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => void handleCloseContract(contract)}>
                           Encerrar
                         </Button>
                       </div>
@@ -1245,7 +1254,7 @@ export default function FinanceiroPage() {
       </Tabs>
 
       <Dialog open={entryDialogOpen} onOpenChange={setEntryDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl px-4 sm:max-w-3xl sm:px-6">
           <DialogHeader>
             <DialogTitle>{editingEntry ? "Editar lancamento" : "Novo lancamento"}</DialogTitle>
           </DialogHeader>
@@ -1305,13 +1314,13 @@ export default function FinanceiroPage() {
             <div className="space-y-2 md:col-span-2"><Label>Descricao</Label><Textarea value={entryForm.description} onChange={(event) => setEntryForm((current) => ({ ...current, description: event.target.value }))} /></div>
             <div className="space-y-2 md:col-span-2"><Label>Observacoes</Label><Textarea value={entryForm.notes} onChange={(event) => setEntryForm((current) => ({ ...current, notes: event.target.value }))} /></div>
             <div className="flex items-center gap-3 md:col-span-2"><Checkbox checked={entryForm.isPlatformCost} onCheckedChange={(checked) => setEntryForm((current) => ({ ...current, isPlatformCost: checked === true }))} /><Label>Custo de plataforma</Label></div>
-            <div className="flex justify-end gap-2 md:col-span-2"><Button variant="outline" onClick={() => setEntryDialogOpen(false)}>Cancelar</Button><Button onClick={() => void handleSaveEntry()} disabled={savingEntry}>{savingEntry ? "Salvando..." : editingEntry ? "Atualizar lancamento" : "Criar lancamento"}</Button></div>
+            <div className="grid gap-2 md:col-span-2 md:flex md:justify-end"><Button className="w-full md:w-auto" variant="outline" onClick={() => setEntryDialogOpen(false)}>Cancelar</Button><Button className="w-full md:w-auto" onClick={() => void handleSaveEntry()} disabled={savingEntry}>{savingEntry ? "Salvando..." : editingEntry ? "Atualizar lancamento" : "Criar lancamento"}</Button></div>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={contractDialogOpen} onOpenChange={setContractDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl px-4 sm:max-w-3xl sm:px-6">
           <DialogHeader>
             <DialogTitle>{editingContract ? "Editar contrato" : "Novo contrato"}</DialogTitle>
           </DialogHeader>
@@ -1360,7 +1369,7 @@ export default function FinanceiroPage() {
             <div className="space-y-2 md:col-span-2"><Label>Link de pagamento</Label><Input placeholder="https://..." value={contractForm.paymentUrl} onChange={(event) => setContractForm((current) => ({ ...current, paymentUrl: event.target.value }))} /></div>
             <div className="space-y-2 md:col-span-2"><Label>Observacoes</Label><Textarea value={contractForm.notes} onChange={(event) => setContractForm((current) => ({ ...current, notes: event.target.value }))} /></div>
             <div className="flex items-center gap-3 md:col-span-2"><Checkbox checked={contractForm.isPlatformCost} onCheckedChange={(checked) => setContractForm((current) => ({ ...current, isPlatformCost: checked === true }))} /><Label>Custo de plataforma</Label></div>
-            <div className="flex justify-end gap-2 md:col-span-2"><Button variant="outline" onClick={() => setContractDialogOpen(false)}>Cancelar</Button><Button onClick={() => void handleSaveContract()} disabled={savingContract}>{savingContract ? "Salvando..." : editingContract ? "Atualizar contrato" : "Criar contrato"}</Button></div>
+            <div className="grid gap-2 md:col-span-2 md:flex md:justify-end"><Button className="w-full md:w-auto" variant="outline" onClick={() => setContractDialogOpen(false)}>Cancelar</Button><Button className="w-full md:w-auto" onClick={() => void handleSaveContract()} disabled={savingContract}>{savingContract ? "Salvando..." : editingContract ? "Atualizar contrato" : "Criar contrato"}</Button></div>
           </div>
         </DialogContent>
       </Dialog>
