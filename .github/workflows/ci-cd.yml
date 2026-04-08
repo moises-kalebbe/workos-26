@@ -40,7 +40,7 @@ jobs:
         run: npm test -- src/test/meetingMinutes.test.ts src/test/localDbClient.test.ts src/test/topBar.test.tsx
 
   publish:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && vars.ENABLE_GHCR_PUBLISH == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -55,7 +55,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
@@ -73,6 +73,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
+    if: vars.ENABLE_GHCR_PUBLISH == 'true'
     needs: publish
     runs-on: ubuntu-latest
     env:
@@ -87,5 +88,6 @@ jobs:
         if: env.DEPLOY_WEBHOOK_URL != ''
         run: |
           curl -fsS -X POST "${DEPLOY_WEBHOOK_URL}"
+
 
 
