@@ -18,7 +18,7 @@ POSTGRES_PASSWORD=defina-uma-senha-forte
 POSTGRES_USER=workos-user
 POSTGRES_DB=workos-db
 
-WORKOS_IMAGE=ghcr.io/moi-kalebbe/workos-26:latest
+WORKOS_IMAGE=ghcr.io/moises-kalebbe/workos-26:latest
 WORKOS_DOMAIN=workos.moiseskalebbe.cloud
 
 CLERK_PUBLISHABLE_KEY=pk_live_xxx

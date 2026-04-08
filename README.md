@@ -1,4 +1,4 @@
-﻿# WorkOS 26
+# WorkOS 26
 
 Workspace pessoal em Next.js com agenda, kanban, second brain, tracker, skills, vault e relatorios.
 
@@ -31,7 +31,7 @@ npm run dev
 ```
 
 ## Deploy automatico
-- O push em `main` publica a imagem Docker em `ghcr.io/moi-kalebbe/workos-26`.
+- O push em `main` publica a imagem Docker em `ghcr.io/moises-kalebbe/workos-26`.
 - Se voce configurar `DEPLOY_WEBHOOK_URL` nos secrets do GitHub, o workflow tambem dispara o deploy da stack no fim do push.
 - Mantive a imagem com as tags `latest` e `${{ github.sha }}` para facilitar rollback e promocao.
 

@@ -1,4 +1,4 @@
-﻿name: CI CD
+name: CI CD
 
 on:
   push:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE_NAME: ghcr.io/moi-kalebbe/workos-26
+  IMAGE_NAME: ghcr.io/moises-kalebbe/workos-26
 
 jobs:
   build:

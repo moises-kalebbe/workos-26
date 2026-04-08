@@ -27,7 +27,7 @@ services:
   # Aplicação Principal - WorkOS
   ###############################################################
   workos:
-    image: ghcr.io/moi-kalebbe/workos-26:latest
+    image: ghcr.io/moises-kalebbe/workos-26:latest
     container_name: workos
     restart: always
     environment:
