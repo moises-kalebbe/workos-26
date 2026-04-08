@@ -254,6 +254,24 @@ export interface MeetingMinutesItem {
   updated_at: string;
 }
 
+export interface NotificationPreferences {
+  user_id: string;
+  enabled: boolean;
+  browser_enabled: boolean;
+  toast_enabled: boolean;
+  meetings_enabled: boolean;
+  meeting_follow_up_enabled: boolean;
+  tasks_enabled: boolean;
+  finance_enabled: boolean;
+  meeting_reminder_minutes: number[];
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  weekend_notifications: boolean;
+  max_notifications_per_cycle: number;
+  updated_at: string;
+}
+
 export type SecondBrainStatus = "inbox" | "note" | "archived";
 export type SecondBrainLinkType = "manual" | "wikilink";
 

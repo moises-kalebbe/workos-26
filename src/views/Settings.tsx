@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/system/empty-state";
 import { LoadingState } from "@/components/system/loading-state";
 import { PageHeader } from "@/components/system/page-header";
+import { NotificationPreferencesCard } from "@/features/notifications/NotificationPreferencesCard";
 import { formatMoney } from "@/lib/utils";
 import { calculateProjectContract } from "@/lib/projectContract";
 import { PROJECT_COLORS } from "@/lib/projectColors";
@@ -791,6 +792,8 @@ export default function SettingsPage() {
               </div>
             </div>
           </section>
+
+          <NotificationPreferencesCard />
         </TabsContent>
       </Tabs>
 

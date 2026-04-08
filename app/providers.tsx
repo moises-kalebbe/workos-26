@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { NotificationsProvider } from "@/features/notifications/provider";
 import { AuthContext, type AuthContextType } from "@/hooks/useAuth";
 import { clearClerkBridge, setClerkBridge } from "@/lib/clerkBridge";
 
@@ -75,7 +76,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const appTree = (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {children}
+        <NotificationsProvider>
+          {children}
+        </NotificationsProvider>
         <Toaster />
         <Sonner />
       </TooltipProvider>
