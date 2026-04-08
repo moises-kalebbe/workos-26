@@ -148,7 +148,7 @@ const STATUS_FILTER_OPTIONS: { label: string; value: ExecutiveStatusFilter }[] =
   { label: "Todos", value: "all" },
   { label: "Acionaveis", value: "actionable" },
   { label: "Pendentes", value: "pending" },
-  { label: "Proximos", value: "upcoming" },
+  { label: "Próximos", value: "upcoming" },
   { label: "Vencidos", value: "overdue" },
   { label: "Pagos", value: "paid" },
 ];
@@ -475,7 +475,7 @@ export default function FinanceiroPage() {
     ]);
 
     if (projectsRes.error || contractsRes.error || entriesRes.error) {
-      toast.error("Nao foi possivel carregar o financeiro.");
+      toast.error("Não foi possível carregar o financeiro.");
       setLoading(false);
       return;
     }
@@ -493,7 +493,7 @@ export default function FinanceiroPage() {
         setSyncingForecast(false);
 
         if (insertRes.error) {
-          toast.error("Falha ao materializar a previsao dos contratos.");
+          toast.error("Falha ao materializar a previsão dos contratos.");
         } else {
           toast.success(`${missingForecastEntries.length} parcelas futuras geradas a partir dos contratos.`);
           await loadData(false);
@@ -582,19 +582,19 @@ export default function FinanceiroPage() {
         incomeHelper: `Realizado por ${basis === "cash" ? "caixa" : "competencia"} no mes corrente.`,
         expenseHelper: `Saidas registradas por ${basis === "cash" ? "caixa" : "competencia"} no mes corrente.`,
         profitHelper: "Receita menos despesa no mes atual.",
-        plannedHelper: "Saldo projetado do mes com pendencias ainda nao liquidadas.",
+        plannedHelper: "Saldo projetado do mes com pendências ainda não liquidadas.",
       };
     }
 
     return {
-      incomeLabel: "Receita Do Periodo",
-      expenseLabel: "Despesa Do Periodo",
-      profitLabel: "Lucro Do Periodo",
-      plannedLabel: "Previsto Do Periodo",
+      incomeLabel: "Receita Do Período",
+      expenseLabel: "Despesa Do Período",
+      profitLabel: "Lucro Do Período",
+      plannedLabel: "Previsto Do Período",
       incomeHelper: `Realizado por ${basis === "cash" ? "caixa" : "competencia"} no recorte selecionado.`,
       expenseHelper: `Saidas registradas por ${basis === "cash" ? "caixa" : "competencia"} no recorte selecionado.`,
-      profitHelper: "Receita menos despesa no periodo filtrado.",
-      plannedHelper: "Saldo projetado dentro do periodo filtrado com pendencias ainda nao liquidadas.",
+      profitHelper: "Receita menos despesa no período filtrado.",
+      plannedHelper: "Saldo projetado dentro do período filtrado com pendências ainda não liquidadas.",
     };
   }, [basis, periodPreset]);
 
@@ -714,7 +714,7 @@ export default function FinanceiroPage() {
   async function handleSaveEntry() {
     if (!user) return;
     if (!entryForm.title.trim() || !entryForm.category.trim() || !entryForm.counterpartyName.trim()) {
-      toast.error("Preencha titulo, categoria e contraparte.");
+      toast.error("Preencha título, categoria e contraparte.");
       return;
     }
 
@@ -728,7 +728,7 @@ export default function FinanceiroPage() {
     setSavingEntry(false);
 
     if (result.error) {
-      toast.error("Nao foi possivel salvar o lancamento.");
+      toast.error("Não foi possível salvar o lancamento.");
       return;
     }
 
@@ -745,7 +745,7 @@ export default function FinanceiroPage() {
 
     const result = await financeiroApi.db.from("financial_entries").delete().eq("id", entryId);
     if (result.error) {
-      toast.error("Nao foi possivel excluir o lancamento.");
+      toast.error("Não foi possível excluir o lancamento.");
       return;
     }
 
@@ -770,7 +770,7 @@ export default function FinanceiroPage() {
     setSavingContract(false);
 
     if (result.error) {
-      toast.error("Nao foi possivel salvar o contrato.");
+      toast.error("Não foi possível salvar o contrato.");
       return;
     }
 
@@ -791,7 +791,7 @@ export default function FinanceiroPage() {
       .eq("id", contract.id);
 
     if (result.error) {
-      toast.error("Nao foi possivel atualizar o status do contrato.");
+      toast.error("Não foi possível atualizar o status do contrato.");
       return;
     }
 
@@ -812,7 +812,7 @@ export default function FinanceiroPage() {
       .eq("id", contract.id);
 
     if (result.error) {
-      toast.error("Nao foi possivel encerrar o contrato.");
+      toast.error("Não foi possível encerrar o contrato.");
       return;
     }
 
@@ -837,14 +837,14 @@ export default function FinanceiroPage() {
       <PageHeader
         className="min-w-0 overflow-hidden"
         title="Financeiro"
-        description="Operacao, gestao e projecao no mesmo painel, com contratos recorrentes como fonte oficial de previsao."
+        description="Operacao, gestao e projeção no mesmo painel, com contratos recorrentes como fonte oficial de previsão."
       />
 
       <section className="rounded-2xl border border-border bg-card/95 p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Fluxo rapido</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">Acoes principais</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Fluxo rápido</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Ações principais</h2>
             <p className="mt-1 text-sm text-muted-foreground">Cadastre, ajuste e reprocesse sem sair da tela.</p>
           </div>
         </div>
@@ -852,7 +852,7 @@ export default function FinanceiroPage() {
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
           <Button className="w-full justify-center sm:justify-start" variant="outline" onClick={handleResyncForecast} disabled={syncingForecast}>
             <Sparkles className="mr-2 h-4 w-4" />
-            {syncingForecast ? "Sincronizando previsao..." : "Reprocessar previsao"}
+            {syncingForecast ? "Sincronizando previsão..." : "Reprocessar previsão"}
           </Button>
           <Button className="w-full justify-center sm:justify-start" variant="outline" onClick={openCreateContractDialog}>
             <Landmark className="mr-2 h-4 w-4" />
@@ -870,7 +870,7 @@ export default function FinanceiroPage() {
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar financeiro</p>
             <CardTitle className="mt-1">Painel executivo</CardTitle>
-            <CardDescription className="mt-1">Filtros globais para operacao, historico e projecao.</CardDescription>
+            <CardDescription className="mt-1">Filtros globais para operacao, histórico e projeção.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="grid gap-3 p-4 pt-4 sm:grid-cols-2 sm:p-5 sm:pt-4 xl:grid-cols-6">
@@ -878,14 +878,14 @@ export default function FinanceiroPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="h-11 rounded-2xl border-border bg-background/60 pl-9"
-              placeholder="Buscar por titulo, contraparte, categoria, cliente ou projeto"
+              placeholder="Buscar por título, contraparte, categoria, cliente ou projeto"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Criterio</Label>
+            <Label>Critério</Label>
             <Select value={basis} onValueChange={(value) => setBasis(value as FinanceiroReportingBasis)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -897,7 +897,7 @@ export default function FinanceiroPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Periodo</Label>
+            <Label>Período</Label>
             <Select value={periodPreset} onValueChange={(value) => setPeriodPreset(value as FinanceiroPeriodPreset)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -992,10 +992,10 @@ export default function FinanceiroPage() {
 
         <TabsContent value="executivo" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatsCard icon={ArrowUpCircle} label="A Receber Agora" value={formatMoney(executiveSnapshot.operation.receivableNow)} helper="Receitas vencidas ou ja dentro da janela de alerta." tone="success" />
+            <StatsCard icon={ArrowUpCircle} label="A Receber Agora" value={formatMoney(executiveSnapshot.operation.receivableNow)} helper="Receitas vencidas ou já dentro da janela de alerta." tone="success" />
             <StatsCard icon={ArrowDownCircle} label="A Pagar Agora" value={formatMoney(executiveSnapshot.operation.payableNow)} helper="Despesas vencidas ou dentro da janela operacional." tone="warning" />
-            <StatsCard icon={AlertTriangle} label="Vencidos" value={String(executiveSnapshot.operation.overdueCount).padStart(2, "0")} helper="Lancamentos fora do prazo e exigindo acao imediata." tone="danger" />
-            <StatsCard icon={CalendarClock} label="Proximos" value={String(executiveSnapshot.operation.upcomingCount).padStart(2, "0")} helper="Lancamentos prestes a vencer dentro da janela de alerta." tone="warning" />
+            <StatsCard icon={AlertTriangle} label="Vencidos" value={String(executiveSnapshot.operation.overdueCount).padStart(2, "0")} helper="Lancamentos fora do prazo e exigindo ação imediata." tone="danger" />
+            <StatsCard icon={CalendarClock} label="Próximos" value={String(executiveSnapshot.operation.upcomingCount).padStart(2, "0")} helper="Lancamentos prestes a vencer dentro da janela de alerta." tone="warning" />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1009,28 +1009,28 @@ export default function FinanceiroPage() {
             <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Faturamento 6 meses</CardTitle>
-                <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
+                <CardDescription>KPI estrutural fixo, independente do filtro de período.</CardDescription>
               </CardHeader>
               <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3"><MoneyDelta value={executiveSnapshot.fixedKpis.income6m} /></CardContent>
             </Card>
             <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Despesas 6 meses</CardTitle>
-                <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
+                <CardDescription>KPI estrutural fixo, independente do filtro de período.</CardDescription>
               </CardHeader>
               <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3"><MoneyDelta value={-executiveSnapshot.fixedKpis.expense6m} /></CardContent>
             </Card>
             <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Faturamento no ano</CardTitle>
-                <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
+                <CardDescription>KPI estrutural fixo, independente do filtro de período.</CardDescription>
               </CardHeader>
               <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3"><MoneyDelta value={executiveSnapshot.fixedKpis.incomeYear} /></CardContent>
             </Card>
             <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Despesas no ano</CardTitle>
-                <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
+                <CardDescription>KPI estrutural fixo, independente do filtro de período.</CardDescription>
               </CardHeader>
               <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3"><MoneyDelta value={-executiveSnapshot.fixedKpis.expenseYear} /></CardContent>
             </Card>
@@ -1039,7 +1039,7 @@ export default function FinanceiroPage() {
           <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
             <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader>
-                <CardTitle>Evolucao mensal</CardTitle>
+                <CardTitle>Evolução mensal</CardTitle>
                 <CardDescription>{trendDescription}</CardDescription>
               </CardHeader>
               <CardContent className="px-3 pb-4 sm:px-6">
@@ -1061,7 +1061,7 @@ export default function FinanceiroPage() {
             <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <CardTitle>Projecao futura</CardTitle>
+                  <CardTitle>Projeção futura</CardTitle>
                   <CardDescription>{projectionDescription}</CardDescription>
                 </div>
                 <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center">
@@ -1097,7 +1097,7 @@ export default function FinanceiroPage() {
           <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Fila operacional</CardTitle>
-              <CardDescription>Itens que exigem acao agora: vencidos ou dentro da janela de alerta.</CardDescription>
+              <CardDescription>Itens que exigem ação agora: vencidos ou dentro da janela de alerta.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {operationalQueue.length ? (
@@ -1140,7 +1140,7 @@ export default function FinanceiroPage() {
                   );
                 })
               ) : (
-                <EmptyState icon={CheckCircle2} title="Nenhuma acao operacional agora" description="Nao existem lancamentos vencidos ou dentro da janela de alerta com os filtros atuais." />
+                <EmptyState icon={CheckCircle2} title="Nenhuma ação operacional agora" description="Não existem lancamentos vencidos ou dentro da janela de alerta com os filtros atuais." />
               )}
             </CardContent>
           </Card>
@@ -1150,7 +1150,7 @@ export default function FinanceiroPage() {
           <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Lancamentos</CardTitle>
-              <CardDescription>Historico realizado e previsto materializado, com vinculo opcional a contrato.</CardDescription>
+              <CardDescription>Histórico realizado e previsto materializado, com vínculo opcional a contrato.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {sortFinanceiroEntries(visibleEntries, now).length ? (
@@ -1172,7 +1172,7 @@ export default function FinanceiroPage() {
                           </div>
                           <div className="flex min-w-0 flex-wrap gap-3 text-sm text-muted-foreground">
                             <span className={WRAPPED_META_ITEM_CLASS}>{describeFinanceiroAmount(entry.type, entry.amount)}</span>
-                            <span className={WRAPPED_META_ITEM_CLASS}>Competencia {entry.competency_date ? new Date(entry.competency_date).toLocaleDateString("pt-BR") : "nao definida"}</span>
+                            <span className={WRAPPED_META_ITEM_CLASS}>Competencia {entry.competency_date ? new Date(entry.competency_date).toLocaleDateString("pt-BR") : "não definida"}</span>
                             <span className={WRAPPED_META_ITEM_CLASS}>Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</span>
                             <span className={WRAPPED_META_ITEM_CLASS}>Base {entry.paid_at ? "realizado" : "previsto"}</span>
                           </div>
@@ -1211,7 +1211,7 @@ export default function FinanceiroPage() {
           <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Contratos recorrentes</CardTitle>
-              <CardDescription>Fonte estrutural da previsao. Pause, encerre ou edite sem perder o historico ja gerado.</CardDescription>
+              <CardDescription>Fonte estrutural da previsão. Pause, encerre ou edite sem perder o histórico já gerado.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {visibleContracts.length ? (
@@ -1264,7 +1264,7 @@ export default function FinanceiroPage() {
                   </div>
                 ))
               ) : (
-                <EmptyState icon={Landmark} title="Nenhum contrato encontrado" description="Crie contratos recorrentes para que a previsao futura seja confiavel." />
+                <EmptyState icon={Landmark} title="Nenhum contrato encontrado" description="Crie contratos recorrentes para que a previsão futura seja confiavel." />
               )}
             </CardContent>
           </Card>
@@ -1312,7 +1312,7 @@ export default function FinanceiroPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 md:col-span-2"><Label>Titulo</Label><Input value={entryForm.title} onChange={(event) => setEntryForm((current) => ({ ...current, title: event.target.value }))} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Título</Label><Input value={entryForm.title} onChange={(event) => setEntryForm((current) => ({ ...current, title: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Categoria</Label><Input value={entryForm.category} onChange={(event) => setEntryForm((current) => ({ ...current, category: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Contraparte</Label><Input value={entryForm.counterpartyName} onChange={(event) => setEntryForm((current) => ({ ...current, counterpartyName: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Valor</Label><Input value={entryForm.amount} onChange={(event) => setEntryForm((current) => ({ ...current, amount: event.target.value }))} /></div>
@@ -1329,8 +1329,8 @@ export default function FinanceiroPage() {
             </div>
             <div className="space-y-2"><Label>Dias de alerta</Label><Input type="number" min="0" value={entryForm.alertDaysBefore} onChange={(event) => setEntryForm((current) => ({ ...current, alertDaysBefore: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Link de pagamento</Label><Input placeholder="https://..." value={entryForm.paymentUrl} onChange={(event) => setEntryForm((current) => ({ ...current, paymentUrl: event.target.value }))} /></div>
-            <div className="space-y-2 md:col-span-2"><Label>Descricao</Label><Textarea value={entryForm.description} onChange={(event) => setEntryForm((current) => ({ ...current, description: event.target.value }))} /></div>
-            <div className="space-y-2 md:col-span-2"><Label>Observacoes</Label><Textarea value={entryForm.notes} onChange={(event) => setEntryForm((current) => ({ ...current, notes: event.target.value }))} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Descrição</Label><Textarea value={entryForm.description} onChange={(event) => setEntryForm((current) => ({ ...current, description: event.target.value }))} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Observações</Label><Textarea value={entryForm.notes} onChange={(event) => setEntryForm((current) => ({ ...current, notes: event.target.value }))} /></div>
             <div className="flex items-center gap-3 md:col-span-2"><Checkbox checked={entryForm.isPlatformCost} onCheckedChange={(checked) => setEntryForm((current) => ({ ...current, isPlatformCost: checked === true }))} /><Label>Custo de plataforma</Label></div>
             <div className="grid gap-2 md:col-span-2 md:flex md:justify-end"><Button className="w-full md:w-auto" variant="outline" onClick={() => setEntryDialogOpen(false)}>Cancelar</Button><Button className="w-full md:w-auto" onClick={() => void handleSaveEntry()} disabled={savingEntry}>{savingEntry ? "Salvando..." : editingEntry ? "Atualizar lancamento" : "Criar lancamento"}</Button></div>
           </div>
@@ -1378,14 +1378,14 @@ export default function FinanceiroPage() {
             <div className="space-y-2 md:col-span-2"><Label>Nome do contrato</Label><Input value={contractForm.name} onChange={(event) => setContractForm((current) => ({ ...current, name: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Categoria</Label><Input value={contractForm.category} onChange={(event) => setContractForm((current) => ({ ...current, category: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Contraparte</Label><Input value={contractForm.counterpartyName} onChange={(event) => setContractForm((current) => ({ ...current, counterpartyName: event.target.value }))} /></div>
-            <div className="space-y-2"><Label>Valor padrao</Label><Input value={contractForm.amount} onChange={(event) => setContractForm((current) => ({ ...current, amount: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Valor padrão</Label><Input value={contractForm.amount} onChange={(event) => setContractForm((current) => ({ ...current, amount: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Moeda</Label><Input value={contractForm.currency} onChange={(event) => setContractForm((current) => ({ ...current, currency: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Dia do vencimento</Label><Input type="number" min="1" max="31" value={contractForm.dueDay} onChange={(event) => setContractForm((current) => ({ ...current, dueDay: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Dias de alerta</Label><Input type="number" min="0" value={contractForm.alertDaysBefore} onChange={(event) => setContractForm((current) => ({ ...current, alertDaysBefore: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Inicio</Label><Input type="date" value={contractForm.startDate} onChange={(event) => setContractForm((current) => ({ ...current, startDate: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Fim</Label><Input type="date" value={contractForm.endDate} onChange={(event) => setContractForm((current) => ({ ...current, endDate: event.target.value }))} /></div>
             <div className="space-y-2 md:col-span-2"><Label>Link de pagamento</Label><Input placeholder="https://..." value={contractForm.paymentUrl} onChange={(event) => setContractForm((current) => ({ ...current, paymentUrl: event.target.value }))} /></div>
-            <div className="space-y-2 md:col-span-2"><Label>Observacoes</Label><Textarea value={contractForm.notes} onChange={(event) => setContractForm((current) => ({ ...current, notes: event.target.value }))} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Observações</Label><Textarea value={contractForm.notes} onChange={(event) => setContractForm((current) => ({ ...current, notes: event.target.value }))} /></div>
             <div className="flex items-center gap-3 md:col-span-2"><Checkbox checked={contractForm.isPlatformCost} onCheckedChange={(checked) => setContractForm((current) => ({ ...current, isPlatformCost: checked === true }))} /><Label>Custo de plataforma</Label></div>
             <div className="grid gap-2 md:col-span-2 md:flex md:justify-end"><Button className="w-full md:w-auto" variant="outline" onClick={() => setContractDialogOpen(false)}>Cancelar</Button><Button className="w-full md:w-auto" onClick={() => void handleSaveContract()} disabled={savingContract}>{savingContract ? "Salvando..." : editingContract ? "Atualizar contrato" : "Criar contrato"}</Button></div>
           </div>

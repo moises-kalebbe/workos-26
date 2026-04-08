@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
   if (!state || !expectedState || state !== expectedState) {
     const response = NextResponse.redirect(
-      getAgendaRedirectUrl(request, "error", "Estado invalido na autenticacao do Google"),
+      getAgendaRedirectUrl(request, "error", "Estado invalido na autenticação do Google"),
     );
     clearStateCookie(response);
     return response;
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     const response = NextResponse.redirect(
-      getAgendaRedirectUrl(request, "error", "Google nao retornou codigo de autorizacao"),
+      getAgendaRedirectUrl(request, "error", "Google não retornou código de autorização"),
     );
     clearStateCookie(response);
     return response;

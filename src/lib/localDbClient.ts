@@ -273,7 +273,7 @@ export const localDbClient = {
       return {
         data: null,
         error: {
-          message: "OAuth legado nao esta disponivel apos a migracao para Clerk.",
+          message: "OAuth legado não esta disponível apos a migração para Clerk.",
         },
       };
     },

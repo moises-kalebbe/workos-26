@@ -42,7 +42,7 @@ export default function DesignSystemPage() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Acoes" subtitle="Botões e estados">
+      <SectionCard title="Ações" subtitle="Botões e estados">
         <div className="flex flex-wrap items-center gap-2">
           <Button>Primario</Button>
           <Button variant="secondary">Secondary</Button>
@@ -68,21 +68,21 @@ export default function DesignSystemPage() {
         </FilterBar>
       </SectionCard>
 
-      <SectionCard title="Formularios e Modais">
+      <SectionCard title="Formulários e Modais">
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setOpen(true)}>Abrir FormDialog</Button>
           <Badge variant="outline">Input + Textarea + Validation</Badge>
         </div>
       </SectionCard>
 
-      <SectionCard title="Conteudo">
+      <SectionCard title="Conteúdo">
         <Tabs defaultValue="a">
           <TabsList>
-            <TabsTrigger value="a">Visao A</TabsTrigger>
-            <TabsTrigger value="b">Visao B</TabsTrigger>
+            <TabsTrigger value="a">Visão A</TabsTrigger>
+            <TabsTrigger value="b">Visão B</TabsTrigger>
           </TabsList>
           <TabsContent value="a" className="pt-3 text-sm text-muted-foreground">
-            Conteudo com hierarquia visual premium.
+            Conteúdo com hierarquia visual premium.
           </TabsContent>
           <TabsContent value="b" className="pt-3 text-sm text-muted-foreground">
             Estados e componentes reaproveitaveis para todas as telas.
@@ -94,15 +94,15 @@ export default function DesignSystemPage() {
         open={open}
         onOpenChange={setOpen}
         title="Exemplo de FormDialog"
-        description="Padrao de formulario para criacao e edicao"
+        description="Padrão de formulário para criação e edição"
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Titulo</Label>
+            <Label>Título</Label>
             <Input placeholder="Nome do recurso" />
           </div>
           <div className="space-y-2">
-            <Label>Descricao</Label>
+            <Label>Descrição</Label>
             <Textarea placeholder="Contexto e detalhes" />
           </div>
           <Button className="w-full" onClick={() => setOpen(false)}>

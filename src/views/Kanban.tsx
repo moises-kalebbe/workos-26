@@ -530,7 +530,7 @@ export default function KanbanPage() {
       await navigator.clipboard.writeText(skill.content_md);
       toast.success(`Skill "${skill.title}" copiada`);
     } catch {
-      toast.error("Nao foi possivel copiar a skill");
+      toast.error("Não foi possível copiar a skill");
     }
   }
 
@@ -667,7 +667,7 @@ export default function KanbanPage() {
     <div className="space-y-6">
       {loadError ? (
         <div className="rounded-2xl border border-danger/30 bg-danger-muted/40 p-4">
-          <p className="text-sm font-semibold text-danger">Nao foi possivel carregar o quadro.</p>
+          <p className="text-sm font-semibold text-danger">Não foi possível carregar o quadro.</p>
           <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
           <div className="mt-3">
             <Button variant="outline" className="border-danger/30" onClick={() => void loadData()}>
@@ -683,7 +683,7 @@ export default function KanbanPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {signedInEmail
               ? `Sessao ativa: ${signedInEmail}. Se esse nao for o email esperado, saia da conta e entre novamente.`
-              : "Se esse nao for o ambiente esperado, saia da conta e entre novamente."}
+              : "Se esse não for o ambiente esperado, saia da conta e entre novamente."}
           </p>
         </div>
       ) : null}
@@ -703,7 +703,7 @@ export default function KanbanPage() {
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Titulo</Label>
+                <Label className="text-xs text-muted-foreground">Título</Label>
                 <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="O que precisa ser feito?" className="bg-background border-border" />
               </div>
               <div className="space-y-2">
@@ -815,7 +815,7 @@ export default function KanbanPage() {
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Titulo</Label>
+              <Label className="text-xs text-muted-foreground">Título</Label>
               <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="bg-background border-border" />
             </div>
             <div className="space-y-2">
@@ -929,7 +929,7 @@ export default function KanbanPage() {
           <DialogHeader>
             <DialogTitle>{previewSkill?.title || "Skill"}</DialogTitle>
             <DialogDescription>
-              {previewSkill?.summary || "Visualize ou copie o conteudo da skill vinculada."}
+              {previewSkill?.summary || "Visualize ou copie o conteúdo da skill vinculada."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -985,7 +985,7 @@ export default function KanbanPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               {boardSummary.recommendedTask
                 ? `${boardSummary.recommendedTask.project_id ? projectMap.get(boardSummary.recommendedTask.project_id)?.name || boardSummary.recommendedTask.client || "Conhecimento geral" : boardSummary.recommendedTask.client || "Conhecimento geral"} · ${QUADRANT_BADGE[getQuadrant(boardSummary.recommendedTask)].label}`
-                : "Crie uma tarefa ou ajuste os filtros para montar o proximo passo."}
+                : "Crie uma tarefa ou ajuste os filtros para montar o próximo passo."}
             </p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -1117,7 +1117,7 @@ export default function KanbanPage() {
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      {col.index === 0 ? "Entrada e fila priorizada" : col.index === 1 ? "Execucao atual do time" : "Entregas finalizadas"}
+                      {col.index === 0 ? "Entrada e fila priorizada" : col.index === 1 ? "Execução atual do time" : "Entregas finalizadas"}
                     </p>
                   </div>
                   <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
@@ -1133,7 +1133,7 @@ export default function KanbanPage() {
                     {columnTasks.length === 0 ? (
                       <div className="rounded-xl border-2 border-dashed border-border p-6 text-center">
                         <p className="text-sm font-medium text-foreground">
-                          {col.index === 0 ? "Nenhuma tarefa na fila" : col.index === 1 ? "Nada em execucao agora" : "Nada concluido ainda"}
+                          {col.index === 0 ? "Nenhuma tarefa na fila" : col.index === 1 ? "Nada em execução agora" : "Nada concluido ainda"}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {col.index === 0

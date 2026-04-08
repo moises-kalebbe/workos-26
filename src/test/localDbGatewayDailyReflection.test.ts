@@ -33,7 +33,7 @@ describe("localDbGateway daily reflection tables", () => {
 
     expect(dbMocks.ensureDatabaseConnection).toHaveBeenCalledTimes(1);
     expect(dbMocks.unsafe).toHaveBeenCalledTimes(1);
-    const [query] = dbMocks.unsafe.mock.calls[0] as [string, unknown[]];
+    const [query] = dbMocks.unsafe.mock.calls[0] as unknown as [string, ...unknown[]];
     expect(query).toContain('FROM "daily_reflection_prompts" t');
     expect(query).not.toContain('"user_id"');
   });

@@ -18,7 +18,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
-        <p className="text-sm text-muted-foreground">Carregando sessao...</p>
+        <p className="text-sm text-muted-foreground">Carregando sessão...</p>
       </div>
     );
   }

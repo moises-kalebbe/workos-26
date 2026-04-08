@@ -15,7 +15,7 @@ export const sql = postgres(connectionString!, {
 
 function getDatabaseConnectionErrorMessage(error: unknown) {
   if (!connectionString) {
-    return "DATABASE_URL nao configurado. Configure o Postgres antes de iniciar o app.";
+    return "DATABASE_URL não configurado. Configure o Postgres antes de iniciar o app.";
   }
 
   const rawMessage = error instanceof Error ? error.message : String(error);
@@ -25,7 +25,7 @@ function getDatabaseConnectionErrorMessage(error: unknown) {
     message.includes("password authentication failed")
     || (message.includes("autentica") && message.includes("senha"))
   ) {
-    return "Falha ao autenticar no Postgres com o DATABASE_URL atual. Alinhe usuario, senha e host com o stack Docker.";
+    return "Falha ao autenticar no Postgres com o DATABASE_URL atual. Alinhe usuário, senha e host com o stack Docker.";
   }
 
   if (
@@ -35,7 +35,7 @@ function getDatabaseConnectionErrorMessage(error: unknown) {
     || message.includes("getaddrinfo")
     || message.includes("no such host")
   ) {
-    return "Nao foi possivel conectar ao Postgres com o DATABASE_URL atual. Verifique host, porta e disponibilidade do banco.";
+    return "Não foi possível conectar ao Postgres com o DATABASE_URL atual. Verifique host, porta e disponibilidade do banco.";
   }
 
   return `Falha ao conectar ao Postgres: ${rawMessage}`;

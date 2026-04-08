@@ -70,7 +70,7 @@ export function mapGoogleEvent(event: GoogleEvent) {
   const end = event.end?.dateTime || event.end?.date || start;
   const selfResponseStatus = (selfAttendee?.responseStatus ?? "none") as CalendarResponseStatus;
   const meetEntryPoint = event.conferenceData?.entryPoints?.find(
-    (entryPoint) => entryPoint.entryPointType === "video",
+    (entryPoint) => entryPoint.entryPointType === "vídeo",
   )?.uri;
 
   return {
@@ -78,7 +78,7 @@ export function mapGoogleEvent(event: GoogleEvent) {
     seriesKey: event.recurringEventId || event.id,
     recurringEventId: event.recurringEventId || null,
     iCalUID: event.iCalUID || null,
-    summary: event.summary || "(Sem titulo)",
+    summary: event.summary || "(Sem título)",
     description: event.description || null,
     location: event.location || null,
     start,

@@ -1,9 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const email = process.env.E2E_EMAIL;
 const password = process.env.E2E_PASSWORD;
 
-async function login(page: Parameters<(typeof test)["beforeEach"]>[0]["page"]) {
+async function login(page: Page) {
   await page.goto("/auth");
   await page.getByLabel("Email").fill(email || "");
   await page.getByLabel("Senha").fill(password || "");

@@ -61,7 +61,7 @@ function formatShortDuration(seconds: number) {
 }
 
 function formatSessionMoment(iso: string | null) {
-  if (!iso) return "Sem sessoes";
+  if (!iso) return "Sem sessões";
 
   const date = new Date(iso);
   const now = new Date();
@@ -131,7 +131,7 @@ export default function TrackerPage() {
       setSessions((sessRes.data || []) as unknown as TimeSession[]);
     } catch (error) {
       console.error("Erro ao carregar tracker", error);
-      toast.error("Nao foi possivel carregar projetos e sessoes.");
+      toast.error("Não foi possível carregar projetos e sessões.");
       setProjects([]);
       setSessions([]);
     } finally {
@@ -198,9 +198,9 @@ export default function TrackerPage() {
     const { error } = await db.from("time_sessions").delete().eq("id", sessionId);
 
     if (error) {
-      toast.error("Erro ao excluir sessao");
+      toast.error("Erro ao excluir sessão");
     } else {
-      toast.success("Sessao excluida!");
+      toast.success("Sessão excluida!");
       setSessions((prev) => prev.filter((session) => session.id !== sessionId));
     }
   }
@@ -415,7 +415,7 @@ export default function TrackerPage() {
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="rounded-full bg-background/60 px-2.5 py-1">Hoje: {formatShortDuration(isActive ? timer.elapsed : todaySeconds)}</span>
               <span className="rounded-full bg-background/60 px-2.5 py-1">Faturado hoje: {formatMoney(isActive ? (timer.elapsed / 3600) * project.hourly_rate : todayValue)}</span>
-              <span className="rounded-full bg-background/60 px-2.5 py-1">{projectSessions.length} sessoes</span>
+              <span className="rounded-full bg-background/60 px-2.5 py-1">{projectSessions.length} sessões</span>
             </div>
 
             <div className="flex items-center gap-1">
@@ -454,8 +454,8 @@ export default function TrackerPage() {
         {isExpanded ? (
           <div className="border-t border-border/70 px-5 py-4 animate-fade-in">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Historico recente</p>
-              <span className="text-xs text-muted-foreground">Ultimas {Math.min(projectSessions.length, 8)} sessoes</span>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Histórico recente</p>
+              <span className="text-xs text-muted-foreground">Ultimas {Math.min(projectSessions.length, 8)} sessões</span>
             </div>
 
             <div className="space-y-2">
@@ -491,15 +491,15 @@ export default function TrackerPage() {
   }
 
   if (authLoading || loading) {
-    return <LoadingState message="Carregando projetos e sessoes..." />;
+    return <LoadingState message="Carregando projetos e sessões..." />;
   }
 
   if (!user) {
     return (
       <EmptyState
         icon={Activity}
-        title="Sessao expirada"
-        description="Entre novamente para carregar seus projetos e sessoes."
+        title="Sessão expirada"
+        description="Entre novamente para carregar seus projetos e sessões."
       />
     );
   }
@@ -542,12 +542,12 @@ export default function TrackerPage() {
         <div className="rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-5 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)]">
           <div className="flex items-center gap-2 text-cyan-200/80">
             <Activity className="h-4 w-4 text-cyan-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Sessao ativa</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Sessão ativa</p>
           </div>
           <div className="mt-3">
             <p className="text-lg font-semibold text-foreground">{activeProject ? activeProject.name : "Nenhum projeto em andamento"}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {activeProject ? activeProject.client || "Sem cliente definido" : "Escolha um projeto para iniciar a proxima sessao."}
+              {activeProject ? activeProject.client || "Sem cliente definido" : "Escolha um projeto para iniciar a próxima sessão."}
             </p>
           </div>
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
@@ -560,11 +560,11 @@ export default function TrackerPage() {
             {activeProject ? (
               <Button onClick={handleStop} className="bg-danger-muted text-danger hover:bg-danger/20">
                 <Square className="mr-2 h-4 w-4" />
-                Finalizar sessao
+                Finalizar sessão
               </Button>
             ) : (
               <span className="rounded-full border border-border/70 px-3 py-1.5 text-xs text-muted-foreground">
-                Nenhuma sessao rodando agora
+                Nenhuma sessão rodando agora
               </span>
             )}
           </div>
@@ -601,7 +601,7 @@ export default function TrackerPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             {trackerSummary.topProjectToday && trackerSummary.topProjectToday.todaySeconds > 0
               ? `${formatShortDuration(trackerSummary.topProjectToday.todaySeconds)} hoje`
-              : "Comece a primeira sessao para ver destaque aqui"}
+              : "Comece a primeira sessão para ver destaque aqui"}
           </p>
         </div>
       </section>
@@ -610,7 +610,7 @@ export default function TrackerPage() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar de projetos</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">Escolha rapida do proximo foco</h2>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Escolha rápida do próximo foco</h2>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

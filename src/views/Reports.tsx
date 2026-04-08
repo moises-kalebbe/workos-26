@@ -202,7 +202,7 @@ export default function ReportsPage() {
   }
 
   if (loading) {
-    return <LoadingState message="Carregando relatorios..." />;
+    return <LoadingState message="Carregando relatórios..." />;
   }
 
   return (
@@ -210,8 +210,8 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <PageHeader
           className="flex-1"
-          title="Relatorios"
-          description="Veja rapidamente onde seu tempo esta concentrado, quanto isso gera e quais sessoes explicam o resultado."
+          title="Relatórios"
+          description="Veja rapidamente onde seu tempo esta concentrado, quanto isso gera e quais sessões explicam o resultado."
         />
 
         <Button onClick={exportCSV} variant="outline" className="h-11 rounded-2xl border-border bg-background/60">
@@ -224,17 +224,17 @@ export default function ReportsPage() {
         <div className="rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-5 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)]">
           <div className="flex items-center gap-2 text-cyan-200/80">
             <Activity className="h-4 w-4 text-cyan-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Leitura do periodo</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Leitura do período</p>
           </div>
 
           <div className="mt-3">
             <p className="text-lg font-semibold text-foreground">
-              {topProject ? topProject.name : "Nenhum projeto lider no periodo"}
+              {topProject ? topProject.name : "Nenhum projeto lider no período"}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               {topProject
                 ? `${topProject.hours.toFixed(1)}h concentradas em ${topProject.client}. Esse foi o principal puxador de foco no recorte.`
-                : "Ajuste o periodo ou registre sessoes para destravar os indicadores desta area."}
+                : "Ajuste o período ou registre sessões para destravar os indicadores desta área."}
             </p>
           </div>
 
@@ -246,7 +246,7 @@ export default function ReportsPage() {
 
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="rounded-full border border-border/70 bg-background/30 px-2.5 py-1">
-                {sessions.length} sessoes fechadas
+                {sessions.length} sessões fechadas
               </span>
               <span className="rounded-full border border-border/70 bg-background/30 px-2.5 py-1">
                 {projectReports.length} projetos com horas
@@ -286,8 +286,8 @@ export default function ReportsPage() {
       <section className="rounded-2xl border border-border bg-card/95 p-4 md:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Filtro do relatorio</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">Refine o periodo e recalcule rapido</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Filtro do relatório</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Refine o período e recalcule rápido</h2>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -333,7 +333,7 @@ export default function ReportsPage() {
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <Badge variant="secondary" className="gap-1 rounded-full bg-background/60 text-muted-foreground">
                 <CalendarRange className="h-3 w-3" />
-                {new Date(`${startDate}T00:00:00`).toLocaleDateString("pt-BR")} ate {new Date(`${endDate}T00:00:00`).toLocaleDateString("pt-BR")}
+                {new Date(`${startDate}T00:00:00`).toLocaleDateString("pt-BR")} até {new Date(`${endDate}T00:00:00`).toLocaleDateString("pt-BR")}
               </Badge>
             </div>
           </div>
@@ -346,7 +346,7 @@ export default function ReportsPage() {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Distribuicao de foco</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Horas por projeto</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Leitura rapida das frentes que mais consumiram tempo no periodo.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Leitura rápida das frentes que mais consumiram tempo no período.</p>
             </div>
             <span className="rounded-full bg-background/60 px-3 py-1 text-xs text-muted-foreground">
               Top {Math.max(visibleProjects.length, 1)}
@@ -357,8 +357,8 @@ export default function ReportsPage() {
             {visibleProjects.length === 0 ? (
               <EmptyState
                 icon={Activity}
-                title="Sem horas no periodo"
-                description="Quando houver sessoes fechadas, o grafico mostra quais projetos estao puxando foco e valor."
+                title="Sem horas no período"
+                description="Quando houver sessões fechadas, o gráfico mostra quais projetos estão puxando foco e valor."
               />
             ) : (
               <ResponsiveContainer width="100%" height={320}>
@@ -404,8 +404,8 @@ export default function ReportsPage() {
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Resumo de projetos</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">Ranking do periodo</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Area de leitura rapida para decidir onde manter energia.</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Ranking do período</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Área de leitura rápida para decidir onde manter energia.</p>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -413,7 +413,7 @@ export default function ReportsPage() {
               <EmptyState
                 icon={FolderKanban}
                 title="Nenhum projeto com horas"
-                description="Assim que houver sessoes no periodo selecionado, o ranking mostra as frentes mais relevantes."
+                description="Assim que houver sessões no período selecionado, o ranking mostra as frentes mais relevantes."
               />
             ) : (
               projectReports.slice(0, 5).map((project, index) => (
@@ -447,12 +447,12 @@ export default function ReportsPage() {
       <section className="rounded-2xl border border-border bg-card/95">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/70 px-5 py-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Historico recente</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">Sessoes que explicam os numeros</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Histórico recente</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Sessões que explicam os números</h2>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-background/60 px-3 py-1 text-xs text-muted-foreground">
             <ReceiptText className="h-3.5 w-3.5 text-primary" />
-            {sessions.length} sessoes encontradas
+            {sessions.length} sessões encontradas
           </div>
         </div>
 
@@ -460,8 +460,8 @@ export default function ReportsPage() {
           <div className="p-5">
             <EmptyState
               icon={ReceiptText}
-              title="Nenhuma sessao no periodo"
-              description="Ajuste o periodo ou registre novas sessoes para ver o historico recente nesta area."
+              title="Nenhuma sessão no período"
+              description="Ajuste o período ou registre novas sessões para ver o histórico recente nesta área."
             />
           </div>
         ) : (
@@ -478,7 +478,7 @@ export default function ReportsPage() {
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate font-medium text-foreground">{project?.name || "Projeto nao identificado"}</p>
+                      <p className="truncate font-medium text-foreground">{project?.name || "Projeto não identificado"}</p>
                       <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] text-primary">
                         {project?.client || "Sem cliente"}
                       </span>

@@ -28,27 +28,27 @@ export const GENERAL_MCP_SKILLS_SEED: GeneralSeedSkill[] = [
   {
     title: "n8n Specialist (MCP)",
     slug: "n8n-specialist-mcp",
-    summary: "Especialista em n8n com foco em template-first, validacao em camadas e execucao paralela.",
+    summary: "Especialista em n8n com foco em template-first, validação em camadas e execução paralela.",
     contentMd: `# n8n Specialist (MCP)
 
 Use esta skill quando precisar criar, revisar, corrigir ou evoluir workflows n8n usando MCP.
 
 ## Quando usar
 
-- Criar workflow novo a partir de um requisito de negocio
-- Ajustar nodes ou expressoes em um fluxo existente
-- Validar configuracao antes de ativar em producao
-- Procurar templates ou padroes antes de implementar do zero
+- Criar workflow novo a partir de um requisito de negócio
+- Ajustar nodes ou expressões em um fluxo existente
+- Validar configuração antes de ativar em producao
+- Procurar templates ou padrões antes de implementar do zero
 
 ## Regras principais
 
 1. Executar ferramentas em silencio e responder apenas com o resultado final.
-2. Priorizar execucao paralela quando as consultas forem independentes.
+2. Priorizar execução paralela quando as consultas forem independentes.
 3. Buscar templates antes de construir manualmente.
 4. Evitar defaults implicitos; configurar parametros criticos explicitamente.
-5. Validar em camadas: node minimo -> node operacao -> workflow completo.
+5. Validar em camadas: node mínimo -> node operacao -> workflow completo.
 
-## Sequencia recomendada
+## Sequência recomendada
 
 1. \`n8n_health_check\`
 2. \`n8n_list_available_tools\`
@@ -58,12 +58,12 @@ Use esta skill quando precisar criar, revisar, corrigir ou evoluir workflows n8n
 6. \`validate_node_operation\`
 7. \`validate_workflow\` ou \`n8n_validate_workflow\`
 
-## Fluxo pratico
+## Fluxo prático
 
 ### 1. Descobrir a melhor base
 
 - Procurar template com \`get_templates_for_task\` ou \`search_templates\`
-- Se nao houver template adequado, escolher nodes com \`search_nodes\`
+- Se não houver template adequado, escolher nodes com \`search_nodes\`
 
 ### 2. Montar com estrutura correta
 
@@ -74,16 +74,16 @@ Use esta skill quando precisar criar, revisar, corrigir ou evoluir workflows n8n
 ### 3. Validar antes de ativar
 
 - Validar nodes isolados
-- Validar expressoes
-- Validar conexoes
+- Validar expressões
+- Validar conexões
 - Validar o workflow inteiro
 
 ## Checklist de entrega
 
 - Trigger definido com clareza
-- Credenciais corretas e nao hardcoded
-- Expressoes resolvendo com dados reais
-- Tratamento minimo de erro definido
+- Credenciais corretas e não hardcoded
+- Expressões resolvendo com dados reais
+- Tratamento mínimo de erro definido
 - Workflow validado sem erros bloqueantes
 `,
   },
@@ -99,19 +99,19 @@ Use esta skill quando precisar operar banco Supabase com MCP sem improvisar quer
 
 - Descobrir projetos e tabelas disponiveis
 - Inspecionar dados antes de alterar qualquer coisa
-- Rodar SQL de leitura com limite e criterio
+- Rodar SQL de leitura com limite e critério
 - Aplicar migrations DDL de forma controlada
 - Checar advisors de seguranca e performance
 
 ## Regras principais
 
 1. Explorar estrutura antes de consultar dados.
-2. Em leitura, usar \`LIMIT 10\` por padrao se o objetivo nao exigir mais.
+2. Em leitura, usar \`LIMIT 10\` por padrão se o objetivo não exigir mais.
 3. DDL com \`apply_migration\`; DML com \`execute_sql\`.
 4. Preferir agregacoes e filtros especificos em vez de \`SELECT *\` amplo.
 5. Evitar expor PII sem necessidade.
 
-## Sequencia recomendada
+## Sequência recomendada
 
 1. \`list_projects\`
 2. \`list_tables({ project_id })\`
@@ -120,7 +120,7 @@ Use esta skill quando precisar operar banco Supabase com MCP sem improvisar quer
 5. \`get_advisors({ project_id, type: "security" })\`
 6. \`get_advisors({ project_id, type: "performance" })\`
 
-## Padrao de trabalho
+## Padrão de trabalho
 
 ### Exploracao
 
@@ -130,15 +130,15 @@ Use esta skill quando precisar operar banco Supabase com MCP sem improvisar quer
 
 ### Alteracoes
 
-- Escrever migration nomeada e reversivel quando possivel
-- Nao misturar DDL e DML sem necessidade
+- Escrever migration nomeada e reversivel quando possível
+- Não misturar DDL e DML sem necessidade
 - Validar impacto em RLS e advisors depois da mudanca
 
-### Integracao com n8n
+### Integração com n8n
 
 - Preferir views ou SQL simples para consumo em workflow
 - Reduzir payload e colunas expostas
-- Manter nomes previsiveis para facilitar manutencao
+- Manter nomes previsiveis para facilitar manutenção
 
 ## Checklist de entrega
 
@@ -152,7 +152,7 @@ Use esta skill quando precisar operar banco Supabase com MCP sem improvisar quer
   {
     title: "Setup MCP n8n + Supabase",
     slug: "setup-mcp-n8n-supabase",
-    summary: "Guia completo para configurar os dois MCP servers com credenciais seguras e validacao minima objetiva.",
+    summary: "Guia completo para configurar os dois MCP servers com credenciais seguras e validação mínima objetiva.",
     contentMd: `# Setup MCP n8n + Supabase
 
 Use esta skill para configurar e validar os MCP servers de n8n e Supabase no cliente.
@@ -160,7 +160,7 @@ Use esta skill para configurar e validar os MCP servers de n8n e Supabase no cli
 ## Objetivo
 
 - Configurar os dois servidores MCP
-- Validar conectividade basica
+- Validar conectividade básica
 - Evitar credenciais hardcoded em arquivos versionados
 
 ## Pre-requisitos
@@ -168,9 +168,9 @@ Use esta skill para configurar e validar os MCP servers de n8n e Supabase no cli
 - \`N8N_API_URL\`
 - \`N8N_API_KEY\`
 - \`SUPABASE_ACCESS_TOKEN\`
-- \`npx\` disponivel no ambiente
+- \`npx\` disponível no ambiente
 
-## Exemplo de configuracao
+## Exemplo de configuração
 
 \`\`\`toml
 [mcp_servers.n8n-mcp]
@@ -189,7 +189,7 @@ command = "npx"
 args = ["-y", "@supabase/mcp-server-supabase@0.5.5", "--access-token", "\${SUPABASE_ACCESS_TOKEN}"]
 \`\`\`
 
-## Validacao minima
+## Validação mínima
 
 ### n8n
 
@@ -208,19 +208,19 @@ args = ["-y", "@supabase/mcp-server-supabase@0.5.5", "--access-token", "\${SUPAB
 - Supabase retorna projetos acessiveis
 - \`list_tables\` funciona com um \`project_id\` valido
 
-## Troubleshooting rapido
+## Troubleshooting rápido
 
-- Se n8n falhar: revisar \`N8N_API_URL\`, \`N8N_API_KEY\` e permissao da chave
+- Se n8n falhar: revisar \`N8N_API_URL\`, \`N8N_API_KEY\` e permissão da chave
 - Se Supabase falhar: revisar \`SUPABASE_ACCESS_TOKEN\`
 - Se \`npx\` falhar: validar Node.js e acesso ao pacote
-- Se uma tool aparece mas falha na execucao: validar credencial e escopo, nao apenas instalacao
+- Se uma tool aparece mas falha na execução: validar credencial e escopo, não apenas instalacao
 
-## Sequencia recomendada depois do setup
+## Sequência recomendada depois do setup
 
 1. Validar n8n
 2. Validar Supabase
 3. Descobrir tabelas alvo
-4. So entao montar workflow integrando os dois lados
+4. Só entao montar workflow integrando os dois lados
 `,
   },
 ];

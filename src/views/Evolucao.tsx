@@ -35,14 +35,14 @@ export default function EvolucaoPage() {
   } = useEvolucaoFeature({ userId: user?.id || null });
 
   if (loading && !todayPrompt && history.length === 0) {
-    return <LoadingState message="Carregando diario de evolucao..." />;
+    return <LoadingState message="Carregando diário de evolução..." />;
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Evolucao"
-        description="Um registro por dia para transformar ideia boa em acao consciente e acompanhar sua evolucao mental e pessoal."
+        title="Evolução"
+        description="Um registro por dia para transformar ideia boa em ação consciente e acompanhar sua evolução mental e pessoal."
         actions={(
           <Button asChild variant="outline" className="gap-2">
             <Link href="/">
@@ -69,10 +69,10 @@ export default function EvolucaoPage() {
       <section className="rounded-2xl border border-border bg-card/95 p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Historico</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Histórico</p>
             <h2 className="mt-1 text-xl font-semibold text-foreground">Entradas anteriores</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Veja a sequencia dos prompts, seu estado emocional e as acoes que voce registrou.
+              Veja a sequência dos prompts, seu estado emocional e as ações que você registrou.
             </p>
           </div>
           <Badge variant="secondary">{history.length} registros</Badge>
@@ -82,7 +82,7 @@ export default function EvolucaoPage() {
           <div className="mt-5">
             <EmptyState
               title="Nenhum registro ainda"
-              description="Salve o prompt de hoje para iniciar seu historico de evolucao."
+              description="Salve o prompt de hoje para iniciar seu histórico de evolução."
               icon={Sparkles}
             />
           </div>
@@ -119,7 +119,7 @@ export default function EvolucaoPage() {
                   </div>
 
                   <div className="mt-4 rounded-xl border border-border/70 bg-card/80 p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Acoes tomadas</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Ações tomadas</p>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{entry.actions_taken_md}</p>
                   </div>
                 </article>

@@ -313,7 +313,7 @@ export default function SettingsPage() {
     });
 
     if (!result.hourlyRate || !result.dailyRate) {
-      toast.error("Nao foi possivel calcular os valores");
+      toast.error("Não foi possível calcular os valores");
       return;
     }
 
@@ -365,13 +365,13 @@ export default function SettingsPage() {
   const timezoneLabel = TIMEZONES.find((item) => item.value === timezone)?.label || timezone;
 
   if (loading) {
-    return <LoadingState message="Carregando configuracoes..." />;
+    return <LoadingState message="Carregando configurações..." />;
   }
 
   return (
     <div className="space-y-6 pb-8">
       <PageHeader
-        title="Configuracoes"
+        title="Configurações"
         description="Ajuste perfil, empresas e preferencias sem perder contexto da operacao."
       />
 
@@ -379,7 +379,7 @@ export default function SettingsPage() {
         <div className="rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-5 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)]">
           <div className="flex items-center gap-2 text-cyan-200/80">
             <Activity className="h-4 w-4 text-cyan-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Area da conta</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Área da conta</p>
           </div>
 
           <div className="mt-4 flex items-start gap-4">
@@ -413,11 +413,11 @@ export default function SettingsPage() {
         <SummaryCard
           label="Empresas"
           value={String(projects.length).padStart(2, "0")}
-          helper="Base atual para tracker, kanban e relatorios"
+          helper="Base atual para tracker, kanban e relatórios"
           icon={Briefcase}
         />
         <SummaryCard
-          label="Taxa media"
+          label="Taxa média"
           value={averageHourlyRate > 0 ? formatMoney(averageHourlyRate) : "--"}
           helper="Media do valor/hora salvo nas empresas"
           icon={Wallet}
@@ -498,7 +498,7 @@ export default function SettingsPage() {
                     className="h-11 rounded-2xl border-border bg-background/60 font-mono text-xs"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Se usar `data:image/...`, o perfil continua funcionando, mas a URL fica longa. Prefira URL publica quando puder.
+                    Se usar `data:image/...`, o perfil continua funcionando, mas a URL fica longa. Prefira URL pública quando puder.
                   </p>
                 </div>
 
@@ -669,7 +669,7 @@ export default function SettingsPage() {
             <EmptyState
               icon={Briefcase}
               title="Nenhuma empresa cadastrada"
-              description="Crie a primeira empresa para organizar tracker, kanban e relatorios a partir dela."
+              description="Crie a primeira empresa para organizar tracker, kanban e relatórios a partir dela."
             />
           ) : (
             <section className="space-y-3">
@@ -765,7 +765,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="rounded-xl border border-border/70 bg-background/35 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Horario local</p>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Horário local</p>
                   <p className="mt-2 text-lg font-semibold text-foreground">
                     {new Date().toLocaleTimeString("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit" })}
                   </p>
@@ -786,7 +786,7 @@ export default function SettingsPage() {
               <div className="mt-5 rounded-xl border border-border/70 bg-background/35 p-4">
                 <Badge className="bg-primary/15 text-primary hover:bg-primary/15">{profile?.plan || "Free"}</Badge>
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Plano atual da conta. Esta area pode crescer depois com billing e limites, mas ja fica mais clara e organizada.
+                  Plano atual da conta. Esta área pode crescer depois com billing e limites, mas já fica mais clara e organizada.
                 </p>
               </div>
             </div>
