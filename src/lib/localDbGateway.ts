@@ -42,6 +42,7 @@ export const LOCAL_DB_TABLES = new Set([
   "agenda_event_metadata",
   "agenda_preferences",
   "agenda_meeting_topics",
+  "notification_preferences",
   "google_tokens",
 ]);
 
