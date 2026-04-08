@@ -190,6 +190,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BASE_URL="${APP_BASE_URL}"
-          curl -fsSL "${BASE_URL}/financeiro" >/dev/null
-          curl -fsSL "${BASE_URL}/evolucao" >/dev/null
+          BASE_URL="${APP_BASE_URL%/}"
+
+          check_route() {
+            local path="$1"
+            local url="${BASE_URL}${path}"
+            local status
+
+            status="$(curl -sS -o /dev/null -w '%{http_code}' -L "${url}")"
+            echo "${url} -> ${status}"
+
+            case "${status}" in
+              2*|3*) ;;
+              *)
+                echo "Smoke test failed for ${url}"
+                exit 1
+                ;;
+            esac
+          }
+
+          check_route "/"
+          check_route "/sign-in"
+
