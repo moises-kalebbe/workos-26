@@ -4,7 +4,6 @@ import type {
   BuildDashboardModelInput,
   DashboardFinancialEntry,
   DashboardProject,
-  DashboardSecondBrainNote,
   DashboardSessionRow,
   DashboardTaskRow,
 } from "@/features/dashboard/types";
@@ -144,21 +143,6 @@ function makeMeetingItem(overrides: Partial<MeetingMinutesItem> = {}): MeetingMi
   };
 }
 
-function makeNote(overrides: Partial<DashboardSecondBrainNote> = {}): DashboardSecondBrainNote {
-  return {
-    id: "note-1",
-    project_id: "project-1",
-    title: "Ideia ainda no inbox",
-    slug: "ideia-ainda-no-inbox",
-    status: "inbox",
-    captured_at: "2026-04-04T09:00:00.000Z",
-    created_at: "2026-04-04T09:00:00.000Z",
-    updated_at: "2026-04-04T09:00:00.000Z",
-    tags: ["inbox"],
-    ...overrides,
-  };
-}
-
 function buildInput(overrides: Partial<BuildDashboardModelInput> = {}): BuildDashboardModelInput {
   return {
     now: NOW,
@@ -168,7 +152,6 @@ function buildInput(overrides: Partial<BuildDashboardModelInput> = {}): BuildDas
     calendarEvents: [],
     financialEntries: [],
     meetingItems: [],
-    secondBrainNotes: [],
     activeTimerProjectId: null,
     ...overrides,
   };
@@ -211,7 +194,6 @@ describe("dashboard model", () => {
           title: "Registrar follow-up",
         }),
       ],
-      secondBrainNotes: [makeNote()],
     });
 
     const queue = buildDashboardAttentionQueue(input);
@@ -225,7 +207,6 @@ describe("dashboard model", () => {
       "meeting_minutes_pending",
       "finance_upcoming",
       "task_stale_in_progress",
-      "second_brain_inbox",
     ]);
   });
 
@@ -298,16 +279,12 @@ describe("dashboard model", () => {
     const health = buildDashboardProjectHealth(
       buildInput({
         projects,
-        tasks: [
-          makeTask({ id: "risk-task", project_id: "risk", due_date: "2026-04-07" }),
-        ],
+        tasks: [makeTask({ id: "risk-task", project_id: "risk", due_date: "2026-04-07" })],
         sessions: [
           makeSession({ id: "attention-session", project_id: "attention", duration_seconds: 1800 }),
           makeSession({ id: "stable-session", project_id: "stable", duration_seconds: 10800 }),
         ],
-        financialEntries: [
-          makeFinancialEntry({ id: "risk-finance", project_id: "risk", due_date: "2026-04-07" }),
-        ],
+        financialEntries: [makeFinancialEntry({ id: "risk-finance", project_id: "risk", due_date: "2026-04-07" })],
       }),
     );
 
@@ -323,4 +300,3 @@ describe("dashboard model", () => {
     });
   });
 });
-

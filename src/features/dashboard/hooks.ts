@@ -9,7 +9,6 @@ import type {
   DashboardActionDescriptor,
   DashboardFinancialEntry,
   DashboardProject,
-  DashboardSecondBrainNote,
   DashboardSessionRow,
   DashboardTaskRow,
 } from "@/features/dashboard/types";
@@ -45,7 +44,6 @@ export function useDashboardFeature() {
   const [sessions, setSessions] = useState<DashboardSessionRow[]>([]);
   const [financialEntries, setFinancialEntries] = useState<DashboardFinancialEntry[]>([]);
   const [meetingItems, setMeetingItems] = useState<MeetingMinutesItem[]>([]);
-  const [secondBrainNotes, setSecondBrainNotes] = useState<DashboardSecondBrainNote[]>([]);
   const [actingKey, setActingKey] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
 
@@ -61,7 +59,6 @@ export function useDashboardFeature() {
       setSessions([]);
       setFinancialEntries([]);
       setMeetingItems([]);
-      setSecondBrainNotes([]);
       setLoading(false);
       return;
     }
@@ -70,15 +67,7 @@ export function useDashboardFeature() {
 
     const recentWindowIso = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [
-      profileRes,
-      projectRes,
-      taskRes,
-      sessionRes,
-      financialRes,
-      meetingItemsRes,
-      notesRes,
-    ] = await Promise.all([
+    const [profileRes, projectRes, taskRes, sessionRes, financialRes, meetingItemsRes] = await Promise.all([
       db.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
       db
         .from("projects")
@@ -108,11 +97,6 @@ export function useDashboardFeature() {
         .select("*")
         .eq("user_id", user.id)
         .order("meeting_start_at", { ascending: false }),
-      db
-        .from("second_brain_notes")
-        .select("id, project_id, title, slug, status, captured_at, created_at, updated_at, tags")
-        .eq("user_id", user.id)
-        .order("captured_at", { ascending: false }),
     ]);
 
     if (profileRes.error) {
@@ -156,13 +140,6 @@ export function useDashboardFeature() {
       setMeetingItems((meetingItemsRes.data || []) as MeetingMinutesItem[]);
     }
 
-    if (notesRes.error) {
-      toast.error("Não foi possível carregar o inbox do second brain.");
-      setSecondBrainNotes([]);
-    } else {
-      setSecondBrainNotes((notesRes.data || []) as DashboardSecondBrainNote[]);
-    }
-
     setLoading(false);
   }, [user]);
 
@@ -199,20 +176,9 @@ export function useDashboardFeature() {
         calendarEvents,
         financialEntries: enrichedFinancialEntries,
         meetingItems,
-        secondBrainNotes,
         activeTimerProjectId: timer.activeProjectId,
       }),
-    [
-      calendarEvents,
-      enrichedFinancialEntries,
-      meetingItems,
-      now,
-      projects,
-      secondBrainNotes,
-      sessions,
-      tasks,
-      timer.activeProjectId,
-    ],
+    [calendarEvents, enrichedFinancialEntries, meetingItems, now, projects, sessions, tasks, timer.activeProjectId],
   );
 
   const timelineBlocks = useMemo(() => {
@@ -257,8 +223,7 @@ export function useDashboardFeature() {
   }, [now, sessions, timezone]);
 
   const totalTargetSeconds = useMemo(
-    () =>
-      projects.reduce((sum, project) => sum + Math.max(0, Number(project.daily_agreed_hours || 0)) * 3600, 0),
+    () => projects.reduce((sum, project) => sum + Math.max(0, Number(project.daily_agreed_hours || 0)) * 3600, 0),
     [projects],
   );
 

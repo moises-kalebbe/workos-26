@@ -4,7 +4,6 @@ import type {
   MeetingMinutesItem,
   MeetingMinutesStatus,
   Project,
-  SecondBrainNote,
   Task,
   TimeSession,
 } from "@/types";
@@ -71,11 +70,6 @@ export type DashboardFinancialEntry = Pick<
   | "contract"
 >;
 
-export type DashboardSecondBrainNote = Pick<
-  SecondBrainNote,
-  "id" | "project_id" | "title" | "slug" | "status" | "captured_at" | "created_at" | "updated_at" | "tags"
->;
-
 export type DashboardActionKind =
   | "join_meeting"
   | "open_agenda"
@@ -90,8 +84,7 @@ export type DashboardActionKind =
   | "open_payment_url"
   | "open_financeiro"
   | "open_atas"
-  | "update_meeting_item_status"
-  | "open_second_brain";
+  | "update_meeting_item_status";
 
 export type DashboardAttentionItemType =
   | "meeting_live_or_soon"
@@ -101,8 +94,7 @@ export type DashboardAttentionItemType =
   | "meeting_missing_minutes"
   | "meeting_minutes_pending"
   | "finance_upcoming"
-  | "task_stale_in_progress"
-  | "second_brain_inbox";
+  | "task_stale_in_progress";
 
 export type DashboardProjectHealthLevel = "at_risk" | "attention" | "stable";
 export type DashboardAttentionTone = "danger" | "warning" | "info" | "neutral";
@@ -174,7 +166,6 @@ export interface DashboardModuleSnapshot {
   overdueFinanceCount: number;
   pendingMeetingMinutesCount: number;
   staleInProgressTaskCount: number;
-  secondBrainInboxCount: number;
   activeTimerProjectId: string | null;
   activeTimerProjectName: string | null;
 }
@@ -187,7 +178,5 @@ export interface BuildDashboardModelInput {
   calendarEvents: CalendarEvent[];
   financialEntries: DashboardFinancialEntry[];
   meetingItems: MeetingMinutesItem[];
-  secondBrainNotes: DashboardSecondBrainNote[];
   activeTimerProjectId: string | null;
 }
-

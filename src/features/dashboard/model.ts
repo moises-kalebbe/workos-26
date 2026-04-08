@@ -11,7 +11,6 @@ import type {
   DashboardPrimaryRecommendation,
   DashboardProject,
   DashboardProjectHealth,
-  DashboardSecondBrainNote,
   DashboardSessionRow,
   DashboardTaskRow,
 } from "@/features/dashboard/types";
@@ -22,7 +21,6 @@ const LIVE_OR_SOON_MINUTES = 30;
 const MISSING_MINUTES_LOOKBACK_HOURS = 6;
 const UPCOMING_FINANCE_DAYS = 7;
 const STALE_TASK_DAYS = 2;
-const INBOX_STALE_DAYS = 3;
 const PROJECT_MEETING_LOOKAHEAD_HOURS = 48;
 
 const ATTENTION_ORDER: Record<DashboardAttentionItem["type"], number> = {
@@ -34,7 +32,6 @@ const ATTENTION_ORDER: Record<DashboardAttentionItem["type"], number> = {
   meeting_minutes_pending: 5,
   finance_upcoming: 6,
   task_stale_in_progress: 7,
-  second_brain_inbox: 8,
 };
 
 const HEALTH_ORDER: Record<DashboardProjectHealth["level"], number> = {
@@ -278,35 +275,8 @@ function buildMeetingMinutesActions(item: MeetingMinutesItem): Pick<DashboardAtt
   };
 }
 
-function buildSecondBrainActions(): Pick<DashboardAttentionItem, "primaryAction" | "secondaryAction"> {
-  return {
-    primaryAction: {
-      kind: "open_second_brain",
-      label: "Abrir inbox",
-      href: "/second-brain?status=inbox",
-    },
-    secondaryAction: {
-      kind: "open_second_brain",
-      label: "Ver second brain",
-      href: "/second-brain?status=inbox",
-    },
-  };
-}
-
 function buildTaskTitle(task: DashboardTaskRow, projectMap: Map<string, DashboardProject>) {
   return formatProjectName(task.project_id, task.project_id ? projectMap.get(task.project_id)?.name || null : null, task.client);
-}
-
-function getUpcomingMeetingLabel(events: CalendarEvent[], now: Date, lookAheadHours: number) {
-  const horizon = now.getTime() + lookAheadHours * HOUR_MS;
-  const upcoming = events
-    .filter((event) => event.projectId)
-    .filter(isMeetingCandidate)
-    .map((event) => ({ event, start: new Date(event.start) }))
-    .filter(({ start }) => start.getTime() >= now.getTime() && start.getTime() <= horizon)
-    .sort((left, right) => left.start.getTime() - right.start.getTime());
-
-  return upcoming;
 }
 
 function getProjectMeetingHealth(projectId: string, events: CalendarEvent[], now: Date) {
@@ -344,8 +314,6 @@ function getQueueBadgeLabel(type: DashboardAttentionItem["type"]) {
       return "Próximo vencimento";
     case "task_stale_in_progress":
       return "Execução parada";
-    case "second_brain_inbox":
-      return "Inbox";
     default:
       return "Atenção";
   }
@@ -360,7 +328,6 @@ export function buildDashboardAttentionQueue(input: BuildDashboardModelInput): D
     calendarEvents,
     financialEntries,
     meetingItems,
-    secondBrainNotes,
     activeTimerProjectId,
   } = input;
 
@@ -370,7 +337,6 @@ export function buildDashboardAttentionQueue(input: BuildDashboardModelInput): D
   const queue: DashboardAttentionItem[] = [];
   const seenTaskIds = new Set<string>();
   const seenFinanceIds = new Set<string>();
-  const seenMeetingItemIds = new Set<string>();
   const meetingIdsWithMinutes = new Set(meetingItems.map((item) => item.meeting_event_id));
 
   const meetingCandidates = [...calendarEvents]
@@ -510,7 +476,6 @@ export function buildDashboardAttentionQueue(input: BuildDashboardModelInput): D
     .sort((left, right) => new Date(left.meeting_start_at).getTime() - new Date(right.meeting_start_at).getTime());
 
   for (const item of unresolvedMeetingItems) {
-    seenMeetingItemIds.add(item.id);
     queue.push({
       id: `minutes:${item.id}`,
       type: "meeting_minutes_pending",
@@ -536,7 +501,6 @@ export function buildDashboardAttentionQueue(input: BuildDashboardModelInput): D
     .sort((left, right) => parseFinanceiroDate(left.due_date).getTime() - parseFinanceiroDate(right.due_date).getTime());
 
   for (const entry of financeUpcoming) {
-    seenFinanceIds.add(entry.id);
     const dayDiff = Math.max(0, Math.floor((startOfDay(parseFinanceiroDate(entry.due_date)).getTime() - todayStart) / DAY_MS));
     queue.push({
       id: `finance:${entry.id}:upcoming`,
@@ -554,7 +518,8 @@ export function buildDashboardAttentionQueue(input: BuildDashboardModelInput): D
   }
 
   const staleInProgressTasks = sortTasksForMatrix(
-    tasks.filter((task) => task.column_index === 1)
+    tasks
+      .filter((task) => task.column_index === 1)
       .filter((task) => !seenTaskIds.has(task.id))
       .filter((task) => Boolean(task.project_id))
       .filter((task) => {
@@ -583,30 +548,6 @@ export function buildDashboardAttentionQueue(input: BuildDashboardModelInput): D
     });
   }
 
-  const staleInboxNotes = secondBrainNotes
-    .filter((note) => note.status === "inbox")
-    .filter((note) => {
-      const reference = new Date(note.captured_at || note.created_at || note.updated_at);
-      return now.getTime() - reference.getTime() >= INBOX_STALE_DAYS * DAY_MS;
-    })
-    .sort((left, right) => new Date(left.captured_at || left.created_at).getTime() - new Date(right.captured_at || right.created_at).getTime());
-
-  for (const note of staleInboxNotes) {
-    queue.push({
-      id: `note:${note.id}`,
-      type: "second_brain_inbox",
-      rank: 0,
-      eyebrow: "Inbox acumulando",
-      title: note.title,
-      description: `Nota aguardando organização há mais de ${INBOX_STALE_DAYS} dias.`,
-      tone: "neutral",
-      badgeLabel: getQueueBadgeLabel("second_brain_inbox"),
-      projectId: note.project_id,
-      projectName: note.project_id ? projectMap.get(note.project_id)?.name || null : null,
-      ...buildSecondBrainActions(),
-    });
-  }
-
   return queue
     .sort((left, right) => {
       if (ATTENTION_ORDER[left.type] !== ATTENTION_ORDER[right.type]) {
@@ -629,10 +570,9 @@ export function buildDashboardModuleSnapshot(
     .filter((event) => isSameDay(new Date(event.start), input.now))
     .length;
 
-  const activeTimerProjectName =
-    input.activeTimerProjectId
-      ? input.projects.find((project) => project.id === input.activeTimerProjectId)?.name || null
-      : null;
+  const activeTimerProjectName = input.activeTimerProjectId
+    ? input.projects.find((project) => project.id === input.activeTimerProjectId)?.name || null
+    : null;
 
   return {
     liveOrSoonMeetingCount: attentionQueue.filter((item) => item.type === "meeting_live_or_soon").length,
@@ -644,7 +584,6 @@ export function buildDashboardModuleSnapshot(
     overdueFinanceCount: attentionQueue.filter((item) => item.type === "finance_overdue").length,
     pendingMeetingMinutesCount: input.meetingItems.filter((item) => item.status === "pending" || item.status === "in_progress").length,
     staleInProgressTaskCount: attentionQueue.filter((item) => item.type === "task_stale_in_progress").length,
-    secondBrainInboxCount: input.secondBrainNotes.filter((note) => note.status === "inbox").length,
     activeTimerProjectId: input.activeTimerProjectId,
     activeTimerProjectName,
   };
@@ -720,7 +659,6 @@ export function buildDashboardProjectHealth(input: BuildDashboardModelInput): Da
     financialEntries,
   } = input;
 
-  const latestSessionByProject = getLatestSessionByProject(sessions);
   const todayStart = startOfDay(now).getTime();
   const isAfterNoon = now.getHours() >= 12;
 
@@ -827,5 +765,3 @@ export function buildDashboardModel(input: BuildDashboardModelInput) {
     projectHealth,
   };
 }
-
-
