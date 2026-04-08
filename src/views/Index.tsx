@@ -13,9 +13,11 @@ import {
   Video,
 } from "lucide-react";
 import { toast } from "sonner";
+import { DailyReflectionEditor } from "@/components/evolucao/daily-reflection-editor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/system/page-header";
+import { useEvolucaoFeature } from "@/features/evolucao/hooks";
 import { db } from "@/lib/dbClient";
 import { summarizeFinanceiro } from "@/features/financeiro/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -97,6 +99,7 @@ export default function IndexPage() {
   const [tasks, setTasks] = useState<DashboardTaskRow[]>([]);
   const [financialEntries, setFinancialEntries] = useState<DashboardFinancialEntry[]>([]);
   const [now, setNow] = useState(() => new Date());
+  const dailyReflection = useEvolucaoFeature({ userId: user?.id || null });
 
   useEffect(() => {
     const timerId = setInterval(() => setNow(new Date()), 30000);
@@ -603,6 +606,22 @@ export default function IndexPage() {
           </div>
         </div>
       </section>
+
+      <DailyReflectionEditor
+        draft={dailyReflection.draft}
+        loading={dailyReflection.loading}
+        moodOptions={dailyReflection.moodOptions}
+        onSave={dailyReflection.saveTodayEntry}
+        onUpdateDraft={dailyReflection.updateDraft}
+        prompt={dailyReflection.todayPrompt}
+        ratingOptions={dailyReflection.ratingOptions}
+        saving={dailyReflection.saving}
+        footer={(
+          <Button asChild variant="outline">
+            <Link href="/evolucao">Abrir historico</Link>
+          </Button>
+        )}
+      />
 
       <section className="rounded-xl border border-border bg-card p-4 md:p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

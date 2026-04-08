@@ -37,6 +37,10 @@ function isMutationAction(action: QueryAction) {
   return action === "insert" || action === "update" || action === "delete" || action === "upsert";
 }
 
+function isReadOnlyTable(table: string) {
+  return table === "daily_reflection_prompts";
+}
+
 async function waitForClerkSession() {
   if (DEV_AUTH_USER_ID) {
     return {
@@ -163,6 +167,13 @@ class LocalQueryBuilder<T> implements PromiseLike<QueryResult<T>> {
   }
 
   private async execute(): Promise<QueryResult<T>> {
+    if (isMutationAction(this.action) && isReadOnlyTable(this.table)) {
+      return {
+        data: null,
+        error: { message: "Prompt catalog is read-only" },
+      };
+    }
+
     const { token } = await waitForClerkSession();
 
     const payload: QueryPayload = {

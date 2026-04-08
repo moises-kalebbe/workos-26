@@ -7,6 +7,10 @@ export function createServerDbClient(userId: string | null = null) {
     return action === "insert" || action === "update" || action === "delete" || action === "upsert";
   }
 
+  function isReadOnlyTable(table: string) {
+    return table === "daily_reflection_prompts";
+  }
+
   class ServerQueryBuilder<T> implements PromiseLike<{ data: T | null; error: { message: string } | null }> {
     private readonly filters: LocalDbFilter[] = [];
     private readonly orderBy: Array<{ column: string; ascending: boolean }> = [];
@@ -109,6 +113,13 @@ export function createServerDbClient(userId: string | null = null) {
     private async execute() {
       if (!authUserId) {
         return { data: null, error: { message: "Unauthorized" } };
+      }
+
+      if (isMutationAction(this.action) && isReadOnlyTable(this.table)) {
+        return {
+          data: null,
+          error: { message: "Prompt catalog is read-only" },
+        };
       }
 
       try {

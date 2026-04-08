@@ -22,6 +22,9 @@ export type LocalDbPayload = {
 export const LOCAL_DB_TABLES = new Set([
   "profiles",
   "projects",
+  "daily_reflection_prompts",
+  "daily_reflection_settings",
+  "daily_reflection_entries",
   "financial_entries",
   "financial_contracts",
   "time_sessions",
@@ -55,6 +58,10 @@ function quoteIdentifier(value: string) {
 }
 
 function getOwnershipClause(table: string, userId: string, values: unknown[]) {
+  if (table === "daily_reflection_prompts") {
+    return "1 = 1";
+  }
+
   if (table === "profiles") {
     values.push(userId);
     return `t."id" = $${values.length}`;
@@ -237,6 +244,10 @@ async function insertRows(table: string, rows: Array<Record<string, unknown>>, c
 export async function executeLocalDbQuery(table: string, userId: string, payload: LocalDbPayload) {
   if (!LOCAL_DB_TABLES.has(table)) {
     throw new Error("Table not allowed");
+  }
+
+  if (table === "daily_reflection_prompts" && payload.action !== "select") {
+    throw new Error("Prompt catalog is read-only");
   }
 
   await ensureDatabaseConnection();

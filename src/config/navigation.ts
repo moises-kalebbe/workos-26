@@ -3,6 +3,7 @@ import {
   BarChart3,
   Brain,
   BrainCircuit,
+  BookOpen,
   Calendar,
   ClipboardList,
   Columns3,
@@ -22,6 +23,7 @@ export type NavItem = {
 
 export const DASHBOARD_NAV_ITEMS: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: BookOpen, label: "Evolucao", path: "/evolucao" },
   { icon: Timer, label: "Time Tracker", path: "/tracker" },
   { icon: Columns3, label: "Kanban", path: "/kanban" },
   { icon: Calendar, label: "Agenda", path: "/agenda" },

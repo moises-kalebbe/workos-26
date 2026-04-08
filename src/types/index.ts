@@ -297,6 +297,38 @@ export interface SecondBrainGraphEdge {
   link_type: SecondBrainLinkType;
 }
 
+export type DailyReflectionMood = "excellent" | "good" | "neutral" | "tired" | "heavy";
+
+export interface DailyReflectionPrompt {
+  id: string;
+  position: number;
+  title: string;
+  score: number;
+  summary: string;
+  application_hint: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyReflectionSetting {
+  user_id: string;
+  rotation_started_on: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyReflectionEntry {
+  id: string;
+  user_id: string;
+  entry_date: string;
+  prompt_id: string;
+  actions_taken_md: string;
+  self_rating: number;
+  mood: DailyReflectionMood;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CurrentWorkOverview {
   hasActiveSession: boolean;
   projectName: string | null;
