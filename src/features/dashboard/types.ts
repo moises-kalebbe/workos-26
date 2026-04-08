@@ -190,3 +190,4 @@ export interface BuildDashboardModelInput {
   secondBrainNotes: DashboardSecondBrainNote[];
   activeTimerProjectId: string | null;
 }
+
