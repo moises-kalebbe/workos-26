@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil, Copy, BookOpen, Search, Activity, Clock3, AlertTriangle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -277,6 +278,7 @@ const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtas
 export default function KanbanPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMobile = useIsMobile();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -604,7 +606,15 @@ export default function KanbanPage() {
   const selectedNewSkill = newSkillValue === NO_SKILL_VALUE ? null : skillMap.get(newSkillValue) || null;
   const selectedEditSkill = editSkillValue === NO_SKILL_VALUE ? null : skillMap.get(editSkillValue) || null;
 
-  const filteredTasks = useMemo(() => {
+  const activePreset = useMemo(() => {
+    const preset = searchParams?.get("preset");
+    if (preset === "overdue" || preset === "today" || preset === "recommended") {
+      return preset;
+    }
+    return null;
+  }, [searchParams]);
+
+  const baseFilteredTasks = useMemo(() => {
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
     return tasks.filter((task) => {
@@ -627,7 +637,7 @@ export default function KanbanPage() {
 
   const boardSummary = useMemo(() => {
     const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 } as const;
-    const openTasks = filteredTasks.filter((task) => task.column_index < 2);
+    const openTasks = baseFilteredTasks.filter((task) => task.column_index < 2);
     const overdueCount = openTasks.filter((task) => task.due_date && new Date(task.due_date).getTime() < new Date().setHours(0, 0, 0, 0)).length;
     const dueTodayCount = openTasks.filter((task) => {
       if (!task.due_date) return false;
@@ -649,13 +659,34 @@ export default function KanbanPage() {
 
     return {
       openCount: openTasks.length,
-      inProgressCount: filteredTasks.filter((task) => task.column_index === 1).length,
-      completedCount: filteredTasks.filter((task) => task.column_index === 2).length,
+      inProgressCount: baseFilteredTasks.filter((task) => task.column_index === 1).length,
+      completedCount: baseFilteredTasks.filter((task) => task.column_index === 2).length,
       overdueCount,
       dueTodayCount,
       recommendedTask,
     };
-  }, [filteredTasks]);
+  }, [baseFilteredTasks]);
+
+  const filteredTasks = useMemo(() => {
+    if (activePreset === "overdue") {
+      return baseFilteredTasks.filter((task) => task.column_index < 2 && task.due_date && new Date(task.due_date).getTime() < new Date().setHours(0, 0, 0, 0));
+    }
+
+    if (activePreset === "today") {
+      return baseFilteredTasks.filter((task) => {
+        if (task.column_index >= 2 || !task.due_date) return false;
+        const dueDate = new Date(task.due_date);
+        const now = new Date();
+        return dueDate.getFullYear() === now.getFullYear() && dueDate.getMonth() === now.getMonth() && dueDate.getDate() === now.getDate();
+      });
+    }
+
+    if (activePreset === "recommended") {
+      return boardSummary.recommendedTask ? baseFilteredTasks.filter((task) => task.id === boardSummary.recommendedTask?.id) : [];
+    }
+
+    return baseFilteredTasks;
+  }, [activePreset, baseFilteredTasks, boardSummary.recommendedTask]);
 
   const signedInEmail = user?.primaryEmailAddress?.emailAddress || null;
 
@@ -685,6 +716,26 @@ export default function KanbanPage() {
               ? `Sessao ativa: ${signedInEmail}. Se esse nao for o email esperado, saia da conta e entre novamente.`
               : "Se esse não for o ambiente esperado, saia da conta e entre novamente."}
           </p>
+        </div>
+      ) : null}
+
+      {activePreset ? (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Preset ativo</p>
+              <p className="mt-1 text-sm text-foreground">
+                {activePreset === "overdue"
+                  ? "Mostrando apenas tarefas abertas e atrasadas."
+                  : activePreset === "today"
+                    ? "Mostrando apenas tarefas abertas com prazo hoje."
+                    : "Mostrando somente a tarefa recomendada do quadro."}
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/kanban">Limpar preset</Link>
+            </Button>
+          </div>
         </div>
       ) : null}
 
