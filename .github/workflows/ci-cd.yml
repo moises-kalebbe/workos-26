@@ -8,6 +8,22 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      run_publish:
+        description: Publish the current ref image to GHCR
+        required: false
+        default: false
+        type: boolean
+      run_deploy:
+        description: Deploy to the VPS after validation
+        required: false
+        default: false
+        type: boolean
+      deploy_image_tag:
+        description: Existing GHCR image tag to deploy manually (defaults to current commit SHA when publishing in the same run)
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   group: workos-main
@@ -40,7 +56,9 @@ jobs:
         run: npm test -- src/test/meetingMinutes.test.ts src/test/localDbClient.test.ts src/test/topBar.test.tsx
 
   publish:
-    if: github.event_name == 'push' && vars.ENABLE_GHCR_PUBLISH == 'true'
+    if: >-
+      (github.event_name == 'push' && vars.ENABLE_GHCR_PUBLISH == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_publish == 'true')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -73,8 +91,17 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    if: github.event_name == 'push' && vars.ENABLE_GHCR_PUBLISH == 'true' && vars.ENABLE_VPS_DEPLOY == 'true'
-    needs: publish
+    if: >-
+      always() &&
+      needs.build.result == 'success' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped') &&
+      (
+        (github.event_name == 'push' && vars.ENABLE_GHCR_PUBLISH == 'true' && vars.ENABLE_VPS_DEPLOY == 'true') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.run_deploy == 'true')
+      )
+    needs:
+      - build
+      - publish
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -85,13 +112,22 @@ jobs:
       VPS_PORT: ${{ vars.VPS_PORT }}
       APP_BASE_URL: ${{ vars.APP_BASE_URL }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      RUN_PUBLISH_INPUT: ${{ github.event.inputs.run_publish }}
+      RUN_DEPLOY_INPUT: ${{ github.event.inputs.run_deploy }}
+      DEPLOY_IMAGE_TAG_INPUT: ${{ github.event.inputs.deploy_image_tag }}
+      DEPLOY_IMAGE_TAG: ${{ github.event.inputs.deploy_image_tag || github.sha }}
 
     steps:
       - name: Validate deploy configuration
         run: |
           test -n "${VPS_HOST}" || { echo "VPS_HOST not configured"; exit 1; }
           test -n "${VPS_USER}" || { echo "VPS_USER not configured"; exit 1; }
+          test -n "${APP_BASE_URL}" || { echo "APP_BASE_URL not configured"; exit 1; }
           test -n "${VPS_SSH_KEY}" || { echo "VPS_SSH_KEY not configured"; exit 1; }
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${RUN_DEPLOY_INPUT}" = "true" ] && [ "${RUN_PUBLISH_INPUT}" != "true" ] && [ -z "${DEPLOY_IMAGE_TAG_INPUT}" ]; then
+            echo "deploy_image_tag is required when manually deploying without publishing in the same run"
+            exit 1
+          fi
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -122,7 +158,7 @@ jobs:
           set -euo pipefail
           docker --context production service update \
             --with-registry-auth \
-            --image "${IMAGE_NAME}:${GITHUB_SHA}" \
+            --image "${IMAGE_NAME}:${DEPLOY_IMAGE_TAG}" \
             workos_workos
 
       - name: Verify swarm rollout
@@ -147,6 +183,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BASE_URL="${APP_BASE_URL:-https://workos.moiseskalebbe.cloud}"
+          BASE_URL="${APP_BASE_URL}"
           curl -fsSL "${BASE_URL}/financeiro" >/dev/null
           curl -fsSL "${BASE_URL}/evolucao" >/dev/null

@@ -17,7 +17,7 @@ test.describe("workos smoke", () => {
   test("auth + navegacao principal", async ({ page }) => {
     await login(page);
 
-    const routes = ["/", "/tracker", "/kanban", "/agenda", "/vault", "/reports", "/settings", "/skills", "/second-brain"];
+    const routes = ["/", "/tracker", "/kanban", "/agenda", "/financeiro", "/vault", "/reports", "/settings", "/skills", "/second-brain"];
 
     for (const route of routes) {
       await page.goto(route);

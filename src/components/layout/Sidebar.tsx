@@ -92,8 +92,11 @@ export function Sidebar() {
         </div>
       </aside>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm md:hidden">
-        <div className="flex items-center gap-1 overflow-x-auto px-2 py-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden border-t border-border bg-card/95 backdrop-blur-sm md:hidden">
+        <div
+          data-mobile-nav="true"
+          className="flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain px-2 py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        >
           {DASHBOARD_NAV_ITEMS.map((item) => {
             const isActive = isPathActive(pathname, item.path);
             return (
@@ -101,7 +104,7 @@ export function Sidebar() {
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "flex min-w-[64px] shrink-0 flex-col items-center gap-1 rounded-md px-2 py-1 text-[10px] transition-colors",
+                  "flex min-w-[64px] shrink-0 snap-start flex-col items-center gap-1 rounded-md px-2 py-1 text-[10px] transition-colors",
                   isActive ? "text-primary" : "text-muted-foreground",
                 )}
               >

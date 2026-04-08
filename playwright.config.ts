@@ -1,6 +1,38 @@
+import fs from "node:fs";
+import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = Number(process.env.PORT || 3000);
+function readLocalEnvValue(name: string) {
+  try {
+    const envPath = path.join(process.cwd(), ".env");
+    if (!fs.existsSync(envPath)) {
+      return null;
+    }
+
+    const prefix = `${name}=`;
+    for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+      if (!line.startsWith(prefix)) {
+        continue;
+      }
+
+      return line.slice(prefix.length).trim().replace(/^['"]|['"]$/g, "");
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+const PORT = Number(process.env.PORT || 3007);
+const localDevAuthUserId =
+  process.env.NEXT_PUBLIC_DEV_AUTH_USER_ID ||
+  process.env.DEV_AUTH_USER_ID ||
+  readLocalEnvValue("NEXT_PUBLIC_DEV_AUTH_USER_ID") ||
+  readLocalEnvValue("DEV_AUTH_USER_ID");
+const useDevServer =
+  process.env.PLAYWRIGHT_DEV_SERVER === "true" ||
+  (process.env.PLAYWRIGHT_DEV_SERVER !== "false" && Boolean(localDevAuthUserId));
 
 export default defineConfig({
   testDir: "./e2e",
@@ -19,10 +51,14 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npm run dev",
+        command: useDevServer ? "npm run dev" : "npm run build && npm run start",
+        env: {
+          ...process.env,
+          PORT: String(PORT),
+        },
         port: PORT,
         reuseExistingServer: true,
-        timeout: 180_000,
+        timeout: useDevServer ? 180_000 : 300_000,
       },
   projects: [
     {

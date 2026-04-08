@@ -154,6 +154,8 @@ const STATUS_FILTER_OPTIONS: { label: string; value: ExecutiveStatusFilter }[] =
 ];
 
 const PROJECTION_OPTIONS = [6, 12, 24] as const;
+const WRAPPED_BADGE_CLASS = "min-w-0 max-w-full";
+const WRAPPED_META_ITEM_CLASS = "min-w-0 break-words";
 
 const chartConfig = {
   income: { label: "Receita", color: "#2DD4BF" },
@@ -973,7 +975,7 @@ export default function FinanceiroPage() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 overflow-x-hidden space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl border border-border bg-card/95 p-1">
+        <TabsList className="grid h-auto w-full max-w-full grid-cols-3 overflow-hidden rounded-2xl border border-border bg-card/95 p-1">
           <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="executivo">
             <span className="sm:hidden">Painel</span>
             <span className="hidden sm:inline">Executivo</span>
@@ -1117,9 +1119,9 @@ export default function FinanceiroPage() {
                           </div>
                           <p className="text-sm text-foreground">{describeFinanceiroAmount(entry.type, entry.amount)}</p>
                         </div>
-                        <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
-                          <Badge variant="outline">Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</Badge>
-                          <Badge variant="outline">{formatRecurrenceLabel(entry.recurrence)}</Badge>
+                        <div className="grid w-full min-w-0 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+                          <Badge className={WRAPPED_BADGE_CLASS} variant="outline">Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</Badge>
+                          <Badge className={WRAPPED_BADGE_CLASS} variant="outline">{formatRecurrenceLabel(entry.recurrence)}</Badge>
                           {entry.payment_url ? (
                             <Button asChild className="w-full sm:w-auto" variant="outline" size="sm">
                               <a href={entry.payment_url} target="_blank" rel="noreferrer">
@@ -1160,23 +1162,23 @@ export default function FinanceiroPage() {
                         <div className="min-w-0 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge className={statusClassName(visualStatus)}>{formatVisualStatusLabel(visualStatus)}</Badge>
-                            <Badge variant="outline">{formatEntryTypeLabel(entry.type)}</Badge>
-                            <Badge variant="outline">{formatRecurrenceLabel(entry.recurrence)}</Badge>
-                            {entry.contract ? <Badge variant="outline">{entry.contract.name}</Badge> : <Badge variant="outline">Avulso</Badge>}
+                            <Badge className={WRAPPED_BADGE_CLASS} variant="outline">{formatEntryTypeLabel(entry.type)}</Badge>
+                            <Badge className={WRAPPED_BADGE_CLASS} variant="outline">{formatRecurrenceLabel(entry.recurrence)}</Badge>
+                            {entry.contract ? <Badge className={WRAPPED_BADGE_CLASS} variant="outline">{entry.contract.name}</Badge> : <Badge className={WRAPPED_BADGE_CLASS} variant="outline">Avulso</Badge>}
                           </div>
                           <div>
                             <p className="break-words text-lg font-semibold text-foreground">{entry.title}</p>
                             <p className="break-words text-sm text-muted-foreground">{entry.project?.name || "Sem projeto"} - {entry.counterparty_name} - {entry.category}</p>
                           </div>
-                          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                            <span>{describeFinanceiroAmount(entry.type, entry.amount)}</span>
-                            <span>Competencia {entry.competency_date ? new Date(entry.competency_date).toLocaleDateString("pt-BR") : "nao definida"}</span>
-                            <span>Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</span>
-                            <span>Base {entry.paid_at ? "realizado" : "previsto"}</span>
+                          <div className="flex min-w-0 flex-wrap gap-3 text-sm text-muted-foreground">
+                            <span className={WRAPPED_META_ITEM_CLASS}>{describeFinanceiroAmount(entry.type, entry.amount)}</span>
+                            <span className={WRAPPED_META_ITEM_CLASS}>Competencia {entry.competency_date ? new Date(entry.competency_date).toLocaleDateString("pt-BR") : "nao definida"}</span>
+                            <span className={WRAPPED_META_ITEM_CLASS}>Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</span>
+                            <span className={WRAPPED_META_ITEM_CLASS}>Base {entry.paid_at ? "realizado" : "previsto"}</span>
                           </div>
                           {entry.notes ? <p className="break-words text-sm text-muted-foreground">{entry.notes}</p> : null}
                         </div>
-                        <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+                        <div className="grid w-full min-w-0 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                           {entry.payment_url ? (
                             <Button asChild className="w-full sm:w-auto" variant="outline" size="sm">
                               <a href={entry.payment_url} target="_blank" rel="noreferrer">
@@ -1221,24 +1223,24 @@ export default function FinanceiroPage() {
                           <Badge className={contract.status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-border bg-background/40 text-muted-foreground"}>
                             {contract.status === "active" ? "Ativo" : "Inativo"}
                           </Badge>
-                          <Badge variant="outline">{formatEntryTypeLabel(contract.type)}</Badge>
-                          <Badge variant="outline">{formatRecurrenceLabel(contract.recurrence)}</Badge>
-                          {contract.is_platform_cost ? <Badge variant="outline">Plataforma</Badge> : null}
+                          <Badge className={WRAPPED_BADGE_CLASS} variant="outline">{formatEntryTypeLabel(contract.type)}</Badge>
+                          <Badge className={WRAPPED_BADGE_CLASS} variant="outline">{formatRecurrenceLabel(contract.recurrence)}</Badge>
+                          {contract.is_platform_cost ? <Badge className={WRAPPED_BADGE_CLASS} variant="outline">Plataforma</Badge> : null}
                         </div>
                         <div>
                           <p className="break-words text-lg font-semibold text-foreground">{contract.name}</p>
                           <p className="break-words text-sm text-muted-foreground">{contract.project?.name || "Sem projeto"} - {contract.counterparty_name} - {contract.category}</p>
                         </div>
-                        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                          <span>{describeFinanceiroAmount(contract.type, contract.amount)}</span>
-                          <span>Dia {contract.due_day}</span>
-                          <span>Alerta {contract.alert_days_before} dias</span>
-                          <span>Inicio {new Date(contract.start_date).toLocaleDateString("pt-BR")}</span>
-                          <span>Fim {contract.end_date ? new Date(contract.end_date).toLocaleDateString("pt-BR") : "em aberto"}</span>
+                        <div className="flex min-w-0 flex-wrap gap-3 text-sm text-muted-foreground">
+                          <span className={WRAPPED_META_ITEM_CLASS}>{describeFinanceiroAmount(contract.type, contract.amount)}</span>
+                          <span className={WRAPPED_META_ITEM_CLASS}>Dia {contract.due_day}</span>
+                          <span className={WRAPPED_META_ITEM_CLASS}>Alerta {contract.alert_days_before} dias</span>
+                          <span className={WRAPPED_META_ITEM_CLASS}>Inicio {new Date(contract.start_date).toLocaleDateString("pt-BR")}</span>
+                          <span className={WRAPPED_META_ITEM_CLASS}>Fim {contract.end_date ? new Date(contract.end_date).toLocaleDateString("pt-BR") : "em aberto"}</span>
                         </div>
                         {contract.notes ? <p className="break-words text-sm text-muted-foreground">{contract.notes}</p> : null}
                       </div>
-                      <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+                      <div className="grid w-full min-w-0 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                         {contract.payment_url ? (
                           <Button asChild className="w-full sm:w-auto" variant="outline" size="sm">
                             <a href={contract.payment_url} target="_blank" rel="noreferrer">

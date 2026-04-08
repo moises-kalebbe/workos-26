@@ -36,6 +36,7 @@ npm run dev
 - Para habilitar o deploy no VPS, configure tambem `ENABLE_VPS_DEPLOY=true`.
 - O job de deploy usa as repository variables `VPS_HOST`, `VPS_USER`, `VPS_PORT` e `APP_BASE_URL`.
 - A chave SSH do deploy deve ficar no secret `VPS_SSH_KEY`.
+- O `workflow_dispatch` tambem aceita promocao manual: use `run_deploy=true` com `deploy_image_tag=<sha-publicado>` para promover uma imagem ja existente no GHCR sem precisar republicar.
 - Mantive a imagem com as tags `latest` e `${{ github.sha }}` para facilitar rollback e promocao.
 
 ## Banco de dados local
@@ -50,6 +51,7 @@ npm run start
 npm run lint
 npm run test
 npm run test:e2e
+npm run test:e2e:mobile
 npm run db:check
 ```
 

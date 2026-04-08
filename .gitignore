@@ -21,6 +21,7 @@ test-results
 data-export/
 kanban-debug.png
 signin-debug.png
+.tmp_vps_actions*
 nul
 tsconfig.tsbuildinfo
 
