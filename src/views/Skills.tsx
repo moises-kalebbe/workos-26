@@ -42,6 +42,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeleteConfirmDialog } from "@/components/system/delete-confirm-dialog";
 import { cn } from "@/lib/utils";
+import { GENERAL_MCP_SKILLS_SEED, getGeneralMcpSkillUpserts } from "@/lib/generalMcpSkills";
 import {
   downloadBlob,
   downloadMarkdownFile,
@@ -71,13 +72,6 @@ type SeedSkill = {
   summary: string;
   categorySlug: string;
   steps: string[];
-};
-
-type GeneralSeedSkill = {
-  title: string;
-  slug: string;
-  summary: string;
-  contentMd: string;
 };
 
 const SEED_CATEGORIES: SeedCategory[] = [
@@ -159,63 +153,6 @@ const GENERAL_CATEGORY_SEED: SeedCategory = {
   slug: "geral",
   description: "Skills gerais para operacao e automacao.",
 };
-
-const GENERAL_MCP_SKILLS_SEED: GeneralSeedSkill[] = [
-  {
-    title: "n8n Specialist (MCP)",
-    slug: "n8n-specialist-mcp",
-    summary: "Especialista em n8n com foco em template-first, validacao e execucao paralela.",
-    contentMd: `# n8n Specialist (MCP)
-
-Use quando precisar criar ou ajustar workflows n8n com MCP.
-
-## Regras principais
-1. Executar ferramentas em silencio e responder ao final.
-2. Priorizar execucao paralela quando possivel.
-3. Buscar templates antes de construir do zero.
-4. Nao confiar em defaults: configurar parametros explicitamente.
-5. Validar em camadas: node minimo -> node operacao -> workflow.
-
-## Sequencia recomendada
-1. tools_documentation
-2. Descoberta de templates
-3. Descoberta de nodes
-4. Validacoes de node e workflow
-5. Deploy e ajustes`,
-  },
-  {
-    title: "Supabase Specialist (MCP)",
-    slug: "supabase-specialist-mcp",
-    summary: "Especialista em Supabase com foco em consultas seguras, migrations e integracao com n8n.",
-    contentMd: `# Supabase Specialist (MCP)
-
-Use quando precisar operar banco no Supabase via MCP.
-
-## Regras principais
-1. Usar ferramentas MCP do Supabase.
-2. Em exploracao, usar LIMIT 10 por padrao.
-3. Ver estrutura com list_tables antes de consultar.
-4. DDL com apply_migration; DML com execute_sql.
-5. Preferir agregacoes quando apropriado.`,
-  },
-  {
-    title: "Setup MCP n8n + Supabase",
-    slug: "setup-mcp-n8n-supabase",
-    summary: "Guia para configurar e validar MCP de n8n e Supabase com credenciais seguras.",
-    contentMd: `# Setup MCP n8n + Supabase
-
-Use quando precisar configurar os MCP servers de n8n e Supabase.
-
-## Objetivo
-- Configurar MCP no cliente
-- Validar conectividade
-- Evitar segredos hardcoded em arquivos versionados
-
-## Validacao minima
-- n8n: n8n_health_check, n8n_list_available_tools
-- Supabase: list_projects ou list_tables`,
-  },
-];
 
 function buildSeedMarkdown(skill: SeedSkill) {
   const steps = skill.steps.map((step, index) => `${index + 1}. ${step}`).join("\n");
@@ -486,37 +423,32 @@ export default function SkillsPage() {
     if (categoryError) throw categoryError;
     if (!categoryData?.id) throw new Error("Categoria Geral nao encontrada");
 
-    const skillSlugs = GENERAL_MCP_SKILLS_SEED.map((skill) => skill.slug);
     const { data: existingSkills, error: existingSkillsError } = await db
       .from("skill_documents")
-      .select("slug")
+      .select("slug, title, summary, content_md, source_type, category_id")
       .eq("user_id", userId)
-      .in("slug", skillSlugs);
+      .in(
+        "slug",
+        GENERAL_MCP_SKILLS_SEED.map((skill) => skill.slug),
+      );
 
     if (existingSkillsError) throw existingSkillsError;
 
-    const existingSlugSet = new Set((existingSkills || []).map((skill) => skill.slug));
-    const missingSkills = GENERAL_MCP_SKILLS_SEED.filter((skill) => !existingSlugSet.has(skill.slug));
+    const rows = getGeneralMcpSkillUpserts(
+      ((existingSkills || []) as unknown as SkillDocument[]),
+      userId,
+      categoryData.id,
+    );
 
-    if (missingSkills.length === 0) {
+    if (rows.length === 0) {
       return false;
     }
 
-    const rows = missingSkills.map((skill) => ({
-      user_id: userId,
-      category_id: categoryData.id,
-      title: skill.title,
-      slug: skill.slug,
-      summary: skill.summary,
-      content_md: skill.contentMd,
-      source_type: "seed" as SkillSourceType,
-    }));
-
-    const { error: insertError } = await db
+    const { error: upsertError } = await db
       .from("skill_documents")
-      .insert(rows);
+      .upsert(rows, { onConflict: "user_id,slug" });
 
-    if (insertError) throw insertError;
+    if (upsertError) throw upsertError;
     return true;
   }
 

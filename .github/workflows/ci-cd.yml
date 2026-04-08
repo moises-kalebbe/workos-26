@@ -76,18 +76,81 @@ jobs:
     if: vars.ENABLE_GHCR_PUBLISH == 'true'
     needs: publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     env:
-      DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+      VPS_HOST: ${{ vars.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER }}
+      VPS_PORT: ${{ vars.VPS_PORT }}
+      APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
 
     steps:
-      - name: Skip deploy when webhook is not configured
-        if: env.DEPLOY_WEBHOOK_URL == ''
-        run: echo "DEPLOY_WEBHOOK_URL not configured; skipping deploy."
-
-      - name: Trigger deployment webhook
-        if: env.DEPLOY_WEBHOOK_URL != ''
+      - name: Validate deploy configuration
         run: |
-          curl -fsS -X POST "${DEPLOY_WEBHOOK_URL}"
+          test -n "${VPS_HOST}" || { echo "VPS_HOST not configured"; exit 1; }
+          test -n "${VPS_USER}" || { echo "VPS_USER not configured"; exit 1; }
+          test -n "${VPS_SSH_KEY}" || { echo "VPS_SSH_KEY not configured"; exit 1; }
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${VPS_SSH_KEY}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${VPS_PORT:-22}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Create Docker context
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker context rm production >/dev/null 2>&1 || true
+          docker context create production --docker "host=ssh://${VPS_USER}@${VPS_HOST}:${VPS_PORT:-22}"
+
+      - name: Deploy service
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker --context production service update \
+            --with-registry-auth \
+            --image "${IMAGE_NAME}:${GITHUB_SHA}" \
+            workos_workos
+
+      - name: Verify swarm rollout
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            status="$(docker --context production service ps workos_workos --format '{{.Name}} {{.CurrentState}} {{.Error}}' --no-trunc)"
+            echo "${status}"
+            if ! grep -Eq 'Rejected|Failed' <<< "${status}" && grep -q 'Running' <<< "${status}"; then
+              break
+            fi
+            if [ "${attempt}" -eq 30 ]; then
+              echo "Service did not stabilize in time"
+              exit 1
+            fi
+            sleep 5
+          done
+          docker --context production service inspect workos_workos --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'
+
+      - name: Smoke test public routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="${APP_BASE_URL:-https://workos.moiseskalebbe.cloud}"
+          curl -fsSL "${BASE_URL}/financeiro" >/dev/null
+          curl -fsSL "${BASE_URL}/evolucao" >/dev/null
+
 
 
 
