@@ -369,15 +369,15 @@ function StatsCard({
 
   return (
     <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
-      <CardHeader className="min-w-0 pb-3">
+      <CardHeader className="min-w-0 space-y-0 p-4 pb-0 sm:p-5 sm:pb-0">
         <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
           <Icon className={cn("h-4 w-4", iconClass)} />
           <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.18em] break-words">{label}</p>
         </div>
       </CardHeader>
-      <CardContent className="min-w-0">
-        <p className="break-words text-2xl font-semibold text-foreground">{value}</p>
-        <p className="mt-2 break-words text-sm text-muted-foreground">{helper}</p>
+      <CardContent className="min-w-0 p-4 pt-3 sm:p-5 sm:pt-3">
+        <p className="break-words text-xl font-semibold text-foreground sm:text-2xl">{value}</p>
+        <p className="mt-2 break-words text-xs text-muted-foreground sm:text-sm">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -836,46 +836,52 @@ export default function FinanceiroPage() {
         className="min-w-0 overflow-hidden"
         title="Financeiro"
         description="Operacao, gestao e projecao no mesmo painel, com contratos recorrentes como fonte oficial de previsao."
-        actions={
-          <div className="grid w-full gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
-            <Button className="w-full sm:w-auto" variant="outline" onClick={handleResyncForecast} disabled={syncingForecast}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              <span className="sm:hidden">{syncingForecast ? "Sincronizando..." : "Previsao"}</span>
-              <span className="hidden sm:inline">{syncingForecast ? "Sincronizando previsao..." : "Reprocessar previsao"}</span>
-            </Button>
-            <Button className="w-full sm:w-auto" variant="outline" onClick={openCreateContractDialog}>
-              <Landmark className="mr-2 h-4 w-4" />
-              <span className="sm:hidden">Contrato</span>
-              <span className="hidden sm:inline">Novo contrato</span>
-            </Button>
-            <Button className="w-full sm:w-auto" onClick={openCreateEntryDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              <span className="sm:hidden">Lancamento</span>
-              <span className="hidden sm:inline">Novo lancamento</span>
-            </Button>
-          </div>
-        }
       />
 
+      <section className="rounded-2xl border border-border bg-card/95 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Fluxo rapido</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Acoes principais</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Cadastre, ajuste e reprocesse sem sair da tela.</p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <Button className="w-full justify-center sm:justify-start" variant="outline" onClick={handleResyncForecast} disabled={syncingForecast}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            {syncingForecast ? "Sincronizando previsao..." : "Reprocessar previsao"}
+          </Button>
+          <Button className="w-full justify-center sm:justify-start" variant="outline" onClick={openCreateContractDialog}>
+            <Landmark className="mr-2 h-4 w-4" />
+            Novo contrato
+          </Button>
+          <Button className="w-full justify-center sm:justify-start" onClick={openCreateEntryDialog}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo lancamento
+          </Button>
+        </div>
+      </section>
+
       <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
-        <CardHeader className="gap-4">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle>Painel executivo</CardTitle>
-              <CardDescription>Filtros globais para operacao, historico e projecao.</CardDescription>
-            </div>
-            <div className="relative w-full min-w-0 max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Buscar por titulo, contraparte, categoria, cliente ou projeto"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
+        <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar financeiro</p>
+            <CardTitle className="mt-1">Painel executivo</CardTitle>
+            <CardDescription className="mt-1">Filtros globais para operacao, historico e projecao.</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <CardContent className="grid gap-3 p-4 pt-4 sm:grid-cols-2 sm:p-5 sm:pt-4 xl:grid-cols-6">
+          <div className="relative min-w-0 sm:col-span-2 xl:col-span-6">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-11 rounded-2xl border-border bg-background/60 pl-9"
+              placeholder="Buscar por titulo, contraparte, categoria, cliente ou projeto"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label>Criterio</Label>
             <Select value={basis} onValueChange={(value) => setBasis(value as FinanceiroReportingBasis)}>
@@ -967,10 +973,19 @@ export default function FinanceiroPage() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 overflow-x-hidden space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3">
-          <TabsTrigger className="w-full min-w-0 whitespace-normal px-3 py-2 text-center leading-snug" value="executivo">Executivo</TabsTrigger>
-          <TabsTrigger className="w-full min-w-0 whitespace-normal px-3 py-2 text-center leading-snug" value="lancamentos">Lancamentos</TabsTrigger>
-          <TabsTrigger className="w-full min-w-0 whitespace-normal px-3 py-2 text-center leading-snug" value="contratos">Contratos</TabsTrigger>
+        <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl border border-border bg-card/95 p-1">
+          <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="executivo">
+            <span className="sm:hidden">Painel</span>
+            <span className="hidden sm:inline">Executivo</span>
+          </TabsTrigger>
+          <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="lancamentos">
+            <span className="sm:hidden">Lanc.</span>
+            <span className="hidden sm:inline">Lancamentos</span>
+          </TabsTrigger>
+          <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="contratos">
+            <span className="sm:hidden">Contr.</span>
+            <span className="hidden sm:inline">Contratos</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="executivo" className="space-y-6">
@@ -989,33 +1004,33 @@ export default function FinanceiroPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Card className="rounded-2xl border-border bg-card/95">
-              <CardHeader className="pb-3">
+            <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
+              <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Faturamento 6 meses</CardTitle>
                 <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
               </CardHeader>
-              <CardContent><MoneyDelta value={executiveSnapshot.fixedKpis.income6m} /></CardContent>
+              <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3"><MoneyDelta value={executiveSnapshot.fixedKpis.income6m} /></CardContent>
             </Card>
-            <Card className="rounded-2xl border-border bg-card/95">
-              <CardHeader className="pb-3">
+            <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
+              <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Despesas 6 meses</CardTitle>
                 <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
               </CardHeader>
-              <CardContent><MoneyDelta value={-executiveSnapshot.fixedKpis.expense6m} /></CardContent>
+              <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3"><MoneyDelta value={-executiveSnapshot.fixedKpis.expense6m} /></CardContent>
             </Card>
-            <Card className="rounded-2xl border-border bg-card/95">
-              <CardHeader className="pb-3">
+            <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
+              <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Faturamento no ano</CardTitle>
                 <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
               </CardHeader>
-              <CardContent><MoneyDelta value={executiveSnapshot.fixedKpis.incomeYear} /></CardContent>
+              <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3"><MoneyDelta value={executiveSnapshot.fixedKpis.incomeYear} /></CardContent>
             </Card>
-            <Card className="rounded-2xl border-border bg-card/95">
-              <CardHeader className="pb-3">
+            <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
+              <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Despesas no ano</CardTitle>
                 <CardDescription>KPI estrutural fixo, independente do filtro de periodo.</CardDescription>
               </CardHeader>
-              <CardContent><MoneyDelta value={-executiveSnapshot.fixedKpis.expenseYear} /></CardContent>
+              <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3"><MoneyDelta value={-executiveSnapshot.fixedKpis.expenseYear} /></CardContent>
             </Card>
           </div>
 
