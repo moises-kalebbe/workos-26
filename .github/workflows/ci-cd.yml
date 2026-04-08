@@ -171,9 +171,11 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 30); do
-            status="$(docker --context production service ps workos_workos --format '{{.Name}} {{.CurrentState}} {{.Error}}' --no-trunc)"
+            status="$(docker --context production service ps workos_workos --filter desired-state=running --format '{{.Name}} {{.CurrentState}} {{.Error}}' --no-trunc)"
+            current_image="$(docker --context production service inspect workos_workos --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')"
             echo "${status}"
-            if ! grep -Eq 'Rejected|Failed' <<< "${status}" && grep -q 'Running' <<< "${status}"; then
+            echo "${current_image}"
+            if ! grep -Eq 'Rejected|Failed' <<< "${status}" && grep -q 'Running' <<< "${status}" && grep -q "${DEPLOY_IMAGE_TAG}" <<< "${current_image}"; then
               break
             fi
             if [ "${attempt}" -eq 30 ]; then
