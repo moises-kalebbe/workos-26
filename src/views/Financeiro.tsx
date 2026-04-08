@@ -368,16 +368,16 @@ function StatsCard({
           : "text-primary";
 
   return (
-    <Card className="rounded-2xl border-border bg-card/95">
-      <CardHeader className="pb-3">
+    <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
+      <CardHeader className="min-w-0 pb-3">
         <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
           <Icon className={cn("h-4 w-4", iconClass)} />
           <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.18em] break-words">{label}</p>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0">
         <p className="break-words text-2xl font-semibold text-foreground">{value}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{helper}</p>
+        <p className="mt-2 break-words text-sm text-muted-foreground">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -831,8 +831,9 @@ export default function FinanceiroPage() {
   }
 
   return (
-    <div className="min-w-0 space-y-6">
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-6">
       <PageHeader
+        className="min-w-0 overflow-hidden"
         title="Financeiro"
         description="Operacao, gestao e projecao no mesmo painel, com contratos recorrentes como fonte oficial de previsao."
         actions={
@@ -856,14 +857,14 @@ export default function FinanceiroPage() {
         }
       />
 
-      <Card className="rounded-2xl border-border bg-card/95">
+      <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
         <CardHeader className="gap-4">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <CardTitle>Painel executivo</CardTitle>
               <CardDescription>Filtros globais para operacao, historico e projecao.</CardDescription>
             </div>
-            <div className="relative w-full max-w-md">
+            <div className="relative w-full min-w-0 max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
@@ -965,11 +966,11 @@ export default function FinanceiroPage() {
         </CardContent>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 overflow-x-hidden space-y-6">
         <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3">
-          <TabsTrigger value="executivo">Executivo</TabsTrigger>
-          <TabsTrigger value="lancamentos">Lancamentos</TabsTrigger>
-          <TabsTrigger value="contratos">Contratos</TabsTrigger>
+          <TabsTrigger className="w-full min-w-0 whitespace-normal px-3 py-2 text-center leading-snug" value="executivo">Executivo</TabsTrigger>
+          <TabsTrigger className="w-full min-w-0 whitespace-normal px-3 py-2 text-center leading-snug" value="lancamentos">Lancamentos</TabsTrigger>
+          <TabsTrigger className="w-full min-w-0 whitespace-normal px-3 py-2 text-center leading-snug" value="contratos">Contratos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="executivo" className="space-y-6">
@@ -1019,19 +1020,19 @@ export default function FinanceiroPage() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-            <Card className="rounded-2xl border-border bg-card/95">
+            <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader>
                 <CardTitle>Evolucao mensal</CardTitle>
                 <CardDescription>{trendDescription}</CardDescription>
               </CardHeader>
               <CardContent className="px-3 pb-4 sm:px-6">
-                <ChartContainer config={chartConfig} className="h-[320px] w-full">
+                <ChartContainer config={chartConfig} className="h-[320px] w-full max-w-full overflow-hidden">
                   <BarChart data={monthlyTrend}>
                     <CartesianGrid vertical={false} />
                     <XAxis dataKey="label" tickLine={false} axisLine={false} />
                     <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent className="flex-wrap justify-start sm:justify-center" />} />
+                    <ChartLegend content={<ChartLegendContent className="hidden sm:flex sm:flex-wrap sm:justify-center" />} />
                     <Bar dataKey="income" fill="var(--color-income)" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="expense" fill="var(--color-expense)" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="profit" fill="var(--color-profit)" radius={[6, 6, 0, 0]} />
@@ -1040,7 +1041,7 @@ export default function FinanceiroPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border bg-card/95">
+            <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <CardTitle>Projecao futura</CardTitle>
@@ -1076,7 +1077,7 @@ export default function FinanceiroPage() {
             </Card>
           </div>
 
-          <Card className="rounded-2xl border-border bg-card/95">
+          <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Fila operacional</CardTitle>
               <CardDescription>Itens que exigem acao agora: vencidos ou dentro da janela de alerta.</CardDescription>
@@ -1129,7 +1130,7 @@ export default function FinanceiroPage() {
         </TabsContent>
 
         <TabsContent value="lancamentos" className="space-y-6">
-          <Card className="rounded-2xl border-border bg-card/95">
+          <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Lancamentos</CardTitle>
               <CardDescription>Historico realizado e previsto materializado, com vinculo opcional a contrato.</CardDescription>
@@ -1190,7 +1191,7 @@ export default function FinanceiroPage() {
         </TabsContent>
 
         <TabsContent value="contratos" className="space-y-6">
-          <Card className="rounded-2xl border-border bg-card/95">
+          <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Contratos recorrentes</CardTitle>
               <CardDescription>Fonte estrutural da previsao. Pause, encerre ou edite sem perder o historico ja gerado.</CardDescription>
