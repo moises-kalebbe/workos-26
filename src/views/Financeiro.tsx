@@ -458,6 +458,17 @@ export default function FinanceiroPage() {
   const now = useMemo(() => new Date(), []);
 
   useEffect(() => {
+    const requestedTab = searchParams?.get("tab");
+    const requestedStatus = searchParams?.get("status");
+
+    if (requestedTab === "executivo" || requestedTab === "lancamentos" || requestedTab === "contratos") {
+      setActiveTab(requestedTab);
+    }
+
+    if (requestedStatus === "actionable" || requestedStatus === "overdue" || requestedStatus === "upcoming" || requestedStatus === "all" || requestedStatus === "pending" || requestedStatus === "paid") {
+      setStatusFilter(requestedStatus);
+    }
+
     if (searchParams?.get("compose") === "entry") {
       setActiveTab("lancamentos");
       setEntryDialogOpen(true);

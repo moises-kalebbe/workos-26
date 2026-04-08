@@ -13,6 +13,7 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimer } from "@/hooks/useTimer";
@@ -75,6 +76,7 @@ function formatSessionMoment(iso: string | null) {
 
 export default function TrackerPage() {
   const { user, loading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
   const timer = useTimer();
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<TimeSession[]>([]);
@@ -95,6 +97,8 @@ export default function TrackerPage() {
   const [editClient, setEditClient] = useState("");
   const [editRate, setEditRate] = useState("");
   const [editColor, setEditColor] = useState("#8b5cf6");
+
+  const focusedProjectId = searchParams?.get("project") || null;
 
   useEffect(() => {
     if (authLoading) return;
@@ -285,6 +289,8 @@ export default function TrackerPage() {
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
     return projectAnalytics.filter((item) => {
+      if (focusedProjectId && item.project.id !== focusedProjectId) return false;
+
       const matchesSearch =
         !normalizedSearch ||
         item.project.name.toLowerCase().includes(normalizedSearch) ||
@@ -295,7 +301,12 @@ export default function TrackerPage() {
       if (filter === "idle") return item.todaySeconds === 0 && !item.isActive;
       return true;
     });
-  }, [filter, projectAnalytics, searchQuery]);
+  }, [filter, focusedProjectId, projectAnalytics, searchQuery]);
+
+  useEffect(() => {
+    if (!focusedProjectId) return;
+    setExpandedProject(focusedProjectId);
+  }, [focusedProjectId]);
 
   const activeAnalytics = filteredAnalytics.find((item) => item.isActive) || null;
   const workedTodayProjects = filteredAnalytics.filter((item) => !item.isActive && item.todaySeconds > 0);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -99,6 +100,7 @@ function getStatusDescription(status: SecondBrainNote["status"]) {
 
 export default function SecondBrainPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const graphContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [notes, setNotes] = useState<SecondBrainNote[]>([]);
@@ -172,6 +174,13 @@ export default function SecondBrainPage() {
     void loadData();
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [user]);
+
+  useEffect(() => {
+    const requestedStatus = searchParams?.get("status");
+    if (requestedStatus === "all" || requestedStatus === "active" || requestedStatus === "inbox" || requestedStatus === "note" || requestedStatus === "archived") {
+      setStatusFilter(requestedStatus);
+    }
+  }, [searchParams]);
 
   const selectedNote = useMemo(
     () => notes.find((note) => note.id === selectedNoteId) || null,

@@ -1,609 +1,407 @@
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowDownCircle,
   ArrowRight,
   ArrowUpCircle,
+  BrainCircuit,
   Building2,
   CalendarClock,
+  CheckCircle2,
   ExternalLink,
   Landmark,
   Loader2,
-  Video,
+  Timer,
 } from "lucide-react";
-import { toast } from "sonner";
 import { DailyReflectionEditor } from "@/components/evolucao/daily-reflection-editor";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/system/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useDashboardFeature } from "@/features/dashboard/hooks";
+import type {
+  DashboardActionDescriptor,
+  DashboardAttentionItem,
+  DashboardAttentionTone,
+  DashboardProjectHealth,
+} from "@/features/dashboard/types";
 import { useEvolucaoFeature } from "@/features/evolucao/hooks";
-import { db } from "@/lib/dbClient";
-import { summarizeFinanceiro } from "@/features/financeiro/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
-import { getQuadrant, sortTasksForMatrix } from "@/lib/eisenhower";
-import {
-  buildTimelineBlocks,
-  buildTimelineHourLabels,
-  getCurrentMinuteMarker,
-  getDateKeyInTimezone,
-  getSessionOverlapSecondsForDate,
-} from "@/lib/timeline";
 import { cn, formatDuration, formatMoney } from "@/lib/utils";
-import { KANBAN_PRIORITIES } from "@/config/priorities";
-import type { FinancialEntry, Project, Task } from "@/types";
 
-type DashboardSessionRow = {
-  id: string;
-  project_id: string;
-  started_at: string;
-  ended_at: string | null;
-  project: Pick<Project, "name" | "client" | "hourly_rate" | "color"> | null;
-};
+function getAttentionToneClass(tone: DashboardAttentionTone) {
+  switch (tone) {
+    case "danger":
+      return "border-danger/30 bg-danger/10 text-danger";
+    case "warning":
+      return "border-warning/30 bg-warning/10 text-warning";
+    case "info":
+      return "border-primary/30 bg-primary/10 text-primary";
+    default:
+      return "border-border bg-background/70 text-muted-foreground";
+  }
+}
 
-type DashboardTaskRow = Pick<
-  Task,
-  | "id"
-  | "title"
-  | "project_id"
-  | "skill_document_id"
-  | "column_index"
-  | "priority"
-  | "urgency"
-  | "importance"
-  | "due_date"
-  | "client"
-  | "created_at"
->;
+function getHealthLevelClass(level: DashboardProjectHealth["level"]) {
+  switch (level) {
+    case "at_risk":
+      return "border-danger/30 bg-danger/10 text-danger";
+    case "attention":
+      return "border-warning/30 bg-warning/10 text-warning";
+    default:
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+  }
+}
 
-type DashboardFinancialEntry = FinancialEntry & {
-  project?: Pick<Project, "id" | "name" | "client" | "color"> | null;
-};
+function getHealthLevelLabel(level: DashboardProjectHealth["level"]) {
+  switch (level) {
+    case "at_risk":
+      return "Em risco";
+    case "attention":
+      return "Atenção";
+    default:
+      return "Estável";
+  }
+}
 
-const MOTIVATIONAL_PHRASES = {
-  overdue: [
-    "Ajuste a primeira pendência e o resto do dia respira melhor.",
-    "O atraso diminui quando você fecha a próxima entrega certa.",
-    "Voltar para o controle comeca por uma prioridade resolvida.",
-  ],
-  focus: [
-    "Menos frentes abertas, mais resultado visível.",
-    "Foco curto e consistente entrega mais que correria espalhada.",
-    "Uma tarefa bem fechada vale mais que varias pela metade.",
-  ],
-  meeting: [
-    "Entre na próxima reunião com clareza sobre a sua entrega principal.",
-    "Reunião boa comeca antes, com a prioridade do dia definida.",
-    "Organize o próximo passo antes da call e ganhe o resto do dia.",
-  ],
-  default: [
-    "Constancia curta e bem feita ganha do excesso.",
-    "Seu melhor ritmo hoje e terminar o que realmente importa.",
-    "Prioridade clara transforma um dia cheio em um dia produtivo.",
-  ],
-} as const;
+function formatTargetLabel(trackedSecondsToday: number, targetSecondsToday: number) {
+  if (targetSecondsToday <= 0) {
+    return `${formatDuration(trackedSecondsToday)} hoje`;
+  }
+
+  return `${formatDuration(trackedSecondsToday)} / ${formatDuration(targetSecondsToday)}`;
+}
+
+function DashboardActionButton({
+  action,
+  onAction,
+  pending,
+  variant = "default",
+}: {
+  action: DashboardActionDescriptor;
+  onAction: (action: DashboardActionDescriptor) => Promise<void> | void;
+  pending: boolean;
+  variant?: "default" | "outline" | "secondary";
+}) {
+  if (action.href) {
+    if (action.external) {
+      return (
+        <Button asChild size="sm" variant={variant} className="gap-2">
+          <a href={action.href} target="_blank" rel="noopener noreferrer">
+            {action.label}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </Button>
+      );
+    }
+
+    return (
+      <Button asChild size="sm" variant={variant} className="gap-2">
+        <Link href={action.href}>
+          {action.label}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      size="sm"
+      variant={variant}
+      className="gap-2"
+      disabled={pending}
+      onClick={() => {
+        void onAction(action);
+      }}
+    >
+      {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+      {action.label}
+    </Button>
+  );
+}
+
+function AttentionItemCard({
+  item,
+  actionPending,
+  onAction,
+}: {
+  item: DashboardAttentionItem;
+  actionPending: (action: DashboardActionDescriptor) => boolean;
+  onAction: (action: DashboardActionDescriptor) => Promise<void>;
+}) {
+  return (
+    <article
+      data-testid={`dashboard-attention-${item.type}`}
+      className="rounded-2xl border border-border bg-background/25 p-4 transition-colors hover:border-primary/30"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className={cn("border", getAttentionToneClass(item.tone))}>{item.badgeLabel}</Badge>
+            <Badge variant="outline">#{item.rank}</Badge>
+            {item.projectName ? <Badge variant="secondary">{item.projectName}</Badge> : null}
+          </div>
+          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">{item.eyebrow}</p>
+          <h3 className="mt-1 text-base font-semibold text-foreground">{item.title}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <DashboardActionButton
+            action={item.primaryAction}
+            onAction={onAction}
+            pending={actionPending(item.primaryAction)}
+          />
+          {item.secondaryAction ? (
+            <DashboardActionButton
+              action={item.secondaryAction}
+              onAction={onAction}
+              pending={actionPending(item.secondaryAction)}
+              variant="outline"
+            />
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function IndexPage() {
   const { user } = useAuth();
-  const {
-    events: calendarEvents,
-    loading: meetingsLoading,
-    connected: meetingsConnected,
-    fetchEvents,
-  } = useGoogleCalendar();
-  const [loading, setLoading] = useState(true);
-  const [timezone, setTimezone] = useState("America/Sao_Paulo");
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [sessions, setSessions] = useState<DashboardSessionRow[]>([]);
-  const [tasks, setTasks] = useState<DashboardTaskRow[]>([]);
-  const [financialEntries, setFinancialEntries] = useState<DashboardFinancialEntry[]>([]);
-  const [now, setNow] = useState(() => new Date());
+  const dashboard = useDashboardFeature();
   const dailyReflection = useEvolucaoFeature({ userId: user?.id || null });
 
-  useEffect(() => {
-    const timerId = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(timerId);
-  }, []);
+  const healthSummary = dashboard.projectHealth.reduce(
+    (acc, item) => {
+      acc[item.level] += 1;
+      return acc;
+    },
+    { at_risk: 0, attention: 0, stable: 0 } as Record<DashboardProjectHealth["level"], number>,
+  );
 
-  useEffect(() => {
-    if (!user) return;
-    void loadDashboardData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const timeMin = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
-    const timeMax = new Date(now.getTime() + 36 * 60 * 60 * 1000).toISOString();
-    void fetchEvents(timeMin, timeMax);
-  }, [fetchEvents, now, user]);
-
-  async function loadDashboardData() {
-    if (!user) return;
-    setLoading(true);
-
-    const recentWindowIso = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
-
-    const [profileRes, projectRes, taskRes, sessionRes, financialRes] = await Promise.all([
-      db.from("profiles").select("timezone").eq("id", user.id).maybeSingle(),
-      db.from("projects").select("*").order("name"),
-      db.from("tasks").select("id, title, project_id, skill_document_id, column_index, priority, urgency, importance, due_date, client, created_at").lt("column_index", 2).order("position"),
-      db
-        .from("time_sessions")
-        .select("id, project_id, started_at, ended_at, project:projects(name, client, hourly_rate, color)")
-        .gte("started_at", recentWindowIso)
-        .order("started_at", { ascending: false })
-        .limit(250),
-      db.from("financial_entries").select("*").order("due_date", { ascending: true }),
-    ]);
-
-    if (profileRes.error) {
-      toast.error("Não foi possível carregar o timezone do perfil.");
-    } else if (profileRes.data?.timezone) {
-      setTimezone(profileRes.data.timezone);
-    }
-
-    if (projectRes.error) {
-      toast.error("Não foi possível carregar as empresas.");
-    } else {
-      setProjects((projectRes.data || []) as unknown as Project[]);
-    }
-
-    if (taskRes.error) {
-      toast.error("Não foi possível carregar as tarefas do Kanban.");
-    } else {
-      setTasks((taskRes.data || []) as unknown as DashboardTaskRow[]);
-    }
-
-    if (sessionRes.error) {
-      toast.error("Não foi possível carregar a linha do tempo.");
-    } else {
-      setSessions((sessionRes.data || []) as unknown as DashboardSessionRow[]);
-    }
-
-    if (financialRes.error) {
-      toast.error("Não foi possível carregar o resumo financeiro.");
-    } else {
-      setFinancialEntries((financialRes.data || []) as DashboardFinancialEntry[]);
-    }
-
-    setLoading(false);
-  }
-
-  const timelineBlocks = useMemo(() => {
-    return buildTimelineBlocks(
-      sessions.map((session) => ({
-        id: session.id,
-        startedAt: session.started_at,
-        endedAt: session.ended_at,
-        projectName: session.project?.name || "Projeto sem nome",
-        companyName: session.project?.client || null,
-        hourlyRate: Number(session.project?.hourly_rate || 0),
-        color: session.project?.color || null,
-      })),
-      timezone,
-      now,
-    );
-  }, [now, sessions, timezone]);
-
-  const timelineHourLabels = useMemo(() => buildTimelineHourLabels(3), []);
-  const currentMinuteMarker = useMemo(() => getCurrentMinuteMarker(timezone, now), [now, timezone]);
-
-  const projectsWithTodayStats = useMemo(() => {
-    const todayKey = getDateKeyInTimezone(now, timezone);
-    const secondsByProject = new Map<string, number>();
-
-    sessions.forEach((session) => {
-      const overlapSeconds = getSessionOverlapSecondsForDate(
-        session.started_at,
-        session.ended_at,
-        timezone,
-        todayKey,
-        now,
-      );
-
-      if (overlapSeconds <= 0) return;
-      secondsByProject.set(
-        session.project_id,
-        (secondsByProject.get(session.project_id) || 0) + overlapSeconds,
-      );
-    });
-
-    return projects
-      .map((project) => {
-        const trackedSeconds = secondsByProject.get(project.id) || 0;
-        return {
-          ...project,
-          trackedSeconds,
-          estimatedValue: (trackedSeconds / 3600) * Number(project.hourly_rate || 0),
-        };
-      })
-      .sort((a, b) => {
-        if (a.trackedSeconds !== b.trackedSeconds) return b.trackedSeconds - a.trackedSeconds;
-        return a.name.localeCompare(b.name);
-      });
-  }, [now, projects, sessions, timezone]);
-
-  const projectMap = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
-  const financialMetrics = useMemo(() => {
-    const entriesWithProjects = financialEntries.map((entry) => ({
-      ...entry,
-      project: entry.project_id ? projectMap.get(entry.project_id) || null : null,
-    }));
-
-    return summarizeFinanceiro(entriesWithProjects, now);
-  }, [financialEntries, now, projectMap]);
-
-  const kanbanFocus = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const enriched = sortTasksForMatrix(
-      tasks.map((task) => {
-        const dueTime = task.due_date ? new Date(task.due_date).getTime() : null;
-        const dueDate = dueTime ? new Date(task.due_date as string) : null;
-        const dayDiff =
-          dueDate === null
-            ? null
-            : Math.floor((new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime() - today.getTime()) / 86400000);
-
-        return {
-          ...task,
-          projectName: task.project_id ? projectMap.get(task.project_id)?.name || task.client || "Conhecimento geral" : task.client || "Conhecimento geral",
-          dueTime,
-          dayDiff,
-          quadrant: getQuadrant(task),
-        };
-      })
-    );
-
-    const timeline = enriched.slice(0, 6).map((task, index) => {
-      const priority = KANBAN_PRIORITIES.find((item) => item.value === task.priority);
-      let dueLabel = "Sem prazo";
-      let dueTone = "text-muted-foreground";
-
-      if (task.dayDiff !== null) {
-        if (task.dayDiff < 0) {
-          dueLabel = `Atrasada ${Math.abs(task.dayDiff)}d`;
-          dueTone = "text-danger";
-        } else if (task.dayDiff === 0) {
-          dueLabel = "Prazo hoje";
-          dueTone = "text-warning";
-        } else if (task.dayDiff === 1) {
-          dueLabel = "Prazo amanha";
-        } else {
-          dueLabel = `Prazo em ${task.dayDiff}d`;
-        }
-      }
-
-      const stageLabel = task.column_index === 1 ? "Em andamento" : index === 0 ? "Agora" : index < 3 ? "Próximo" : "Depois";
-
-      return {
-        ...task,
-        rank: index + 1,
-        stageLabel,
-        priorityLabel: priority?.label || "Normal",
-        priorityClassName: priority?.className || "bg-secondary text-muted-foreground",
-        dueLabel,
-        dueTone,
-      };
-    });
-
-    return {
-      openCount: enriched.length,
-      inProgressCount: enriched.filter((task) => task.column_index === 1).length,
-      overdueCount: enriched.filter((task) => task.dayDiff !== null && task.dayDiff < 0).length,
-      dueTodayCount: enriched.filter((task) => task.dayDiff === 0).length,
-      timeline,
-    };
-  }, [projectMap, tasks]);
-
-  const todayMeetings = useMemo(() => {
-    const todayKey = getDateKeyInTimezone(now, timezone);
-
-    return [...calendarEvents]
-      .filter((event) => {
-        if (event.selfResponseStatus === "declined") return false;
-        return getDateKeyInTimezone(new Date(event.start), timezone) === todayKey;
-      })
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-  }, [calendarEvents, now, timezone]);
-
-  const dashboardSummary = useMemo(() => {
-    const upcomingMeeting = todayMeetings.find((meeting) => {
-      if (meeting.allDay) return true;
-      return new Date(meeting.end).getTime() >= now.getTime();
-    });
-
-    const nextTask = kanbanFocus.timeline[0] || null;
-
-    const meetingSummary = !meetingsConnected
-      ? "Agenda não conectada"
-      : todayMeetings.length === 0
-        ? "sem reuniões hoje"
-        : upcomingMeeting
-          ? upcomingMeeting.allDay
-            ? "ha uma reunião de dia inteiro"
-            : `sua proxima reuniao e as ${new Date(upcomingMeeting.start).toLocaleTimeString("pt-BR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}`
-          : "as reuniões de hoje já terminaram";
-
-    const taskSummary =
-      kanbanFocus.openCount === 0
-        ? "nenhuma tarefa aberta"
-        : `${kanbanFocus.openCount} tarefa${kanbanFocus.openCount > 1 ? "s" : ""} aberta${kanbanFocus.openCount > 1 ? "s" : ""}`;
-
-    const dueSummary =
-      kanbanFocus.overdueCount > 0
-        ? `${kanbanFocus.overdueCount} atrasada${kanbanFocus.overdueCount > 1 ? "s" : ""}`
-        : kanbanFocus.dueTodayCount > 0
-          ? `${kanbanFocus.dueTodayCount} vence${kanbanFocus.dueTodayCount > 1 ? "m" : ""} hoje`
-          : nextTask?.due_date
-            ? `proximo prazo em ${new Date(nextTask.due_date).toLocaleDateString("pt-BR")}`
-            : "sem prazo critico no momento";
-
-    const phraseBucket =
-      kanbanFocus.overdueCount > 0
-        ? MOTIVATIONAL_PHRASES.overdue
-        : kanbanFocus.inProgressCount > 2
-          ? MOTIVATIONAL_PHRASES.focus
-          : upcomingMeeting
-            ? MOTIVATIONAL_PHRASES.meeting
-            : MOTIVATIONAL_PHRASES.default;
-
-    const phraseIndex =
-      now.getFullYear() +
-      now.getMonth() +
-      now.getDate() +
-      kanbanFocus.openCount +
-      todayMeetings.length;
-
-    const motivationalLine = phraseBucket[phraseIndex % phraseBucket.length];
-
-    return {
-      headline: `Hoje ${meetingSummary}, com ${taskSummary} e ${dueSummary}.`,
-      motivationalLine,
-      nextMeeting: upcomingMeeting,
-      nextTask,
-    };
-  }, [kanbanFocus, meetingsConnected, now, todayMeetings]);
+  const actionPending = (action: DashboardActionDescriptor) => dashboard.actingKey === dashboard.getActionKey(action);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Painel principal"
-        description={dashboardSummary.headline}
+        description="Cockpit diário para decidir o próximo passo e executar microações sem trocar de tela."
       />
 
-      <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <section
+        data-testid="dashboard-now"
+        className="overflow-hidden rounded-3xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.98),rgba(15,25,44,0.94))] p-5 shadow-[0_24px_80px_-48px_rgba(34,211,238,0.55)] md:p-6"
+      >
+        <div className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Agenda de hoje</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">Reuniões do dia</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Atualiza com os compromissos do dia e já deixa o atalho para entrar na call.
-            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Agora</p>
+            <h2 className="mt-2 text-2xl font-semibold text-foreground">{dashboard.primaryRecommendation.title}</h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">{dashboard.primaryRecommendation.reason}</p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <DashboardActionButton
+                action={dashboard.primaryRecommendation.primaryAction}
+                onAction={dashboard.handleAction}
+                pending={actionPending(dashboard.primaryRecommendation.primaryAction)}
+              />
+              {dashboard.primaryRecommendation.secondaryAction ? (
+                <DashboardActionButton
+                  action={dashboard.primaryRecommendation.secondaryAction}
+                  onAction={dashboard.handleAction}
+                  pending={actionPending(dashboard.primaryRecommendation.secondaryAction)}
+                  variant="outline"
+                />
+              ) : null}
+            </div>
+
+            {dashboard.primaryRecommendation.context.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {dashboard.primaryRecommendation.context.map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
-          <Button asChild variant="outline" className="gap-2">
-            <Link href="/agenda">
-              Abrir agenda
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
 
-        <div className="mt-4">
-          {meetingsLoading ? (
-            <div className="flex h-24 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center gap-2 text-slate-300">
+                <Timer className="h-4 w-4 text-cyan-300" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">Tempo do dia</p>
+              </div>
+              <p className="mt-3 text-2xl font-semibold text-foreground">{formatDuration(dashboard.trackedTodaySeconds)}</p>
+              <p className="mt-1 text-sm text-slate-300">
+                {dashboard.totalTargetSeconds > 0
+                  ? `${Math.round((dashboard.trackedTodaySeconds / dashboard.totalTargetSeconds) * 100)}% da meta diária agregada.`
+                  : "Sem meta diária agregada definida nos projetos."}
+              </p>
             </div>
-          ) : !meetingsConnected ? (
-            <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-              Google Calendar não conectado. Conecte na Agenda para ver as reuniões de hoje aqui.
-            </div>
-          ) : todayMeetings.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-              Nenhuma reunião para hoje.
-            </div>
-          ) : (
-            <div className="grid gap-2 xl:grid-cols-2">
-              {todayMeetings.map((meeting) => {
-                const meetingEnded = !meeting.allDay && new Date(meeting.end).getTime() < now.getTime();
 
-                return (
-                <div
-                  key={meeting.id}
-                  className={cn(
-                    "rounded-xl border border-border bg-background/25 p-3",
-                    meetingEnded && "opacity-70"
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
-                          {meeting.allDay
-                            ? "Dia inteiro"
-                            : `${new Date(meeting.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} - ${new Date(meeting.end).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
-                        </Badge>
-                        <Badge variant="secondary" className={cn(meetingEnded && "bg-secondary text-muted-foreground")}>
-                          {meetingEnded ? "Finalizada" : "Hoje"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">{meeting.projectName || "Conhecimento geral"}</span>
-                      </div>
-                      <p className="mt-1 truncate text-sm font-semibold text-foreground">{meeting.summary}</p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        <CalendarClock className="h-3.5 w-3.5" />
-                        <span>
-                          {meetingEnded
-                            ? "Reunião encerrada"
-                            : meeting.allDay
-                            ? "Compromisso do dia"
-                            : `Comeca ${new Date(meeting.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {meeting.meetLink && !meetingEnded ? (
-                        <Button asChild size="sm" className="h-8 gap-2 px-3">
-                          <a href={meeting.meetLink} target="_blank" rel="noopener noreferrer">
-                            <Video className="h-4 w-4" />
-                            Entrar no Meet
-                          </a>
-                        </Button>
-                      ) : null}
-                      <Button asChild size="sm" variant="outline" className="h-8 gap-2 px-3">
-                        <a href={meeting.htmlLink} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4" />
-                          {meetingEnded ? "Ver no Google" : "Abrir no Google"}
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                );
-              })}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center gap-2 text-slate-300">
+                <AlertTriangle className="h-4 w-4 text-amber-300" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">Fila de atenção</p>
+              </div>
+              <p className="mt-3 text-2xl font-semibold text-foreground">{dashboard.attentionQueue.length}</p>
+              <p className="mt-1 text-sm text-slate-300">
+                {dashboard.attentionQueue.length > 0
+                  ? `${dashboard.attentionQueue.filter((item) => item.tone === "danger").length} item(ns) crítico(s) agora.`
+                  : "Nenhuma pendência crítica detectada neste momento."}
+              </p>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar do dia</p>
-                <h2 className="mt-1 text-2xl font-semibold text-foreground">Linha de execução das tarefas abertas</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Ordem sugerida baseada em prioridade, urgencia, importancia e prazo do Kanban.
-                </p>
-              </div>
-              <Button asChild variant="outline" className="gap-2">
-                <Link href="/kanban">
-                  Abrir Kanban
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div
+          data-testid="dashboard-attention-queue"
+          className="rounded-2xl border border-border bg-card p-5 md:p-6"
+        >
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Fila de atenção</p>
+              <h2 className="mt-1 text-xl font-semibold text-foreground">Tudo o que pede decisão hoje</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ordem fixa por risco operacional, com atalhos para agir sem trocar de página.
+              </p>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-xl border border-border bg-background/30 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Abertas</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">{kanbanFocus.openCount}</p>
-              </div>
-              <div className="rounded-xl border border-border bg-background/30 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Em andamento</p>
-                <p className="mt-2 text-2xl font-semibold text-info">{kanbanFocus.inProgressCount}</p>
-              </div>
-              <div className="rounded-xl border border-border bg-background/30 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Prazo hoje</p>
-                <p className="mt-2 text-2xl font-semibold text-warning">{kanbanFocus.dueTodayCount}</p>
-              </div>
-              <div className="rounded-xl border border-border bg-background/30 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Atrasadas</p>
-                <p className="mt-2 text-2xl font-semibold text-danger">{kanbanFocus.overdueCount}</p>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="flex h-28 items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : kanbanFocus.timeline.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
-                Nenhuma tarefa aberta no Kanban. Quando você criar tarefas, a ordem recomendada aparece aqui.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {kanbanFocus.timeline.map((task) => (
-                  <div key={task.id} className="rounded-xl border border-border bg-background/25 p-4 transition-colors hover:border-primary/40">
-                    <div className="flex flex-wrap items-start gap-3 md:flex-nowrap">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-sm font-semibold text-primary">
-                        {task.rank}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
-                            {task.stageLabel}
-                          </Badge>
-                          <span className={cn("text-xs font-medium", task.dueTone)}>{task.dueLabel}</span>
-                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", task.priorityClassName)}>
-                            {task.priorityLabel}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm font-semibold text-foreground">{task.title}</p>
-                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                          <span>{task.projectName}</span>
-                          <span>
-                            {task.due_date ? new Date(task.due_date).toLocaleDateString("pt-BR") : "Sem data definida"}
-                          </span>
-                          <span>
-                            {task.quadrant === "do_now"
-                              ? "Fazer agora"
-                              : task.quadrant === "schedule"
-                                ? "Agendar"
-                                : task.quadrant === "delegate"
-                                  ? "Delegar"
-                                  : "Eliminar"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Badge variant="secondary">{dashboard.attentionQueue.length}</Badge>
           </div>
 
-          <div className="space-y-3">
-            <div className="rounded-xl border border-border bg-background/25 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Resumo do dia</p>
-              <p className="mt-2 text-sm text-foreground">{dashboardSummary.headline}</p>
-              <div className="mt-3 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Frase do dia</p>
-                <p className="mt-1 text-sm text-foreground">{dashboardSummary.motivationalLine}</p>
+          {dashboard.loading ? (
+            <div className="flex h-28 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : dashboard.attentionQueue.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
+              Nenhum item entrou na fila de atenção. Use o Kanban recomendado ou a agenda de hoje para avançar.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {dashboard.attentionQueue.map((item) => (
+                <AttentionItemCard
+                  key={item.id}
+                  item={item}
+                  actionPending={actionPending}
+                  onAction={dashboard.handleAction}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">Saúde por projeto</h2>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Meta do dia, tarefas críticas, financeiro acionável e próximas reuniões em 48h.
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <div className="rounded-xl border border-border bg-background/30 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Em risco</p>
+                <p className="mt-2 text-2xl font-semibold text-danger">{healthSummary.at_risk}</p>
               </div>
-
-              <div className="mt-4 grid gap-2">
-                <div className="rounded-lg border border-border px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Próxima reunião</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">
-                    {dashboardSummary.nextMeeting
-                      ? dashboardSummary.nextMeeting.allDay
-                        ? `${dashboardSummary.nextMeeting.summary} · Dia inteiro`
-                        : `${new Date(dashboardSummary.nextMeeting.start).toLocaleTimeString("pt-BR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })} · ${dashboardSummary.nextMeeting.summary}`
-                      : "Sem reuniões pendentes hoje"}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-border px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Próxima entrega</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">
-                    {dashboardSummary.nextTask
-                      ? `${dashboardSummary.nextTask.title} · ${dashboardSummary.nextTask.dueLabel}`
-                      : "Nenhuma tarefa aberta no Kanban"}
-                  </p>
-                </div>
+              <div className="rounded-xl border border-border bg-background/30 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Atenção</p>
+                <p className="mt-2 text-2xl font-semibold text-warning">{healthSummary.attention}</p>
               </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button asChild size="sm" variant="outline" className="h-8">
-                  <Link href="/kanban">Abrir Kanban</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline" className="h-8">
-                  <Link href="/agenda">Abrir Agenda</Link>
-                </Button>
+              <div className="rounded-xl border border-border bg-background/30 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estáveis</p>
+                <p className="mt-2 text-2xl font-semibold text-emerald-300">{healthSummary.stable}</p>
               </div>
             </div>
-          </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">Agenda hoje</h2>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Reuniões do dia com entrada rápida no Meet e atalhos para atas.
+            </p>
+
+            <div className="mt-4">
+              {dashboard.meetingsLoading ? (
+                <div className="flex h-24 items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : !dashboard.meetingsConnected ? (
+                <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+                  Google Calendar não conectado. Conecte na Agenda para trazer reuniões para o cockpit.
+                </div>
+              ) : dashboard.todayMeetings.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+                  Nenhuma reunião prevista para hoje.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {dashboard.todayMeetings.slice(0, 4).map((meeting) => {
+                    const start = new Date(meeting.start);
+                    const end = new Date(meeting.end);
+                    const action = meeting.meetLink
+                      ? {
+                          kind: "join_meeting" as const,
+                          label: "Entrar no Meet",
+                          href: meeting.meetLink,
+                          external: true,
+                          eventId: meeting.id,
+                        }
+                      : {
+                          kind: "open_agenda" as const,
+                          label: "Abrir agenda",
+                          href: "/agenda?preset=today",
+                        };
+
+                    return (
+                      <div key={meeting.id} className="rounded-xl border border-border bg-background/25 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline">
+                                {meeting.allDay
+                                  ? "Dia inteiro"
+                                  : `${start.toLocaleTimeString("pt-BR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })} - ${end.toLocaleTimeString("pt-BR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}`}
+                              </Badge>
+                              {meeting.projectName ? <Badge variant="secondary">{meeting.projectName}</Badge> : null}
+                            </div>
+                            <p className="mt-2 text-sm font-semibold text-foreground">{meeting.summary}</p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <DashboardActionButton
+                              action={action}
+                              onAction={dashboard.handleAction}
+                              pending={actionPending(action)}
+                            />
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/atas?meeting=${encodeURIComponent(meeting.id)}`}>Ver atas</Link>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </section>
 
@@ -623,17 +421,17 @@ export default function IndexPage() {
         )}
       />
 
-      <section className="rounded-xl border border-border bg-card p-4 md:p-5">
+      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Financeiro</p>
-            <h2 className="mt-1 text-base font-semibold text-foreground">Resumo financeiro do workspace</h2>
+            <h2 className="mt-1 text-base font-semibold text-foreground">Resumo financeiro do cockpit</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Entradas, saidas e alertas de vencimento no mesmo painel operacional.
+              Entradas, saídas e vencimentos visíveis sem sair do painel principal.
             </p>
           </div>
           <Button asChild variant="outline" className="gap-2">
-            <Link href="/financeiro">
+            <Link href="/financeiro?tab=executivo&status=actionable">
               Abrir financeiro
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -646,7 +444,7 @@ export default function IndexPage() {
               <ArrowUpCircle className="h-4 w-4 text-emerald-300" />
               <p className="text-[11px] uppercase tracking-wide">A receber</p>
             </div>
-            <p className="mt-2 text-2xl font-semibold text-foreground">{formatMoney(financialMetrics.receivableOpen)}</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{formatMoney(dashboard.financialMetrics.receivableOpen)}</p>
           </div>
 
           <div className="rounded-xl border border-border bg-background/30 p-4">
@@ -654,7 +452,7 @@ export default function IndexPage() {
               <ArrowDownCircle className="h-4 w-4 text-amber-300" />
               <p className="text-[11px] uppercase tracking-wide">A pagar</p>
             </div>
-            <p className="mt-2 text-2xl font-semibold text-foreground">{formatMoney(financialMetrics.payableOpen)}</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{formatMoney(dashboard.financialMetrics.payableOpen)}</p>
           </div>
 
           <div className="rounded-xl border border-border bg-background/30 p-4">
@@ -662,7 +460,7 @@ export default function IndexPage() {
               <AlertTriangle className="h-4 w-4 text-rose-300" />
               <p className="text-[11px] uppercase tracking-wide">Vencidos</p>
             </div>
-            <p className="mt-2 text-2xl font-semibold text-foreground">{financialMetrics.overdueCount}</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{dashboard.financialMetrics.overdueCount}</p>
           </div>
 
           <div className="rounded-xl border border-border bg-background/30 p-4">
@@ -670,32 +468,33 @@ export default function IndexPage() {
               <Landmark className="h-4 w-4 text-primary" />
               <p className="text-[11px] uppercase tracking-wide">Próximos</p>
             </div>
-            <p className="mt-2 text-2xl font-semibold text-foreground">{financialMetrics.upcomingCount}</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{dashboard.financialMetrics.upcomingCount}</p>
           </div>
         </div>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 md:p-5">
+      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Linha do tempo de hoje</h2>
-            <p className="text-xs text-muted-foreground">Sessões por horário no timezone {timezone}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Timeline</p>
+            <h2 className="mt-1 text-base font-semibold text-foreground">Linha do tempo de hoje</h2>
+            <p className="text-sm text-muted-foreground">Sessões registradas no timezone {dashboard.timezone}.</p>
           </div>
-          <Badge variant="secondary">{timelineBlocks.length} sessões</Badge>
+          <Badge variant="secondary">{dashboard.timelineBlocks.length} sessões</Badge>
         </div>
 
-        {loading ? (
+        {dashboard.loading ? (
           <div className="flex h-24 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : timelineBlocks.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-            Sem sessões hoje ainda.
+        ) : dashboard.timelineBlocks.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+            Sem sessões registradas hoje ainda.
           </div>
         ) : (
           <div className="space-y-3">
             <div className="relative ml-52 hidden h-4 text-[10px] text-muted-foreground md:block">
-              {timelineHourLabels.map((hour) => (
+              {dashboard.timelineHourLabels.map((hour) => (
                 <span
                   key={hour}
                   className="absolute -translate-x-1/2"
@@ -706,18 +505,17 @@ export default function IndexPage() {
               ))}
             </div>
 
-            {timelineBlocks.map((block) => (
+            {dashboard.timelineBlocks.map((block) => (
               <div key={block.id} className="grid gap-2 md:grid-cols-[200px_1fr] md:items-center md:gap-4">
                 <div className="min-w-0">
                   <p className="truncate text-xs font-semibold text-foreground">{block.label}</p>
                   <p className="truncate text-[11px] text-muted-foreground">
-                    {block.company || "Sem empresa"} · {formatDuration(block.durationSeconds)} ·{" "}
-                    {formatMoney(block.estimatedValue)}
+                    {block.company || "Sem empresa"} · {formatDuration(block.durationSeconds)} · {formatMoney(block.estimatedValue)}
                   </p>
                 </div>
 
                 <div className="relative h-8 overflow-hidden rounded-md border border-border bg-background/40">
-                  {timelineHourLabels.map((hour) => (
+                  {dashboard.timelineHourLabels.map((hour) => (
                     <span
                       key={hour}
                       className="absolute inset-y-0 w-px bg-border/70"
@@ -727,14 +525,11 @@ export default function IndexPage() {
 
                   <span
                     className="absolute inset-y-0 w-px bg-primary/60"
-                    style={{ left: `${(currentMinuteMarker / 1440) * 100}%` }}
+                    style={{ left: `${(dashboard.currentMinuteMarker / 1440) * 100}%` }}
                   />
 
                   <span
-                    className={cn(
-                      "absolute inset-y-1 rounded-sm",
-                      block.isActive && "animate-pulse",
-                    )}
+                    className={cn("absolute inset-y-1 rounded-sm", block.isActive && "animate-pulse")}
                     style={{
                       left: `${block.leftPercent}%`,
                       width: `${block.widthPercent}%`,
@@ -748,60 +543,114 @@ export default function IndexPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 md:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-primary" />
-            <h2 className="text-base font-semibold text-foreground">Empresas no painel</h2>
+      <section data-testid="dashboard-project-health" className="rounded-2xl border border-border bg-card p-5 md:p-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Saúde por projeto</p>
+            <h2 className="mt-1 text-base font-semibold text-foreground">Mapa operacional dos clientes e frentes</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Visão ordenada por risco, com metas do dia, vencimentos e compromissos próximos.
+            </p>
           </div>
-          <Badge variant="secondary">{projectsWithTodayStats.length}</Badge>
+          <Badge variant="secondary">{dashboard.projectHealth.length}</Badge>
         </div>
 
-        {loading ? (
+        {dashboard.loading ? (
           <div className="flex h-20 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : projectsWithTodayStats.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-            Nenhuma empresa cadastrada. Crie em Configurações &gt; Empresas.
+        ) : dashboard.projectHealth.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+            Nenhum projeto cadastrado ainda. Crie em Configurações para ativar o radar operacional.
           </div>
         ) : (
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {projectsWithTodayStats.map((project) => (
-              <Link
-                key={project.id}
-                href={`/settings?tab=companies&project=${project.id}`}
-                className="rounded-lg border border-border bg-background/20 p-3 transition-colors hover:border-primary/40 hover:bg-background/30"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-foreground">{project.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{project.client || "Sem cliente"}</p>
+          <div className="grid gap-3 xl:grid-cols-2">
+            {dashboard.projectHealth.map((project) => {
+              const progress = project.targetSecondsToday > 0
+                ? Math.min(100, Math.round((project.trackedSecondsToday / project.targetSecondsToday) * 100))
+                : 0;
+
+              return (
+                <article key={project.projectId} className="rounded-2xl border border-border bg-background/25 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: project.color || "hsl(var(--primary))" }}
+                        />
+                        <h3 className="truncate text-base font-semibold text-foreground">{project.projectName}</h3>
+                        <Badge className={cn("border", getHealthLevelClass(project.level))}>
+                          {getHealthLevelLabel(project.level)}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{project.client || "Sem cliente definido"}</p>
+                      <p className="mt-2 text-sm text-foreground">{project.reason}</p>
+                    </div>
+
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/tracker?project=${project.projectId}`}>Abrir no tracker</Link>
+                    </Button>
                   </div>
-                  <span
-                    className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: project.color || "hsl(var(--primary))" }}
-                  />
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  Hoje: {formatDuration(project.trackedSeconds)} · {formatMoney(project.estimatedValue)}
-                </div>
-              </Link>
-            ))}
+
+                  <div className="mt-4 rounded-xl border border-border/70 bg-background/40 p-3">
+                    <div className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <span>Meta do dia</span>
+                      <span>{formatTargetLabel(project.trackedSecondsToday, project.targetSecondsToday)}</span>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          project.level === "at_risk" ? "bg-danger" : project.level === "attention" ? "bg-warning" : "bg-emerald-400",
+                        )}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    {project.overdueTaskCount > 0 ? (
+                      <span className="rounded-full bg-danger/10 px-2.5 py-1 text-danger">
+                        {project.overdueTaskCount} tarefa(s) atrasada(s)
+                      </span>
+                    ) : null}
+                    {project.dueTodayTaskCount > 0 ? (
+                      <span className="rounded-full bg-warning/10 px-2.5 py-1 text-warning">
+                        {project.dueTodayTaskCount} prazo(s) hoje
+                      </span>
+                    ) : null}
+                    {project.actionableFinanceCount > 0 ? (
+                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                        {project.actionableFinanceCount} item(ns) financeiro(s)
+                      </span>
+                    ) : null}
+                    {project.meetingCount48h > 0 ? (
+                      <span className="rounded-full bg-secondary px-2.5 py-1 text-foreground">
+                        Próxima reunião: {project.nextMeetingLabel}
+                      </span>
+                    ) : null}
+                    {project.overdueTaskCount === 0 &&
+                    project.dueTodayTaskCount === 0 &&
+                    project.actionableFinanceCount === 0 &&
+                    project.meetingCount48h === 0 ? (
+                      <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-emerald-300">
+                        Sem alertas imediatos
+                      </span>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
 
       <footer className="border-t border-border/70 pt-4">
         <p className="text-center text-xs text-muted-foreground">
-          Painel do dia atualizado com agenda, tarefas abertas e empresas em acompanhamento.
+          Cockpit diário com fila de atenção, quick actions e saúde operacional por projeto.
         </p>
       </footer>
     </div>
   );
 }
-
-
-
-
-

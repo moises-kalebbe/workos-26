@@ -516,6 +516,13 @@ export default function AgendaPage() {
 
   const [respondingEventId, setRespondingEventId] = useState<string | null>(null);
   const [savingSeriesKey, setSavingSeriesKey] = useState<string | null>(null);
+  const activePreset = useMemo(() => {
+    const preset = searchParams?.get("preset");
+    if (preset === "today" || preset === "pending-response") {
+      return preset;
+    }
+    return null;
+  }, [searchParams]);
 
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
   const [meetingSummary, setMeetingSummary] = useState("");
@@ -627,17 +634,35 @@ export default function AgendaPage() {
     return [...new Set(events.flatMap((event) => event.tags))].sort((a, b) => a.localeCompare(b));
   }, [events]);
 
+  const effectivePreferences = useMemo(() => {
+    if (activePreset === "pending-response") {
+      return {
+        ...preferences,
+        statusFilter: "pending" as AgendaPreferences["statusFilter"],
+        showDeclined: false,
+      };
+    }
+
+    return preferences;
+  }, [activePreset, preferences]);
+
+  useEffect(() => {
+    if (activePreset === "today") {
+      setWeekOffset(0);
+    }
+  }, [activePreset]);
+
   const filteredEvents = useMemo(() => {
     const filtered = events.filter((event) => {
-      if (!preferences.showDeclined && event.selfResponseStatus === "declined") return false;
-      if (!statusMatchesFilter(event, preferences.statusFilter)) return false;
+      if (!effectivePreferences.showDeclined && event.selfResponseStatus === "declined") return false;
+      if (!statusMatchesFilter(event, effectivePreferences.statusFilter)) return false;
 
-      if (preferences.priorityFilter.length > 0 && !preferences.priorityFilter.includes(event.priority)) {
+      if (effectivePreferences.priorityFilter.length > 0 && !effectivePreferences.priorityFilter.includes(event.priority)) {
         return false;
       }
 
-      if (preferences.tagFilter.length > 0) {
-        const hasTag = preferences.tagFilter.some((tag) => event.tags.includes(tag));
+      if (effectivePreferences.tagFilter.length > 0) {
+        const hasTag = effectivePreferences.tagFilter.some((tag) => event.tags.includes(tag));
         if (!hasTag) return false;
       }
 
@@ -646,7 +671,7 @@ export default function AgendaPage() {
 
     const byTime = (a: CalendarEvent, b: CalendarEvent) => parseISO(a.start).getTime() - parseISO(b.start).getTime();
 
-    if (preferences.sortMode === "time_only") {
+    if (effectivePreferences.sortMode === "time_only") {
       return filtered.sort(byTime);
     }
 
@@ -655,7 +680,7 @@ export default function AgendaPage() {
       if (priorityDiff !== 0) return priorityDiff;
       return byTime(a, b);
     });
-  }, [events, preferences]);
+  }, [effectivePreferences, events]);
 
   const agendaSummary = useMemo(() => {
     const now = new Date();
@@ -704,6 +729,14 @@ export default function AgendaPage() {
 
     return result;
   }, [filteredEvents, weekStart]);
+
+  const visibleDays = useMemo(() => {
+    if (activePreset === "today") {
+      return days.filter((day) => isToday(day.date));
+    }
+
+    return days;
+  }, [activePreset, days]);
 
   const handleWeekChange = (direction: -1 | 1) => {
     setWeekOffset((current) => current + direction);
@@ -942,6 +975,24 @@ export default function AgendaPage() {
         </div>
       </div>
 
+      {activePreset ? (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Preset ativo</p>
+              <p className="mt-1 text-sm text-foreground">
+                {activePreset === "today"
+                  ? "Mostrando a agenda do dia atual dentro da semana corrente."
+                  : "Mostrando apenas reuniões pendentes de resposta."}
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/agenda">Limpar preset</Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {(insufficientScope || error) && (
         <div className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">
@@ -981,7 +1032,7 @@ export default function AgendaPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-[180px]">
             <Select
-              value={preferences.statusFilter}
+              value={activePreset === "pending-response" ? "pending" : preferences.statusFilter}
               onValueChange={(value) =>
                 persistPreferences({
                   ...preferences,
@@ -1107,7 +1158,7 @@ export default function AgendaPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {days.map(({ date, events: dayEvents, groupedEvents }) => (
+          {visibleDays.map(({ date, events: dayEvents, groupedEvents }) => (
             <div key={date.toISOString()}>
               <div className="mb-3 flex items-center gap-2">
                 <span
