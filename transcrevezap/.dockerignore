@@ -1,0 +1,15 @@
+.env
+docker-composer.yaml
+docker-compose.yaml
+.gitignore
+.git
+__pycache__
+*.pyc
+.git
+.env
+.venv
+*.md
+*.postman_collection.json
+deploy_*.sh
+manager_atualizar.py
+roadmap.md
