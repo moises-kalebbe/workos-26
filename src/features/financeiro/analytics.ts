@@ -98,7 +98,7 @@ function formatMonthLabel(date: Date) {
 }
 
 function toDateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function getEntryDateByBasis(entry: FinanceiroEntryWithProject, basis: FinanceiroReportingBasis) {
