@@ -47,6 +47,7 @@ import {
   formatRecurrenceLabel,
   formatVisualStatusLabel,
   getFinanceiroVisualStatus,
+  parseFinanceiroDate,
   sortFinanceiroEntries,
 } from "@/features/financeiro/utils";
 import { EmptyState } from "@/components/system/empty-state";
@@ -111,7 +112,7 @@ type ContractFormState = {
 
 const ENTRY_TYPE_OPTIONS: { label: string; value: FinanceiroEntryType }[] = [
   { label: "Entrada", value: "income" },
-  { label: "Saida", value: "expense" },
+  { label: "Saída", value: "expense" },
 ];
 
 const ENTRY_STATUS_OPTIONS: { label: string; value: FinanceiroEntryStatus }[] = [
@@ -132,7 +133,7 @@ const RECURRENCE_OPTIONS: { label: string; value: FinanceiroEntryRecurrence }[] 
 ];
 
 const PERIOD_OPTIONS: { label: string; value: FinanceiroPeriodPreset }[] = [
-  { label: "Mes atual", value: "month" },
+  { label: "Mês atual", value: "month" },
   { label: "6 meses", value: "6m" },
   { label: "12 meses", value: "12m" },
   { label: "24 meses", value: "24m" },
@@ -140,13 +141,13 @@ const PERIOD_OPTIONS: { label: string; value: FinanceiroPeriodPreset }[] = [
 ];
 
 const BASIS_OPTIONS: { label: string; value: FinanceiroReportingBasis }[] = [
-  { label: "Competencia", value: "competence" },
+  { label: "Competência", value: "competence" },
   { label: "Caixa", value: "cash" },
 ];
 
 const STATUS_FILTER_OPTIONS: { label: string; value: ExecutiveStatusFilter }[] = [
   { label: "Todos", value: "all" },
-  { label: "Acionaveis", value: "actionable" },
+  { label: "Acionáveis", value: "actionable" },
   { label: "Pendentes", value: "pending" },
   { label: "Próximos", value: "upcoming" },
   { label: "Vencidos", value: "overdue" },
@@ -164,7 +165,8 @@ const chartConfig = {
 };
 
 function todayDateInput() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
 function defaultEntryFormState(): EntryFormState {
@@ -244,10 +246,8 @@ function normalizeStatusForSave(form: EntryFormState) {
   if (form.status === "paid" || form.paidAt) return "paid";
   if (form.status === "overdue") return "overdue";
 
-  const dueDate = new Date(form.dueDate);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dueAt = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+  const dueAt = parseFinanceiroDate(form.dueDate);
+  const today = parseFinanceiroDate(todayDateInput());
   return dueAt < today ? "overdue" : "pending";
 }
 
@@ -455,7 +455,11 @@ export default function FinanceiroPage() {
   const [customEnd, setCustomEnd] = useState("");
   const [search, setSearch] = useState("");
 
-  const now = useMemo(() => new Date(), []);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const requestedTab = searchParams?.get("tab");
@@ -586,41 +590,41 @@ export default function FinanceiroPage() {
   const periodCardCopy = useMemo(() => {
     if (periodPreset === "month") {
       return {
-        incomeLabel: "Receita Do Mes",
-        expenseLabel: "Despesa Do Mes",
-        profitLabel: "Lucro Do Mes",
-        plannedLabel: "Previsto Do Mes",
-        incomeHelper: `Realizado por ${basis === "cash" ? "caixa" : "competencia"} no mes corrente.`,
-        expenseHelper: `Saidas registradas por ${basis === "cash" ? "caixa" : "competencia"} no mes corrente.`,
-        profitHelper: "Receita menos despesa no mes atual.",
-        plannedHelper: "Saldo projetado do mes com pendências ainda não liquidadas.",
+        incomeLabel: "Receita do Mês",
+        expenseLabel: "Despesa do Mês",
+        profitLabel: "Lucro do Mês",
+        plannedLabel: "Saldo Pendente do Mês",
+        incomeHelper: `Realizado por ${basis === "cash" ? "caixa" : "competência"} no mês corrente.`,
+        expenseHelper: `Saídas registradas por ${basis === "cash" ? "caixa" : "competência"} no mês corrente.`,
+        profitHelper: "Receita menos despesa no mês atual.",
+        plannedHelper: "Saldo de entradas ainda não liquidadas no período (não representa fluxo adicional no regime de competência).",
       };
     }
 
     return {
-      incomeLabel: "Receita Do Período",
-      expenseLabel: "Despesa Do Período",
-      profitLabel: "Lucro Do Período",
-      plannedLabel: "Previsto Do Período",
-      incomeHelper: `Realizado por ${basis === "cash" ? "caixa" : "competencia"} no recorte selecionado.`,
-      expenseHelper: `Saidas registradas por ${basis === "cash" ? "caixa" : "competencia"} no recorte selecionado.`,
+      incomeLabel: "Receita do Período",
+      expenseLabel: "Despesa do Período",
+      profitLabel: "Lucro do Período",
+      plannedLabel: "Saldo Pendente do Período",
+      incomeHelper: `Realizado por ${basis === "cash" ? "caixa" : "competência"} no recorte selecionado.`,
+      expenseHelper: `Saídas registradas por ${basis === "cash" ? "caixa" : "competência"} no recorte selecionado.`,
       profitHelper: "Receita menos despesa no período filtrado.",
-      plannedHelper: "Saldo projetado dentro do período filtrado com pendências ainda não liquidadas.",
+      plannedHelper: "Saldo de entradas ainda não liquidadas no período (não representa fluxo adicional no regime de competência).",
     };
   }, [basis, periodPreset]);
 
   const trendDescription = useMemo(() => {
-    if (periodPreset === "month") return "Serie do mes atual sem incluir meses fora do recorte.";
-    if (periodPreset === "custom") return "Serie mensal limitada ao intervalo customizado selecionado.";
-    return `Serie mensal alinhada ao recorte de ${periodPreset.replace("m", " meses")}.`;
+    if (periodPreset === "month") return "Série do mês atual sem incluir meses fora do recorte.";
+    if (periodPreset === "custom") return "Série mensal limitada ao intervalo customizado selecionado.";
+    return `Série mensal alinhada ao recorte de ${periodPreset.replace("m", " meses")}.`;
   }, [periodPreset]);
   const projectionDescription = useMemo(() => {
     if (projectionMonths <= 6) {
-      return "Horizonte mensal de 6 meses com contratos ativos e lancamentos futuros.";
+      return "Horizonte mensal de 6 meses com contratos ativos e lançamentos futuros.";
     }
 
     if (projectionMonths === 12) {
-      return "Horizonte de 12 meses consolidado por ano para evitar repeticao mensal.";
+      return "Horizonte de 12 meses consolidado por ano para evitar repetição mensal.";
     }
 
     return "Horizonte de 24 meses consolidado por ano para leitura executiva.";
@@ -728,6 +732,10 @@ export default function FinanceiroPage() {
       toast.error("Preencha título, categoria e contraparte.");
       return;
     }
+    if (parseAmount(entryForm.amount) <= 0) {
+      toast.error("O valor deve ser maior que zero.");
+      return;
+    }
 
     setSavingEntry(true);
     const payload = buildEntryPayload(entryForm, user.id);
@@ -739,11 +747,11 @@ export default function FinanceiroPage() {
     setSavingEntry(false);
 
     if (result.error) {
-      toast.error("Não foi possível salvar o lancamento.");
+      toast.error("Não foi possível salvar o lançamento.");
       return;
     }
 
-    toast.success(editingEntry ? "Lancamento atualizado." : "Lancamento criado.");
+    toast.success(editingEntry ? "Lançamento atualizado." : "Lançamento criado.");
     setEntryDialogOpen(false);
     setEditingEntry(null);
     setEntryForm(defaultEntryFormState());
@@ -751,16 +759,16 @@ export default function FinanceiroPage() {
   }
 
   async function handleDeleteEntry(entryId: string) {
-    const confirmed = window.confirm("Excluir este lancamento?");
+    const confirmed = window.confirm("Excluir este lançamento?");
     if (!confirmed) return;
 
     const result = await financeiroApi.db.from("financial_entries").delete().eq("id", entryId);
     if (result.error) {
-      toast.error("Não foi possível excluir o lancamento.");
+      toast.error("Não foi possível excluir o lançamento.");
       return;
     }
 
-    toast.success("Lancamento excluido.");
+    toast.success("Lançamento excluído.");
     await loadData(false);
   }
 
@@ -768,6 +776,10 @@ export default function FinanceiroPage() {
     if (!user) return;
     if (!contractForm.name.trim() || !contractForm.category.trim() || !contractForm.counterpartyName.trim()) {
       toast.error("Preencha nome, categoria e contraparte.");
+      return;
+    }
+    if (parseAmount(contractForm.amount) <= 0) {
+      toast.error("O valor deve ser maior que zero.");
       return;
     }
 
@@ -783,6 +795,16 @@ export default function FinanceiroPage() {
     if (result.error) {
       toast.error("Não foi possível salvar o contrato.");
       return;
+    }
+
+    if (editingContract) {
+      // Ao editar, remove parcelas futuras pendentes para que o resync gere com os valores novos
+      await financeiroApi.db
+        .from("financial_entries")
+        .delete()
+        .eq("financial_contract_id", editingContract.id)
+        .eq("status", "pending")
+        .gte("due_date", todayDateInput());
     }
 
     toast.success(editingContract ? "Contrato atualizado." : "Contrato criado.");
@@ -848,7 +870,7 @@ export default function FinanceiroPage() {
       <PageHeader
         className="min-w-0 overflow-hidden"
         title="Financeiro"
-        description="Operacao, gestao e projeção no mesmo painel, com contratos recorrentes como fonte oficial de previsão."
+        description="Operação, gestão e projeção no mesmo painel, com contratos recorrentes como fonte oficial de previsão."
       />
 
       <section className="rounded-2xl border border-border bg-card/95 p-4 sm:p-5">
@@ -871,7 +893,7 @@ export default function FinanceiroPage() {
           </Button>
           <Button className="w-full justify-center sm:justify-start" onClick={openCreateEntryDialog}>
             <Plus className="mr-2 h-4 w-4" />
-            Novo lancamento
+            Novo lançamento
           </Button>
         </div>
       </section>
@@ -881,7 +903,7 @@ export default function FinanceiroPage() {
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar financeiro</p>
             <CardTitle className="mt-1">Painel executivo</CardTitle>
-            <CardDescription className="mt-1">Filtros globais para operacao, histórico e projeção.</CardDescription>
+            <CardDescription className="mt-1">Filtros globais para operação, histórico e projeção.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="grid gap-3 p-4 pt-4 sm:grid-cols-2 sm:p-5 sm:pt-4 xl:grid-cols-6">
@@ -992,8 +1014,8 @@ export default function FinanceiroPage() {
             <span className="hidden sm:inline">Executivo</span>
           </TabsTrigger>
           <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="lancamentos">
-            <span className="sm:hidden">Lanc.</span>
-            <span className="hidden sm:inline">Lancamentos</span>
+            <span className="sm:hidden">Lanç.</span>
+            <span className="hidden sm:inline">Lançamentos</span>
           </TabsTrigger>
           <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="contratos">
             <span className="sm:hidden">Contr.</span>
@@ -1005,8 +1027,8 @@ export default function FinanceiroPage() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatsCard icon={ArrowUpCircle} label="A Receber Agora" value={formatMoney(executiveSnapshot.operation.receivableNow)} helper="Receitas vencidas ou já dentro da janela de alerta." tone="success" />
             <StatsCard icon={ArrowDownCircle} label="A Pagar Agora" value={formatMoney(executiveSnapshot.operation.payableNow)} helper="Despesas vencidas ou dentro da janela operacional." tone="warning" />
-            <StatsCard icon={AlertTriangle} label="Vencidos" value={String(executiveSnapshot.operation.overdueCount).padStart(2, "0")} helper="Lancamentos fora do prazo e exigindo ação imediata." tone="danger" />
-            <StatsCard icon={CalendarClock} label="Próximos" value={String(executiveSnapshot.operation.upcomingCount).padStart(2, "0")} helper="Lancamentos prestes a vencer dentro da janela de alerta." tone="warning" />
+            <StatsCard icon={AlertTriangle} label="Vencidos" value={String(executiveSnapshot.operation.overdueCount).padStart(2, "0")} helper="Lançamentos fora do prazo e exigindo ação imediata." tone="danger" />
+            <StatsCard icon={CalendarClock} label="Próximos" value={String(executiveSnapshot.operation.upcomingCount).padStart(2, "0")} helper="Lançamentos prestes a vencer dentro da janela de alerta." tone="warning" />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1073,7 +1095,7 @@ export default function FinanceiroPage() {
               <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <CardTitle>Projeção futura</CardTitle>
-                  <CardDescription>{projectionDescription}</CardDescription>
+                  <CardDescription>{projectionDescription} Sempre por competência — datas de vencimento futuras.</CardDescription>
                 </div>
                 <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center">
                   {PROJECTION_OPTIONS.map((months) => (
@@ -1151,7 +1173,7 @@ export default function FinanceiroPage() {
                   );
                 })
               ) : (
-                <EmptyState icon={CheckCircle2} title="Nenhuma ação operacional agora" description="Não existem lancamentos vencidos ou dentro da janela de alerta com os filtros atuais." />
+                <EmptyState icon={CheckCircle2} title="Nenhuma ação operacional agora" description="Não existem lançamentos vencidos ou dentro da janela de alerta com os filtros atuais." />
               )}
             </CardContent>
           </Card>
@@ -1160,12 +1182,13 @@ export default function FinanceiroPage() {
         <TabsContent value="lancamentos" className="space-y-6">
           <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
-              <CardTitle>Lancamentos</CardTitle>
+              <CardTitle>Lançamentos</CardTitle>
               <CardDescription>Histórico realizado e previsto materializado, com vínculo opcional a contrato.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {sortFinanceiroEntries(visibleEntries, now).length ? (
-                sortFinanceiroEntries(visibleEntries, now).map((entry) => {
+              {(() => {
+                const sortedEntries = sortFinanceiroEntries(visibleEntries, now);
+                return sortedEntries.length ? sortedEntries.map((entry) => {
                   const visualStatus = getFinanceiroVisualStatus(entry, now);
                   return (
                     <div key={entry.id} className="rounded-2xl border border-border/80 bg-background/40 p-4">
@@ -1183,7 +1206,7 @@ export default function FinanceiroPage() {
                           </div>
                           <div className="flex min-w-0 flex-wrap gap-3 text-sm text-muted-foreground">
                             <span className={WRAPPED_META_ITEM_CLASS}>{describeFinanceiroAmount(entry.type, entry.amount)}</span>
-                            <span className={WRAPPED_META_ITEM_CLASS}>Competencia {entry.competency_date ? new Date(entry.competency_date).toLocaleDateString("pt-BR") : "não definida"}</span>
+                            <span className={WRAPPED_META_ITEM_CLASS}>Competência {entry.competency_date ? new Date(entry.competency_date).toLocaleDateString("pt-BR") : "não definida"}</span>
                             <span className={WRAPPED_META_ITEM_CLASS}>Vencimento {new Date(entry.due_date).toLocaleDateString("pt-BR")}</span>
                             <span className={WRAPPED_META_ITEM_CLASS}>Base {entry.paid_at ? "realizado" : "previsto"}</span>
                           </div>
@@ -1210,10 +1233,8 @@ export default function FinanceiroPage() {
                       </div>
                     </div>
                   );
-                })
-              ) : (
-                <EmptyState icon={Wallet} title="Nenhum lancamento encontrado" description="Ajuste os filtros ou crie um novo lancamento manual." />
-              )}
+                }) : <EmptyState icon={Wallet} title="Nenhum lançamento encontrado" description="Ajuste os filtros ou crie um novo lançamento manual." />;
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1246,7 +1267,7 @@ export default function FinanceiroPage() {
                           <span className={WRAPPED_META_ITEM_CLASS}>{describeFinanceiroAmount(contract.type, contract.amount)}</span>
                           <span className={WRAPPED_META_ITEM_CLASS}>Dia {contract.due_day}</span>
                           <span className={WRAPPED_META_ITEM_CLASS}>Alerta {contract.alert_days_before} dias</span>
-                          <span className={WRAPPED_META_ITEM_CLASS}>Inicio {new Date(contract.start_date).toLocaleDateString("pt-BR")}</span>
+                          <span className={WRAPPED_META_ITEM_CLASS}>Início {new Date(contract.start_date).toLocaleDateString("pt-BR")}</span>
                           <span className={WRAPPED_META_ITEM_CLASS}>Fim {contract.end_date ? new Date(contract.end_date).toLocaleDateString("pt-BR") : "em aberto"}</span>
                         </div>
                         {contract.notes ? <p className="break-words text-sm text-muted-foreground">{contract.notes}</p> : null}
@@ -1285,7 +1306,7 @@ export default function FinanceiroPage() {
       <Dialog open={entryDialogOpen} onOpenChange={setEntryDialogOpen}>
         <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl px-4 sm:max-w-3xl sm:px-6">
           <DialogHeader>
-            <DialogTitle>{editingEntry ? "Editar lancamento" : "Novo lancamento"}</DialogTitle>
+            <DialogTitle>{editingEntry ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -1329,10 +1350,10 @@ export default function FinanceiroPage() {
             <div className="space-y-2"><Label>Valor</Label><Input value={entryForm.amount} onChange={(event) => setEntryForm((current) => ({ ...current, amount: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Moeda</Label><Input value={entryForm.currency} onChange={(event) => setEntryForm((current) => ({ ...current, currency: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Vencimento</Label><Input type="date" value={entryForm.dueDate} onChange={(event) => setEntryForm((current) => ({ ...current, dueDate: event.target.value }))} /></div>
-            <div className="space-y-2"><Label>Competencia</Label><Input type="date" value={entryForm.competencyDate} onChange={(event) => setEntryForm((current) => ({ ...current, competencyDate: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Competência</Label><Input type="date" value={entryForm.competencyDate} onChange={(event) => setEntryForm((current) => ({ ...current, competencyDate: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Pago em</Label><Input type="datetime-local" value={entryForm.paidAt} onChange={(event) => setEntryForm((current) => ({ ...current, paidAt: event.target.value }))} /></div>
             <div className="space-y-2">
-              <Label>Recorrencia</Label>
+              <Label>Recorrência</Label>
               <Select value={entryForm.recurrence} onValueChange={(value) => setEntryForm((current) => ({ ...current, recurrence: value as FinanceiroEntryRecurrence }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{RECURRENCE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
@@ -1343,7 +1364,7 @@ export default function FinanceiroPage() {
             <div className="space-y-2 md:col-span-2"><Label>Descrição</Label><Textarea value={entryForm.description} onChange={(event) => setEntryForm((current) => ({ ...current, description: event.target.value }))} /></div>
             <div className="space-y-2 md:col-span-2"><Label>Observações</Label><Textarea value={entryForm.notes} onChange={(event) => setEntryForm((current) => ({ ...current, notes: event.target.value }))} /></div>
             <div className="flex items-center gap-3 md:col-span-2"><Checkbox checked={entryForm.isPlatformCost} onCheckedChange={(checked) => setEntryForm((current) => ({ ...current, isPlatformCost: checked === true }))} /><Label>Custo de plataforma</Label></div>
-            <div className="grid gap-2 md:col-span-2 md:flex md:justify-end"><Button className="w-full md:w-auto" variant="outline" onClick={() => setEntryDialogOpen(false)}>Cancelar</Button><Button className="w-full md:w-auto" onClick={() => void handleSaveEntry()} disabled={savingEntry}>{savingEntry ? "Salvando..." : editingEntry ? "Atualizar lancamento" : "Criar lancamento"}</Button></div>
+            <div className="grid gap-2 md:col-span-2 md:flex md:justify-end"><Button className="w-full md:w-auto" variant="outline" onClick={() => setEntryDialogOpen(false)}>Cancelar</Button><Button className="w-full md:w-auto" onClick={() => void handleSaveEntry()} disabled={savingEntry}>{savingEntry ? "Salvando..." : editingEntry ? "Atualizar lançamento" : "Criar lançamento"}</Button></div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1380,7 +1401,7 @@ export default function FinanceiroPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Recorrencia</Label>
+              <Label>Recorrência</Label>
               <Select value={contractForm.recurrence} onValueChange={(value) => setContractForm((current) => ({ ...current, recurrence: value as FinanceiroEntryRecurrence }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{RECURRENCE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
@@ -1393,7 +1414,7 @@ export default function FinanceiroPage() {
             <div className="space-y-2"><Label>Moeda</Label><Input value={contractForm.currency} onChange={(event) => setContractForm((current) => ({ ...current, currency: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Dia do vencimento</Label><Input type="number" min="1" max="31" value={contractForm.dueDay} onChange={(event) => setContractForm((current) => ({ ...current, dueDay: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Dias de alerta</Label><Input type="number" min="0" value={contractForm.alertDaysBefore} onChange={(event) => setContractForm((current) => ({ ...current, alertDaysBefore: event.target.value }))} /></div>
-            <div className="space-y-2"><Label>Inicio</Label><Input type="date" value={contractForm.startDate} onChange={(event) => setContractForm((current) => ({ ...current, startDate: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Início</Label><Input type="date" value={contractForm.startDate} onChange={(event) => setContractForm((current) => ({ ...current, startDate: event.target.value }))} /></div>
             <div className="space-y-2"><Label>Fim</Label><Input type="date" value={contractForm.endDate} onChange={(event) => setContractForm((current) => ({ ...current, endDate: event.target.value }))} /></div>
             <div className="space-y-2 md:col-span-2"><Label>Link de pagamento</Label><Input placeholder="https://..." value={contractForm.paymentUrl} onChange={(event) => setContractForm((current) => ({ ...current, paymentUrl: event.target.value }))} /></div>
             <div className="space-y-2 md:col-span-2"><Label>Observações</Label><Textarea value={contractForm.notes} onChange={(event) => setContractForm((current) => ({ ...current, notes: event.target.value }))} /></div>

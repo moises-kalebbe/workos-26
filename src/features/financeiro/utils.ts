@@ -165,7 +165,7 @@ export function buildFinanceiroSearchText(entry: FinanceiroEntryWithProject) {
 }
 
 export function formatEntryTypeLabel(type: FinanceiroEntryWithProject["type"]) {
-  return type === "income" ? "Entrada" : "Saida";
+  return type === "income" ? "Entrada" : "Saída";
 }
 
 export function formatVisualStatusLabel(status: FinanceiroVisualStatus) {
