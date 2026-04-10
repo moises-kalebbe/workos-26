@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ChevronRight,
   Dumbbell,
+  Info,
   Scale,
   Target,
   Zap,
@@ -30,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { TreinoOnboardingInput, TreinoSessionDraft, TreinoSetDraft } from "@/features/treino/types";
 import { createTrainingSessionDraft, useTreinoFeature } from "@/features/treino/hooks";
 import { useAuth } from "@/hooks/useAuth";
+import { getExerciseInfo } from "@/lib/exerciseLibrary";
 import { recommendLoadProgression } from "@/lib/trainingPlan";
 import { cn } from "@/lib/utils";
 
@@ -146,6 +148,7 @@ export default function TreinoPage() {
   } = useTreinoFeature({ userId: user?.id || null });
 
   const [activeTab, setActiveTab] = useState("hoje");
+  const [openInfoId, setOpenInfoId] = useState<string | null>(null);
   const [onboarding, setOnboarding] = useState<TreinoOnboardingInput>(defaultOnboarding);
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [draft, setDraft] = useState<TreinoSessionDraft>(createTrainingSessionDraft(null));
@@ -696,8 +699,36 @@ export default function TreinoPage() {
                                 </Badge>
                                 {exercise.target_rpe ? <Badge variant="outline">RPE {exercise.target_rpe}</Badge> : null}
                               </div>
-                              <CardTitle className="text-lg">{exercise.exercise_name}</CardTitle>
+                              <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-lg">{exercise.exercise_name}</CardTitle>
+                                {getExerciseInfo(exercise.exercise_name) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenInfoId(openInfoId === exercise.id ? null : exercise.id)}
+                                    className="shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                    aria-label="Ver descricao do exercicio"
+                                  >
+                                    <Info className="h-4 w-4" />
+                                  </button>
+                                ) : null}
+                              </div>
                               <CardDescription>{exercise.progression_rule}</CardDescription>
+                              {openInfoId === exercise.id ? (() => {
+                                const info = getExerciseInfo(exercise.exercise_name);
+                                return info ? (
+                                  <div className="mt-2 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                                    <p className="mb-2 leading-relaxed">{info.description}</p>
+                                    <a
+                                      href={info.youtubeSearch}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+                                    >
+                                      Ver no YouTube ↗
+                                    </a>
+                                  </div>
+                                ) : null;
+                              })() : null}
                             </CardHeader>
                             <CardContent className="space-y-3">
                               {hint ? (
