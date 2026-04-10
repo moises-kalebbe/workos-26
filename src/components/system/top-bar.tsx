@@ -94,7 +94,7 @@ export function TopBar() {
               <span>{weather.summary}</span>
             ) : (
               <span>
-                {weather.temperature}C | {weather.summary}
+                {weather.temperature}°C | {weather.summary}
               </span>
             )}
           </div>
