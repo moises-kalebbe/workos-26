@@ -15,6 +15,7 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Upload,
   Wallet,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -26,6 +27,7 @@ import {
   buildMissingForecastEntries,
   buildMonthlyTrend,
   buildProjectionTimeline,
+  dedupeContractEntries,
   filterEntriesForExecutiveView,
   summarizeActionableEntries,
   type FinanceiroPeriodPreset,
@@ -237,6 +239,44 @@ function parseAmount(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+type CsvImportRow = {
+  title: string;
+  amount: string;
+  type: FinanceiroEntryType;
+  due_date: string;
+  status: FinanceiroEntryStatus;
+  category: string;
+  counterparty_name: string;
+  notes: string;
+  valid: boolean;
+  error: string;
+};
+
+function parseCsvImport(text: string): CsvImportRow[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return [];
+  const header = lines[0].split(";").map((h) => h.trim().toLowerCase().replace(/[^a-z_]/g, ""));
+  return lines.slice(1).map((line) => {
+    const cols = line.split(";").map((c) => c.trim().replace(/^"|"$/g, ""));
+    const get = (key: string) => cols[header.indexOf(key)] ?? "";
+    const amountRaw = get("valor") || get("amount");
+    const amount = parseAmount(amountRaw);
+    const typeRaw = (get("tipo") || get("type")).toLowerCase();
+    const type: FinanceiroEntryType = typeRaw === "saida" || typeRaw === "expense" || typeRaw === "despesa" ? "expense" : "income";
+    const statusRaw = (get("status")).toLowerCase();
+    const status: FinanceiroEntryStatus =
+      statusRaw === "pago" || statusRaw === "paid" ? "paid" :
+      statusRaw === "atrasado" || statusRaw === "overdue" ? "overdue" : "pending";
+    const due_date = get("vencimento") || get("due_date") || get("data") || todayDateInput();
+    const title = get("titulo") || get("title") || get("descricao") || get("description");
+    const category = get("categoria") || get("category") || "Importado";
+    const counterparty_name = get("contraparte") || get("counterparty") || get("fornecedor") || get("cliente") || "Importado";
+    const notes = get("observacao") || get("notes") || "";
+    const error = !title ? "Título obrigatório" : amount <= 0 ? "Valor inválido" : !due_date ? "Vencimento obrigatório" : "";
+    return { title, amount: String(amount), type, due_date, status, category, counterparty_name, notes, valid: !error, error };
+  });
+}
+
 function parseInteger(value: string, fallback: number) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -442,6 +482,9 @@ export default function FinanceiroPage() {
   const [editingContract, setEditingContract] = useState<FinanceiroContractWithProject | null>(null);
   const [entryForm, setEntryForm] = useState<EntryFormState>(defaultEntryFormState);
   const [contractForm, setContractForm] = useState<ContractFormState>(defaultContractFormState);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [csvRows, setCsvRows] = useState<CsvImportRow[]>([]);
+  const [importingCsv, setImportingCsv] = useState(false);
 
   const [activeTab, setActiveTab] = useState("executivo");
   const [basis, setBasis] = useState<FinanceiroReportingBasis>("competence");
@@ -498,9 +541,25 @@ export default function FinanceiroPage() {
     const loadedProjects = (projectsRes.data || []) as FinanceiroProject[];
     const loadedContracts = mapContractsWithProjects((contractsRes.data || []) as FinancialContract[], loadedProjects);
     const loadedEntries = mapEntriesWithRelations((entriesRes.data || []) as FinancialEntry[], loadedProjects, loadedContracts);
+    const dedupedEntriesResult = dedupeContractEntries(loadedEntries);
+
+    if (dedupedEntriesResult.duplicateIds.length > 0) {
+      const deleteRes = await financeiroApi.db
+        .from("financial_entries")
+        .delete()
+        .in("id", dedupedEntriesResult.duplicateIds);
+
+      if (deleteRes.error) {
+        toast.error("Foram detectados lançamentos duplicados de contrato, mas a limpeza automática falhou.");
+      } else {
+        toast.success(`${dedupedEntriesResult.duplicateIds.length} lançamentos duplicados de contrato foram removidos.`);
+        await loadData(false);
+        return;
+      }
+    }
 
     if (allowForecastSync) {
-      const missingForecastEntries = buildMissingForecastEntries(loadedContracts, loadedEntries, now, 24);
+      const missingForecastEntries = buildMissingForecastEntries(loadedContracts, dedupedEntriesResult.entries, now, 24);
 
       if (missingForecastEntries.length > 0) {
         setSyncingForecast(true);
@@ -519,7 +578,7 @@ export default function FinanceiroPage() {
 
     setProjects(loadedProjects);
     setContracts(loadedContracts);
-    setEntries(loadedEntries);
+    setEntries(dedupedEntriesResult.entries);
     setLoading(false);
   }
 
@@ -772,6 +831,62 @@ export default function FinanceiroPage() {
     await loadData(false);
   }
 
+  function handleCsvFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const rows = parseCsvImport(text);
+      setCsvRows(rows);
+      setCsvImportOpen(true);
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  }
+
+  async function handleConfirmCsvImport() {
+    if (!user) return;
+    const validRows = csvRows.filter((r) => r.valid);
+    if (validRows.length === 0) return;
+
+    setImportingCsv(true);
+    const payloads = validRows.map((row) => ({
+      user_id: user.id,
+      project_id: null,
+      financial_contract_id: null,
+      type: row.type,
+      category: row.category,
+      title: row.title,
+      description: null,
+      counterparty_name: row.counterparty_name,
+      amount: parseAmount(row.amount),
+      currency: "BRL",
+      status: row.status,
+      due_date: row.due_date,
+      paid_at: row.status === "paid" ? new Date().toISOString() : null,
+      competency_date: null,
+      recurrence: "none" as const,
+      alert_days_before: 7,
+      is_platform_cost: false,
+      payment_url: null,
+      notes: row.notes || null,
+    }));
+
+    const { error } = await financeiroApi.db.from("financial_entries").insert(payloads);
+    setImportingCsv(false);
+
+    if (error) {
+      toast.error("Erro ao importar lançamentos.");
+      return;
+    }
+
+    toast.success(`${validRows.length} lançamento(s) importado(s).`);
+    setCsvImportOpen(false);
+    setCsvRows([]);
+    await loadData(false);
+  }
+
   async function handleSaveContract() {
     if (!user) return;
     if (!contractForm.name.trim() || !contractForm.category.trim() || !contractForm.counterpartyName.trim()) {
@@ -882,7 +997,11 @@ export default function FinanceiroPage() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <p className="mt-4 rounded-xl border border-border/70 bg-background/40 px-3 py-2 text-sm text-muted-foreground">
+          Contrato = regra recorrente. LanÃ§amento = parcela gerada pelo contrato ou registro avulso para extras, ajustes e quitaÃ§Ãµes.
+        </p>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-4">
           <Button className="w-full justify-center sm:justify-start" variant="outline" onClick={handleResyncForecast} disabled={syncingForecast}>
             <Sparkles className="mr-2 h-4 w-4" />
             {syncingForecast ? "Sincronizando previsão..." : "Reprocessar previsão"}
@@ -894,6 +1013,13 @@ export default function FinanceiroPage() {
           <Button className="w-full justify-center sm:justify-start" onClick={openCreateEntryDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Novo lançamento
+          </Button>
+          <Button className="w-full justify-center sm:justify-start" variant="outline" asChild>
+            <label className="cursor-pointer">
+              <Upload className="mr-2 h-4 w-4" />
+              Importar CSV
+              <input type="file" accept=".csv,.txt" className="hidden" onChange={handleCsvFileChange} />
+            </label>
           </Button>
         </div>
       </section>
@@ -1186,6 +1312,9 @@ export default function FinanceiroPage() {
               <CardDescription>Histórico realizado e previsto materializado, com vínculo opcional a contrato.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="rounded-xl border border-border/70 bg-background/40 px-3 py-2 text-sm text-muted-foreground">
+                Use esta aba para ver o que efetivamente existe no calendÃ¡rio financeiro: parcelas, extras, ajustes manuais e baixas.
+              </p>
               {(() => {
                 const sortedEntries = sortFinanceiroEntries(visibleEntries, now);
                 return sortedEntries.length ? sortedEntries.map((entry) => {
@@ -1246,6 +1375,9 @@ export default function FinanceiroPage() {
               <CardDescription>Fonte estrutural da previsão. Pause, encerre ou edite sem perder o histórico já gerado.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="rounded-xl border border-border/70 bg-background/40 px-3 py-2 text-sm text-muted-foreground">
+                Use esta aba para definir a regra mensal ou anual. Cada contrato ativo gera lanÃ§amentos futuros automaticamente.
+              </p>
               {visibleContracts.length ? (
                 visibleContracts.map((contract) => (
                   <div key={contract.id} className="rounded-2xl border border-border/80 bg-background/40 p-4">
@@ -1421,6 +1553,55 @@ export default function FinanceiroPage() {
             <div className="flex items-center gap-3 md:col-span-2"><Checkbox checked={contractForm.isPlatformCost} onCheckedChange={(checked) => setContractForm((current) => ({ ...current, isPlatformCost: checked === true }))} /><Label>Custo de plataforma</Label></div>
             <div className="grid gap-2 md:col-span-2 md:flex md:justify-end"><Button className="w-full md:w-auto" variant="outline" onClick={() => setContractDialogOpen(false)}>Cancelar</Button><Button className="w-full md:w-auto" onClick={() => void handleSaveContract()} disabled={savingContract}>{savingContract ? "Salvando..." : editingContract ? "Atualizar contrato" : "Criar contrato"}</Button></div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={csvImportOpen} onOpenChange={setCsvImportOpen}>
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl px-4 sm:max-w-2xl sm:px-6">
+          <DialogHeader>
+            <DialogTitle>Importar lançamentos via CSV</DialogTitle>
+          </DialogHeader>
+          {csvRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma linha encontrada no arquivo.</p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {csvRows.filter((r) => r.valid).length} linha(s) válida(s) de {csvRows.length}.
+                Colunas esperadas (separadas por <code>;</code>):{" "}
+                <code>titulo;valor;tipo;vencimento;status;categoria;contraparte</code>
+              </p>
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-border">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-card">
+                    <tr className="border-b border-border text-left">
+                      <th className="px-3 py-2">Título</th>
+                      <th className="px-3 py-2">Valor</th>
+                      <th className="px-3 py-2">Tipo</th>
+                      <th className="px-3 py-2">Vencimento</th>
+                      <th className="px-3 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvRows.map((row, i) => (
+                      <tr key={i} className={cn("border-b border-border/50", !row.valid && "bg-rose-500/10")}>
+                        <td className="px-3 py-2">{row.title || <span className="text-rose-400">{row.error}</span>}</td>
+                        <td className="px-3 py-2">{row.amount}</td>
+                        <td className="px-3 py-2">{row.type === "income" ? "Entrada" : "Saída"}</td>
+                        <td className="px-3 py-2">{row.due_date}</td>
+                        <td className="px-3 py-2">{row.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setCsvImportOpen(false); setCsvRows([]); }}>Cancelar</Button>
+                <Button onClick={() => void handleConfirmCsvImport()} disabled={importingCsv || csvRows.filter((r) => r.valid).length === 0}>
+                  {importingCsv ? "Importando..." : `Importar ${csvRows.filter((r) => r.valid).length} lançamento(s)`}
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

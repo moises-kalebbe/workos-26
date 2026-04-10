@@ -19,6 +19,12 @@ const fontMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "WorkOS",
   description: "Sistema de produtividade premium",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "WorkOS",
+  },
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",

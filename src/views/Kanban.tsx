@@ -24,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { db } from "@/lib/dbClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTimer } from "@/hooks/useTimer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -280,6 +281,7 @@ export default function KanbanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const timer = useTimer();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [skills, setSkills] = useState<SkillDocument[]>([]);
@@ -291,6 +293,7 @@ export default function KanbanPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [previewSkill, setPreviewSkill] = useState<SkillDocument | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragStartColumn, setDragStartColumn] = useState<number | null>(null);
   const [mobileColumn, setMobileColumn] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
@@ -485,6 +488,15 @@ export default function KanbanPage() {
       prev.map((t) => (t.id === taskId ? { ...t, column_index: newCol } : t))
     );
     await db.from("tasks").update({ column_index: newCol }).eq("id", taskId);
+
+    if (newCol === 1 && task.project_id && user) {
+      const projectName = projects.find((p) => p.id === task.project_id)?.name ?? "projeto";
+      await timer.start(task.project_id, user.id);
+      toast.success(`Timer iniciado para ${projectName}`, {
+        description: task.title,
+        action: { label: "Parar", onClick: () => void timer.stop() },
+      });
+    }
   }
 
   async function toggleSubtask(subtaskId: string, completed: boolean) {
@@ -542,6 +554,8 @@ export default function KanbanPage() {
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);
+    const task = tasks.find((t) => t.id === event.active.id);
+    setDragStartColumn(task?.column_index ?? null);
   }
 
   async function handleDragOver(event: DragOverEvent) {
@@ -581,6 +595,16 @@ export default function KanbanPage() {
 
     // Persist final column
     await db.from("tasks").update({ column_index: activeTask.column_index }).eq("id", String(active.id));
+
+    if (activeTask.column_index === 1 && dragStartColumn !== 1 && activeTask.project_id && user) {
+      const projectName = projects.find((p) => p.id === activeTask.project_id)?.name ?? "projeto";
+      await timer.start(activeTask.project_id, user.id);
+      toast.success(`Timer iniciado para ${projectName}`, {
+        description: activeTask.title,
+        action: { label: "Parar", onClick: () => void timer.stop() },
+      });
+    }
+    setDragStartColumn(null);
   }
 
   const projectMap = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
