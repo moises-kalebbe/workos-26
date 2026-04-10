@@ -14,6 +14,7 @@ import {
   Timer,
 } from "lucide-react";
 import { DailyReflectionEditor } from "@/components/evolucao/daily-reflection-editor";
+import { LeiDoDia } from "@/components/system/lei-do-dia";
 import { PageHeader } from "@/components/system/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -404,6 +405,8 @@ export default function IndexPage() {
           </section>
         </div>
       </section>
+
+      <LeiDoDia now={dashboard.now} />
 
       <DailyReflectionEditor
         draft={dailyReflection.draft}
