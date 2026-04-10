@@ -4,6 +4,7 @@ import {
   buildMonthlyTrend,
   buildMissingForecastEntries,
   buildProjectionTimeline,
+  dedupeContractEntries,
 } from "@/features/financeiro/analytics";
 import type { FinanceiroContractWithProject, FinanceiroEntryWithProject } from "@/features/financeiro/types";
 import { getFinanceiroVisualStatus } from "@/features/financeiro/utils";
@@ -228,5 +229,88 @@ describe("financeiro analytics", () => {
     expect(missing[0]?.due_date).toBe("2026-05-12");
     expect(missing[1]?.due_date).toBe("2026-06-12");
     expect(missing.every((entry) => entry.payment_url === "https://claude.ai/settings/billing")).toBe(true);
+  });
+
+  it("nao recria parcelas quando a base retorna datas ISO do Postgres", () => {
+    const missing = buildMissingForecastEntries(
+      [baseContract],
+      [
+        {
+          ...baseEntry,
+          id: "existing_iso_april",
+          financial_contract_id: "contract_1",
+          type: "expense",
+          title: "Claude Code",
+          amount: 110,
+          due_date: "2026-04-12T00:00:00.000Z",
+          competency_date: "2026-04-01T00:00:00.000Z",
+          counterparty_name: "Claude Code",
+          category: "Software",
+          recurrence: "monthly",
+          is_platform_cost: true,
+          payment_url: "https://claude.ai/settings/billing",
+        },
+      ],
+      new Date("2026-04-01T12:00:00.000Z"),
+      3,
+    );
+
+    expect(missing).toHaveLength(2);
+    expect(missing.map((entry) => entry.due_date)).toEqual(["2026-05-12", "2026-06-12"]);
+  });
+
+  it("deduplica parcelas de contrato mantendo a entrada liquidada", () => {
+    const result = dedupeContractEntries([
+      {
+        ...baseEntry,
+        id: "pending_duplicate",
+        financial_contract_id: "contract_1",
+        type: "expense",
+        title: "Claude Code",
+        amount: 110,
+        due_date: "2026-04-12T00:00:00.000Z",
+        competency_date: "2026-04-01T00:00:00.000Z",
+        counterparty_name: "Claude Code",
+        category: "Software",
+        recurrence: "monthly",
+      },
+      {
+        ...baseEntry,
+        id: "paid_duplicate",
+        financial_contract_id: "contract_1",
+        type: "expense",
+        title: "Claude Code",
+        amount: 110,
+        status: "paid",
+        paid_at: "2026-04-12T10:00:00.000Z",
+        due_date: "2026-04-12T00:00:00.000Z",
+        competency_date: "2026-04-01T00:00:00.000Z",
+        counterparty_name: "Claude Code",
+        category: "Software",
+        recurrence: "monthly",
+      },
+    ]);
+
+    expect(result.entries.map((entry) => entry.id)).toEqual(["paid_duplicate"]);
+    expect(result.duplicateIds).toEqual(["pending_duplicate"]);
+  });
+
+  it("respeita recorrencia anual ao materializar previsao", () => {
+    const missing = buildMissingForecastEntries(
+      [
+        {
+          ...baseContract,
+          id: "contract_yearly",
+          recurrence: "yearly",
+          due_day: 15,
+          start_date: "2026-04-01",
+        },
+      ],
+      [],
+      new Date("2026-04-01T12:00:00.000Z"),
+      15,
+    );
+
+    expect(missing.map((entry) => entry.due_date)).toEqual(["2026-04-15", "2027-04-15"]);
   });
 });
