@@ -776,14 +776,14 @@ export default function AgendaPage() {
         const event = events.find((e) => e.id === eventId);
         if (event) {
           const { data: existing } = await (db as any)
-            .from("meeting_minutes_items")
+            .from("agenda_meeting_topics")
             .select("id")
             .eq("user_id", user.id)
             .eq("meeting_event_id", eventId)
             .maybeSingle();
 
           if (!existing) {
-            await (db as any).from("meeting_minutes_items").insert({
+            await (db as any).from("agenda_meeting_topics").insert({
               user_id: user.id,
               meeting_event_id: event.id,
               meeting_series_key: event.seriesKey,
