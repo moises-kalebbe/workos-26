@@ -771,6 +771,38 @@ export default function AgendaPage() {
     try {
       await respondToInvite(eventId, status);
       toast.success(status === "accepted" ? "Reunião aceita" : "Reunião recusada");
+
+      if (status === "accepted" && user) {
+        const event = events.find((e) => e.id === eventId);
+        if (event) {
+          const { data: existing } = await (db as any)
+            .from("meeting_minutes_items")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("meeting_event_id", eventId)
+            .maybeSingle();
+
+          if (!existing) {
+            await (db as any).from("meeting_minutes_items").insert({
+              user_id: user.id,
+              meeting_event_id: event.id,
+              meeting_series_key: event.seriesKey,
+              meeting_start_at: event.start,
+              meeting_summary: event.summary,
+              title: "Pauta da reunião",
+              status: "pending",
+              checklist_json: [],
+            });
+            toast.info("Item criado em Atas", {
+              description: event.summary,
+              action: {
+                label: "Ver atas",
+                onClick: () => window.open(`/atas?meeting=${encodeURIComponent(eventId)}`, "_self"),
+              },
+            });
+          }
+        }
+      }
     } catch (err) {
       toast.error((err as Error).message || "Falha ao responder convite");
     } finally {

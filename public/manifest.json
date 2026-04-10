@@ -1,0 +1,35 @@
+{
+  "name": "WorkOS",
+  "short_name": "WorkOS",
+  "description": "Sistema de produtividade premium",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080c14",
+  "theme_color": "#080c14",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/",
+      "description": "Cockpit diário"
+    },
+    {
+      "name": "Tracker",
+      "url": "/tracker",
+      "description": "Iniciar timer"
+    },
+    {
+      "name": "Kanban",
+      "url": "/kanban",
+      "description": "Minhas tarefas"
+    }
+  ]
+}

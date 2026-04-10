@@ -1,5 +1,9 @@
 import { SideNav } from "@/components/system/side-nav";
 import { TopBar } from "@/components/system/top-bar";
+import { MorningBriefing } from "@/components/system/morning-briefing";
+import { QuickCapture } from "@/components/system/quick-capture";
+import { AiChat } from "@/components/system/ai-chat";
+import { EndOfDayDigest } from "@/components/system/end-of-day-digest";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +15,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto min-w-0 max-w-7xl px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">{children}</div>
         </main>
       </div>
+      <MorningBriefing />
+      <QuickCapture />
+      <AiChat />
+      <EndOfDayDigest />
     </div>
   );
 }
