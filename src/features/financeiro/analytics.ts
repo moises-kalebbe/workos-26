@@ -101,6 +101,11 @@ function toDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function normalizeDateKey(value: string | null | undefined) {
+  if (!value) return null;
+  return toDateKey(startOfDay(parseFinanceiroDate(value)));
+}
+
 function getEntryDateByBasis(entry: FinanceiroEntryWithProject, basis: FinanceiroReportingBasis) {
   if (basis === "cash") {
     return entry.paid_at ? startOfDay(new Date(entry.paid_at)) : null;
@@ -111,6 +116,67 @@ function getEntryDateByBasis(entry: FinanceiroEntryWithProject, basis: Financeir
 
 function getProjectionDate(entry: FinanceiroProjectionEntry) {
   return startOfDay(parseFinanceiroDate(entry.competency_date || entry.due_date));
+}
+
+function isSettledEntry(entry: Pick<FinanceiroEntryWithProject, "status" | "paid_at">) {
+  return entry.status === "paid" || Boolean(entry.paid_at);
+}
+
+function shouldReplaceDuplicateEntry(current: FinanceiroEntryWithProject, candidate: FinanceiroEntryWithProject) {
+  const currentSettled = isSettledEntry(current);
+  const candidateSettled = isSettledEntry(candidate);
+
+  if (currentSettled !== candidateSettled) {
+    return candidateSettled;
+  }
+
+  const currentPaidAt = current.paid_at ? new Date(current.paid_at).getTime() : Number.NEGATIVE_INFINITY;
+  const candidatePaidAt = candidate.paid_at ? new Date(candidate.paid_at).getTime() : Number.NEGATIVE_INFINITY;
+
+  if (currentPaidAt !== candidatePaidAt) {
+    return candidatePaidAt > currentPaidAt;
+  }
+
+  const currentCreatedAt = new Date(current.created_at).getTime();
+  const candidateCreatedAt = new Date(candidate.created_at).getTime();
+
+  if (currentCreatedAt !== candidateCreatedAt) {
+    return candidateCreatedAt < currentCreatedAt;
+  }
+
+  return candidate.id < current.id;
+}
+
+export function dedupeContractEntries(entries: FinanceiroEntryWithProject[]) {
+  const duplicateIds = new Set<string>();
+  const keepByKey = new Map<string, FinanceiroEntryWithProject>();
+
+  for (const entry of entries) {
+    if (!entry.financial_contract_id) continue;
+
+    const competencyKey = normalizeDateKey(entry.competency_date) || normalizeDateKey(entry.due_date);
+    const dueKey = normalizeDateKey(entry.due_date);
+    const key = `${entry.financial_contract_id}:${competencyKey}:${dueKey}`;
+    const current = keepByKey.get(key);
+
+    if (!current) {
+      keepByKey.set(key, entry);
+      continue;
+    }
+
+    if (shouldReplaceDuplicateEntry(current, entry)) {
+      duplicateIds.add(current.id);
+      keepByKey.set(key, entry);
+      continue;
+    }
+
+    duplicateIds.add(entry.id);
+  }
+
+  return {
+    entries: entries.filter((entry) => !duplicateIds.has(entry.id)),
+    duplicateIds: [...duplicateIds],
+  };
 }
 
 export function getRangeFromPreset(
@@ -415,6 +481,14 @@ function isContractActiveInMonth(contract: FinanceiroContractWithProject, monthS
   return true;
 }
 
+function shouldGenerateEntryForMonth(contract: FinanceiroContractWithProject, monthStart: Date) {
+  if (!isContractActiveInMonth(contract, monthStart)) return false;
+  if (contract.recurrence === "yearly") {
+    return monthStart.getMonth() === parseFinanceiroDate(contract.start_date).getMonth();
+  }
+  return true;
+}
+
 function buildDueDate(monthStart: Date, dueDay: number) {
   const lastDay = endOfMonth(monthStart).getDate();
   const day = Math.min(Math.max(dueDay, 1), lastDay);
@@ -430,7 +504,11 @@ export function buildMissingForecastEntries(
   const existingKeys = new Set(
     entries
       .filter((entry) => entry.financial_contract_id)
-      .map((entry) => `${entry.financial_contract_id}:${entry.competency_date || entry.due_date}:${entry.due_date}`),
+      .map((entry) => {
+        const competencyKey = normalizeDateKey(entry.competency_date) || normalizeDateKey(entry.due_date);
+        const dueKey = normalizeDateKey(entry.due_date);
+        return `${entry.financial_contract_id}:${competencyKey}:${dueKey}`;
+      }),
   );
 
   const missing: FinanceiroForecastEntryInput[] = [];
@@ -441,7 +519,7 @@ export function buildMissingForecastEntries(
 
     for (let index = 0; index < months; index += 1) {
       const monthStart = addMonths(currentMonth, index);
-      if (!isContractActiveInMonth(contract, monthStart)) continue;
+      if (!shouldGenerateEntryForMonth(contract, monthStart)) continue;
 
       const dueDate = buildDueDate(monthStart, contract.due_day);
       const competencyDate = startOfMonth(monthStart);

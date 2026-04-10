@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getFinanceiroVisualStatus,
   matchesFinanceiroFilter,
+  parseFinanceiroDate,
   summarizeFinanceiro,
 } from "@/features/financeiro/utils";
 import type { FinanceiroEntryWithProject } from "@/features/financeiro/types";
@@ -34,6 +35,10 @@ const baseEntry: FinanceiroEntryWithProject = {
 };
 
 describe("financeiro utils", () => {
+  it("preserva a data civil ao receber ISO do Postgres", () => {
+    expect(parseFinanceiroDate("2026-04-12T00:00:00.000Z").toISOString().slice(0, 10)).toBe("2026-04-12");
+  });
+
   it("classifica lancamento pendente vencido como atrasado", () => {
     expect(getFinanceiroVisualStatus(baseEntry, new Date("2026-03-26T12:00:00.000Z"))).toBe("overdue");
   });
