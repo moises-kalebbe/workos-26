@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarClock,
   CheckCircle2,
+  Dumbbell,
   ExternalLink,
   Landmark,
   Loader2,
@@ -262,6 +263,24 @@ export default function IndexPage() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Performance</p>
+            <h2 className="mt-1 text-base font-semibold text-foreground">Modulo Treino</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Abra a periodizacao de 24 semanas, registre cargas por exercicio e acompanhe a dica mental diaria.
+            </p>
+          </div>
+          <Button asChild className="gap-2">
+            <Link href="/treino">
+              Abrir treino
+              <Dumbbell className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </section>
 

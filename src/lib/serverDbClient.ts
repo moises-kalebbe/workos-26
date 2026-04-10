@@ -8,7 +8,7 @@ export function createServerDbClient(userId: string | null = null) {
   }
 
   function isReadOnlyTable(table: string) {
-    return table === "daily_reflection_prompts";
+    return table === "daily_reflection_prompts" || table === "mental_game_prompts";
   }
 
   class ServerQueryBuilder<T> implements PromiseLike<{ data: T | null; error: { message: string } | null }> {

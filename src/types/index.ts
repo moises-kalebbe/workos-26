@@ -355,6 +355,193 @@ export interface DailyReflectionEntry {
   updated_at: string;
 }
 
+export type TrainingPrimaryGoal = "performance_recomp" | "fat_loss" | "hypertrophy";
+export type TrainingDayOfWeek =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
+export type TrainingTimeSlot = "morning" | "night";
+export type TrainingProgramStatus = "active" | "archived";
+export type TrainingSessionType =
+  | "strength"
+  | "power"
+  | "recovery"
+  | "full_body"
+  | "beach_tennis";
+export type TrainingExerciseLoadMode = "rpe" | "bodyweight" | "time" | "distance";
+export type MentalGameCategory =
+  | "breathing"
+  | "reset"
+  | "focus"
+  | "communication"
+  | "imagery"
+  | "awareness"
+  | "confidence";
+
+export interface AthleteProfile {
+  user_id: string;
+  age: number;
+  weight_kg: number;
+  height_cm: number | null;
+  training_background: string | null;
+  primary_goal: TrainingPrimaryGoal;
+  restrictions: string | null;
+  gym_window_start: string;
+  gym_window_end: string;
+  beach_tennis_days: TrainingDayOfWeek[];
+  protein_target_g_per_kg: number;
+  program_start_date: string;
+  mental_rotation_started_on: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingProgram {
+  id: string;
+  user_id: string;
+  name: string;
+  goal: TrainingPrimaryGoal;
+  start_date: string;
+  duration_weeks: number;
+  status: TrainingProgramStatus;
+  rationale_summary: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingBlock {
+  id: string;
+  user_id: string;
+  training_program_id: string;
+  block_index: number;
+  week_start: number;
+  week_end: number;
+  focus_key: string;
+  focus_label: string;
+  volume_guidance: string;
+  intensity_guidance: string;
+  is_deload_block: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingSession {
+  id: string;
+  user_id: string;
+  training_program_id: string;
+  training_block_id: string | null;
+  builder_key: string;
+  week_number: number;
+  session_date: string;
+  day_of_week: TrainingDayOfWeek;
+  time_slot: TrainingTimeSlot;
+  session_type: TrainingSessionType;
+  title: string;
+  objective: string;
+  target_duration_minutes: number;
+  target_rpe: number | null;
+  is_deload_week: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingSessionExercise {
+  id: string;
+  user_id: string;
+  training_session_id: string;
+  prescribed_order: number;
+  exercise_name: string;
+  category: string;
+  prescribed_sets: number;
+  target_rep_min: number | null;
+  target_rep_max: number | null;
+  rest_seconds: number | null;
+  tempo: string | null;
+  load_mode: TrainingExerciseLoadMode;
+  target_rpe: number | null;
+  target_rir: number | null;
+  progression_rule: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingLog {
+  id: string;
+  user_id: string;
+  training_session_id: string;
+  performed_at: string;
+  duration_minutes: number;
+  session_rpe: number | null;
+  session_load: number;
+  body_weight_kg: number | null;
+  sleep_hours: number | null;
+  readiness_score: number | null;
+  fatigue_score: number | null;
+  notes_md: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingExerciseLog {
+  id: string;
+  user_id: string;
+  training_log_id: string;
+  training_session_exercise_id: string;
+  set_number: number;
+  reps_completed: number | null;
+  load_kg: number | null;
+  rpe: number | null;
+  duration_seconds: number | null;
+  distance_meters: number | null;
+  completed: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AthleteMeasurement {
+  id: string;
+  user_id: string;
+  measurement_date: string;
+  weight_kg: number | null;
+  waist_cm: number | null;
+  counter_movement_jump_cm: number | null;
+  sprint_10m_seconds: number | null;
+  shuttle_5_10_5_seconds: number | null;
+  rsa_score: number | null;
+  notes_md: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MentalGamePrompt {
+  id: string;
+  position: number;
+  title: string;
+  cue: string;
+  application_hint: string;
+  category: MentalGameCategory;
+  evidence_tag: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MentalGameEntry {
+  id: string;
+  user_id: string;
+  entry_date: string;
+  prompt_id: string;
+  applied: boolean;
+  notes_md: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CurrentWorkOverview {
   hasActiveSession: boolean;
   projectName: string | null;

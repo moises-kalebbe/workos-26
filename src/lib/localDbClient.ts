@@ -38,7 +38,7 @@ function isMutationAction(action: QueryAction) {
 }
 
 function isReadOnlyTable(table: string) {
-  return table === "daily_reflection_prompts";
+  return table === "daily_reflection_prompts" || table === "mental_game_prompts";
 }
 
 async function waitForClerkSession() {

@@ -20,17 +20,18 @@ function resolveTitle(pathname: string) {
 }
 
 function resolveDescription(pathname: string) {
-  if (pathname === "/") return "Resumo rápido das entregas, reuniões e prioridades do dia.";
-  if (pathname.startsWith("/tracker")) return "Acompanhe tempo, foco e valor gerado em cada sessão.";
-  if (pathname.startsWith("/kanban")) return "Organize execução, prazos e próxima ação sem perder contexto.";
+  if (pathname === "/") return "Resumo rapido das entregas, reunioes e prioridades do dia.";
+  if (pathname.startsWith("/treino")) return "Planeje o macro ciclo, registre cargas e acompanhe performance no beach tennis.";
+  if (pathname.startsWith("/tracker")) return "Acompanhe tempo, foco e valor gerado em cada sessao.";
+  if (pathname.startsWith("/kanban")) return "Organize execucao, prazos e proxima acao sem perder contexto.";
   if (pathname.startsWith("/agenda")) return "Centralize compromissos, links e ritmo do seu dia.";
-  if (pathname.startsWith("/atas")) return "Acompanhe decisoes de reuniões como checklist com status e contexto.";
-  if (pathname.startsWith("/skills")) return "Consulte conhecimento reutilizável e acione a skill certa mais rápido.";
-  if (pathname.startsWith("/second-brain")) return "Conecte ideias, notas e referências em um fluxo unico.";
+  if (pathname.startsWith("/atas")) return "Acompanhe decisoes de reunioes como checklist com status e contexto.";
+  if (pathname.startsWith("/skills")) return "Consulte conhecimento reutilizavel e acione a skill certa mais rapido.";
+  if (pathname.startsWith("/second-brain")) return "Conecte ideias, notas e referencias em um fluxo unico.";
   if (pathname.startsWith("/vault")) return "Gerencie acessos e credenciais por empresa com clareza.";
-  if (pathname.startsWith("/reports")) return "Leia os números que mostram onde o trabalho esta rendendo.";
-  if (pathname.startsWith("/settings")) return "Ajuste perfil, empresas e preferencias da área de trabalho.";
-  return "Visão central da sua área de trabalho.";
+  if (pathname.startsWith("/reports")) return "Leia os numeros que mostram onde o trabalho esta rendendo.";
+  if (pathname.startsWith("/settings")) return "Ajuste perfil, empresas e preferencias da area de trabalho.";
+  return "Visao central da sua area de trabalho.";
 }
 
 function formatClock(date: Date) {
@@ -66,7 +67,7 @@ export function TopBar() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_16px_rgba(34,211,238,0.9)]" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80">Área de trabalho</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80">Area de trabalho</p>
             </div>
             <div className="flex min-w-0 flex-col gap-0.5 md:flex-row md:items-end md:gap-3">
               <h1 className="truncate text-base font-semibold text-foreground md:text-[1.05rem]">{pageTitle}</h1>
@@ -93,7 +94,7 @@ export function TopBar() {
               <span>{weather.summary}</span>
             ) : (
               <span>
-                {weather.temperature}°C | {weather.summary}
+                {weather.temperature}C | {weather.summary}
               </span>
             )}
           </div>
