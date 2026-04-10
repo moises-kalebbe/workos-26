@@ -66,7 +66,11 @@ export const treinoApi = {
     trainingBackground: string;
     now: Date;
   }) {
-    const startDate = now.toISOString().slice(0, 10);
+    const dayOfWeek = now.getDay(); // 0=Dom, 1=Seg, ..., 6=Sab
+    const daysUntilMonday = dayOfWeek === 1 ? 0 : (8 - dayOfWeek) % 7;
+    const monday = new Date(now);
+    monday.setDate(monday.getDate() + daysUntilMonday);
+    const startDate = monday.toISOString().slice(0, 10);
     const profilePayload = {
       user_id: userId,
       age,

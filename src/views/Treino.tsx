@@ -311,7 +311,19 @@ export default function TreinoPage() {
                 className="min-h-[140px]"
               />
             </div>
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Inicio do programa:{" "}
+                <span className="font-medium text-foreground">
+                  {(() => {
+                    const now = new Date();
+                    const daysUntilMonday = now.getDay() === 1 ? 0 : (8 - now.getDay()) % 7;
+                    const monday = new Date(now);
+                    monday.setDate(monday.getDate() + daysUntilMonday);
+                    return new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).format(monday);
+                  })()}
+                </span>
+              </p>
               <Button onClick={() => void bootstrapProgram(onboarding)} disabled={bootstrapping} className="gap-2">
                 <Dumbbell className="h-4 w-4" />
                 {bootstrapping ? "Criando programa..." : "Criar meu modulo de treino"}
