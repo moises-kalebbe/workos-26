@@ -1,9 +1,15 @@
 import { getDateKeyInTimezone } from "@/lib/timeline";
+import type {
+  DailyReflectionChecklistEntry,
+  DailyReflectionEntry,
+  DailyReflectionPrompt,
+} from "@/types";
 
 export type DailyReflectionPromptLike = {
   id: string;
   position: number;
   title: string;
+  application_hint?: string;
 };
 
 type DailyReflectionPromptRecord = {
@@ -15,6 +21,14 @@ type DailyReflectionPromptRecord = {
   application_hint: string;
   created_at: string;
   updated_at: string;
+};
+
+type DailyReflectionEntryRecord = Omit<
+  DailyReflectionEntry,
+  "checklist_json" | "tomorrow_focus"
+> & {
+  checklist_json?: unknown;
+  tomorrow_focus?: string | null;
 };
 
 function parseDateKeyToUtc(dateKey: string) {
@@ -69,5 +83,82 @@ export function normalizeDailyReflectionPrompt<T extends DailyReflectionPromptRe
     ...prompt,
     position: Number.parseInt(String(prompt.position), 10),
     score: Number.parseFloat(String(prompt.score)),
+  };
+}
+
+function isChecklistEntry(value: unknown): value is DailyReflectionChecklistEntry {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.title === "string" &&
+    typeof entry.completed === "boolean"
+  );
+}
+
+export function normalizeDailyReflectionChecklist(
+  value: unknown,
+): DailyReflectionChecklistEntry[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter(isChecklistEntry)
+    .map((entry) => ({
+      id: entry.id,
+      title: entry.title.trim(),
+      completed: entry.completed,
+    }))
+    .filter((entry) => entry.title.length > 0);
+}
+
+export function buildDailyReflectionChecklist(
+  prompt: Pick<DailyReflectionPrompt, "id" | "title" | "application_hint">,
+): DailyReflectionChecklistEntry[] {
+  const normalizedTitle = prompt.title.trim();
+  const normalizedHint = prompt.application_hint.trim();
+
+  return [
+    {
+      id: `${prompt.id}:context`,
+      title: `Definir onde voce vai aplicar "${normalizedTitle}" hoje.`,
+      completed: false,
+    },
+    {
+      id: `${prompt.id}:action`,
+      title: normalizedHint.endsWith(".") ? normalizedHint : `${normalizedHint}.`,
+      completed: false,
+    },
+    {
+      id: `${prompt.id}:review`,
+      title: "Registrar no fim do dia o que funcionou e o que precisa ajustar.",
+      completed: false,
+    },
+  ];
+}
+
+export function getDailyReflectionChecklist({
+  prompt,
+  storedChecklist,
+}: {
+  prompt: Pick<DailyReflectionPrompt, "id" | "title" | "application_hint"> | null;
+  storedChecklist: unknown;
+}) {
+  const normalizedChecklist = normalizeDailyReflectionChecklist(storedChecklist);
+  if (normalizedChecklist.length > 0) return normalizedChecklist;
+  if (!prompt) return [];
+  return buildDailyReflectionChecklist(prompt);
+}
+
+export function countCompletedDailyReflectionChecklistItems(
+  checklist: DailyReflectionChecklistEntry[],
+) {
+  return checklist.filter((item) => item.completed).length;
+}
+
+export function normalizeDailyReflectionEntry<T extends DailyReflectionEntryRecord>(entry: T) {
+  return {
+    ...entry,
+    checklist_json: normalizeDailyReflectionChecklist(entry.checklist_json),
+    tomorrow_focus: entry.tomorrow_focus?.trim() || "",
   };
 }

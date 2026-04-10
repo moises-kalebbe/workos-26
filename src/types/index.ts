@@ -317,6 +317,12 @@ export interface SecondBrainGraphEdge {
 
 export type DailyReflectionMood = "excellent" | "good" | "neutral" | "tired" | "heavy";
 
+export interface DailyReflectionChecklistEntry {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface DailyReflectionPrompt {
   id: string;
   position: number;
@@ -340,7 +346,9 @@ export interface DailyReflectionEntry {
   user_id: string;
   entry_date: string;
   prompt_id: string;
+  checklist_json: DailyReflectionChecklistEntry[];
   actions_taken_md: string;
+  tomorrow_focus: string;
   self_rating: number;
   mood: DailyReflectionMood;
   created_at: string;

@@ -77,16 +77,18 @@ function DashboardActionButton({
   onAction,
   pending,
   variant = "default",
+  className,
 }: {
   action: DashboardActionDescriptor;
   onAction: (action: DashboardActionDescriptor) => Promise<void> | void;
   pending: boolean;
   variant?: "default" | "outline" | "secondary";
+  className?: string;
 }) {
   if (action.href) {
     if (action.external) {
       return (
-        <Button asChild size="sm" variant={variant} className="gap-2">
+        <Button asChild size="sm" variant={variant} className={cn("gap-2", className)}>
           <a href={action.href} target="_blank" rel="noopener noreferrer">
             {action.label}
             <ExternalLink className="h-3.5 w-3.5" />
@@ -96,7 +98,7 @@ function DashboardActionButton({
     }
 
     return (
-      <Button asChild size="sm" variant={variant} className="gap-2">
+      <Button asChild size="sm" variant={variant} className={cn("gap-2", className)}>
         <Link href={action.href}>
           {action.label}
           <ArrowRight className="h-3.5 w-3.5" />
@@ -109,7 +111,7 @@ function DashboardActionButton({
     <Button
       size="sm"
       variant={variant}
-      className="gap-2"
+      className={cn("gap-2", className)}
       disabled={pending}
       onClick={() => {
         void onAction(action);
@@ -130,12 +132,14 @@ function AttentionItemCard({
   actionPending: (action: DashboardActionDescriptor) => boolean;
   onAction: (action: DashboardActionDescriptor) => Promise<void>;
 }) {
+  const hasSecondaryAction = Boolean(item.secondaryAction);
+
   return (
     <article
       data-testid={`dashboard-attention-${item.type}`}
       className="rounded-2xl border border-border bg-background/25 p-4 transition-colors hover:border-primary/30"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className={cn("border", getAttentionToneClass(item.tone))}>{item.badgeLabel}</Badge>
@@ -147,11 +151,12 @@ function AttentionItemCard({
           <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className={cn("grid w-full gap-2 sm:w-auto sm:flex sm:flex-wrap sm:justify-end", hasSecondaryAction ? "grid-cols-2" : "grid-cols-1")}>
           <DashboardActionButton
             action={item.primaryAction}
             onAction={onAction}
             pending={actionPending(item.primaryAction)}
+            className="w-full justify-between sm:w-auto sm:justify-center"
           />
           {item.secondaryAction ? (
             <DashboardActionButton
@@ -159,6 +164,7 @@ function AttentionItemCard({
               onAction={onAction}
               pending={actionPending(item.secondaryAction)}
               variant="outline"
+              className="w-full justify-between sm:w-auto sm:justify-center"
             />
           ) : null}
         </div>
@@ -366,7 +372,7 @@ export default function IndexPage() {
 
                     return (
                       <div key={meeting.id} className="rounded-xl border border-border bg-background/25 p-4">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge variant="outline">
@@ -385,13 +391,14 @@ export default function IndexPage() {
                             <p className="mt-2 text-sm font-semibold text-foreground">{meeting.summary}</p>
                           </div>
 
-                          <div className="flex flex-wrap gap-2">
+                          <div className={cn("grid w-full gap-2 sm:w-auto sm:flex sm:flex-wrap sm:justify-end", meeting.meetLink ? "grid-cols-2" : "grid-cols-1")}>
                             <DashboardActionButton
                               action={action}
                               onAction={dashboard.handleAction}
                               pending={actionPending(action)}
+                              className="w-full justify-between sm:w-auto sm:justify-center"
                             />
-                            <Button asChild size="sm" variant="outline">
+                            <Button asChild size="sm" variant="outline" className="w-full justify-between sm:w-auto sm:justify-center">
                               <Link href={`/atas?meeting=${encodeURIComponent(meeting.id)}`}>Ver atas</Link>
                             </Button>
                           </div>
@@ -417,8 +424,9 @@ export default function IndexPage() {
         prompt={dailyReflection.todayPrompt}
         ratingOptions={dailyReflection.ratingOptions}
         saving={dailyReflection.saving}
+        carryOverFocus={dailyReflection.carryOverFocus}
         footer={(
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/evolucao">Abrir histórico</Link>
           </Button>
         )}
@@ -575,7 +583,7 @@ export default function IndexPage() {
 
               return (
                 <article key={project.projectId} className="rounded-2xl border border-border bg-background/25 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
@@ -591,7 +599,7 @@ export default function IndexPage() {
                       <p className="mt-2 text-sm text-foreground">{project.reason}</p>
                     </div>
 
-                    <Button asChild size="sm" variant="outline">
+                    <Button asChild size="sm" variant="outline" className="w-full justify-between sm:w-auto sm:justify-center">
                       <Link href={`/tracker?project=${project.projectId}`}>Abrir no tracker</Link>
                     </Button>
                   </div>

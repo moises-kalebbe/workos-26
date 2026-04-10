@@ -1,6 +1,7 @@
 import { db } from "@/lib/dbClient";
 import { getDailyReflectionDateKey } from "@/lib/dailyReflection";
 import type { EvolucaoEntry, EvolucaoPrompt, EvolucaoSetting, EvolucaoMood } from "@/features/evolucao/types";
+import type { DailyReflectionChecklistEntry } from "@/types";
 
 export const evolucaoApi = {
   db,
@@ -42,7 +43,9 @@ export const evolucaoApi = {
     userId,
     entryDate,
     promptId,
+    checklistJson,
     actionsTakenMd,
+    tomorrowFocus,
     selfRating,
     mood,
   }: {
@@ -50,7 +53,9 @@ export const evolucaoApi = {
     userId: string;
     entryDate: string;
     promptId: string;
+    checklistJson: DailyReflectionChecklistEntry[];
     actionsTakenMd: string;
+    tomorrowFocus: string;
     selfRating: number;
     mood: EvolucaoMood;
   }) {
@@ -58,7 +63,9 @@ export const evolucaoApi = {
       user_id: userId,
       entry_date: entryDate,
       prompt_id: promptId,
+      checklist_json: checklistJson,
       actions_taken_md: actionsTakenMd.trim(),
+      tomorrow_focus: tomorrowFocus.trim(),
       self_rating: selfRating,
       mood,
     };

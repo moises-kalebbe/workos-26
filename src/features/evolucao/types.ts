@@ -1,4 +1,5 @@
 import type {
+  DailyReflectionChecklistEntry,
   DailyReflectionEntry,
   DailyReflectionMood,
   DailyReflectionPrompt,
@@ -11,7 +12,9 @@ export type EvolucaoEntry = DailyReflectionEntry;
 export type EvolucaoMood = DailyReflectionMood;
 
 export type EvolucaoDraft = {
+  checklist: DailyReflectionChecklistEntry[];
   actionsTakenMd: string;
+  tomorrowFocus: string;
   selfRating: string;
   mood: EvolucaoMood | "";
 };

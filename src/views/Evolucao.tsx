@@ -2,12 +2,14 @@ import Link from "next/link";
 import { CalendarDays, ChevronRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DailyReflectionEditor } from "@/components/evolucao/daily-reflection-editor";
 import { EmptyState } from "@/components/system/empty-state";
 import { LoadingState } from "@/components/system/loading-state";
 import { PageHeader } from "@/components/system/page-header";
 import { useEvolucaoFeature } from "@/features/evolucao/hooks";
 import { useAuth } from "@/hooks/useAuth";
+import { countCompletedDailyReflectionChecklistItems } from "@/lib/dailyReflection";
 
 function formatHistoryDate(value: string) {
   const [year, month, day] = value.split("-").map((part) => Number.parseInt(part, 10));
@@ -28,6 +30,7 @@ export default function EvolucaoPage() {
     moodOptions,
     ratingOptions,
     saving,
+    carryOverFocus,
     todayDateKey,
     todayPrompt,
     updateDraft,
@@ -44,7 +47,7 @@ export default function EvolucaoPage() {
         title="Evolução"
         description="Um registro por dia para transformar ideia boa em ação consciente e acompanhar sua evolução mental e pessoal."
         actions={(
-          <Button asChild variant="outline" className="gap-2">
+          <Button asChild variant="outline" className="w-full gap-2 sm:w-auto">
             <Link href="/">
               Voltar ao dashboard
               <ChevronRight className="h-4 w-4" />
@@ -62,6 +65,7 @@ export default function EvolucaoPage() {
         prompt={todayPrompt}
         ratingOptions={ratingOptions}
         saving={saving}
+        carryOverFocus={carryOverFocus}
         title="Registro do dia"
         description={`Prompt ativo para ${formatHistoryDate(todayDateKey)}.`}
       />
@@ -90,9 +94,10 @@ export default function EvolucaoPage() {
           <div className="mt-5 space-y-4">
             {history.map((entry) => {
               const mood = moodOptions.find((option) => option.value === entry.mood);
+              const completedChecklistCount = countCompletedDailyReflectionChecklistItems(entry.checklist_json);
               return (
                 <article key={entry.id} className="rounded-2xl border border-border bg-background/30 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
@@ -103,6 +108,11 @@ export default function EvolucaoPage() {
                           {formatHistoryDate(entry.entry_date)}
                         </Badge>
                         <Badge variant="secondary">Nota {entry.self_rating}/5</Badge>
+                        {entry.checklist_json.length > 0 ? (
+                          <Badge variant="secondary">
+                            {completedChecklistCount}/{entry.checklist_json.length} checks
+                          </Badge>
+                        ) : null}
                       </div>
                       <h3 className="mt-3 text-base font-semibold text-foreground">
                         {entry.prompt?.title || "Prompt indisponivel"}
@@ -112,7 +122,7 @@ export default function EvolucaoPage() {
                       ) : null}
                     </div>
 
-                    <div className="rounded-xl border border-border/70 bg-background/70 px-3 py-2 text-right">
+                    <div className="self-start rounded-xl border border-border/70 bg-background/70 px-3 py-2 text-left sm:self-auto sm:text-right">
                       <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Humor</p>
                       <p className={mood?.tone || "text-foreground"}>{mood?.label || entry.mood}</p>
                     </div>
@@ -122,6 +132,29 @@ export default function EvolucaoPage() {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Ações tomadas</p>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{entry.actions_taken_md}</p>
                   </div>
+
+                  {entry.checklist_json.length > 0 ? (
+                    <div className="mt-4 rounded-xl border border-border/70 bg-background/60 p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Aplicacao pratica</p>
+                      <div className="mt-2 space-y-2">
+                        {entry.checklist_json.map((checklistItem) => (
+                          <label key={checklistItem.id} className="flex items-start gap-3 text-sm text-foreground">
+                            <Checkbox checked={checklistItem.completed} disabled className="mt-0.5" />
+                            <span className={checklistItem.completed ? "line-through text-muted-foreground" : ""}>
+                              {checklistItem.title}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {entry.tomorrow_focus ? (
+                    <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Proxima acao</p>
+                      <p className="mt-2 text-sm text-foreground">{entry.tomorrow_focus}</p>
+                    </div>
+                  ) : null}
                 </article>
               );
             })}

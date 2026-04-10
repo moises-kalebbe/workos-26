@@ -14,13 +14,17 @@ import {
   type EvolucaoSetting,
 } from "@/features/evolucao/types";
 import {
+  getDailyReflectionChecklist,
   getDailyReflectionDateKey,
+  normalizeDailyReflectionEntry,
   normalizeDailyReflectionPrompt,
   selectDailyReflectionPrompt,
 } from "@/lib/dailyReflection";
 
 const EMPTY_DRAFT: EvolucaoDraft = {
+  checklist: [],
   actionsTakenMd: "",
+  tomorrowFocus: "",
   selfRating: "",
   mood: "",
 };
@@ -68,15 +72,22 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
       const effectiveTimezone = profileRes.data?.timezone || "America/Sao_Paulo";
       setTimezone(effectiveTimezone);
       setPrompts(
-        ((promptsRes.data || []) as EvolucaoPrompt[]).map((prompt) => normalizeDailyReflectionPrompt(prompt) as EvolucaoPrompt),
+        ((promptsRes.data || []) as EvolucaoPrompt[]).map(
+          (prompt) => normalizeDailyReflectionPrompt(prompt) as EvolucaoPrompt,
+        ),
       );
-      setEntries((entriesRes.data || []) as EvolucaoEntry[]);
+      setEntries(
+        ((entriesRes.data || []) as EvolucaoEntry[]).map((entry) =>
+          normalizeDailyReflectionEntry(entry) as EvolucaoEntry,
+        ),
+      );
 
       const settingsRes = await evolucaoApi.ensureSettings(userId, effectiveTimezone, now);
       if (settingsRes.error) throw new Error(settingsRes.error.message);
       setSettings((settingsRes.data || null) as EvolucaoSetting | null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao carregar o diário de evolução.";
+      const message =
+        error instanceof Error ? error.message : "Falha ao carregar o diario de evolucao.";
       toast.error(message);
     } finally {
       setLoading(false);
@@ -87,10 +98,7 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
     void loadData();
   }, [loadData]);
 
-  const todayDateKey = useMemo(
-    () => getDailyReflectionDateKey(now, timezone),
-    [now, timezone],
-  );
+  const todayDateKey = useMemo(() => getDailyReflectionDateKey(now, timezone), [now, timezone]);
 
   const todayPrompt = useMemo(() => {
     if (!settings) return null;
@@ -102,10 +110,7 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
     });
   }, [now, prompts, settings, timezone]);
 
-  const promptMap = useMemo(
-    () => new Map(prompts.map((prompt) => [prompt.id, prompt])),
-    [prompts],
-  );
+  const promptMap = useMemo(() => new Map(prompts.map((prompt) => [prompt.id, prompt])), [prompts]);
 
   const todayEntry = useMemo(
     () => entries.find((entry) => entry.entry_date === todayDateKey) || null,
@@ -121,13 +126,35 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
       }));
   }, [entries, promptMap]);
 
+  const carryOverFocus = useMemo(() => {
+    return (
+      history.find((entry) => entry.entry_date < todayDateKey && entry.tomorrow_focus.trim())
+        ?.tomorrow_focus || ""
+    );
+  }, [history, todayDateKey]);
+
   useEffect(() => {
     setDraft({
+      checklist: getDailyReflectionChecklist({
+        prompt: todayPrompt,
+        storedChecklist: todayEntry?.checklist_json,
+      }),
       actionsTakenMd: todayEntry?.actions_taken_md || "",
+      tomorrowFocus: todayEntry?.tomorrow_focus || "",
       selfRating: todayEntry ? String(todayEntry.self_rating) : "",
       mood: (todayEntry?.mood || "") as EvolucaoMood | "",
     });
-  }, [todayEntry?.actions_taken_md, todayEntry?.id, todayEntry?.mood, todayEntry?.self_rating, todayDateKey]);
+  }, [
+    todayDateKey,
+    todayEntry,
+    todayEntry?.actions_taken_md,
+    todayEntry?.checklist_json,
+    todayEntry?.id,
+    todayEntry?.mood,
+    todayEntry?.self_rating,
+    todayEntry?.tomorrow_focus,
+    todayPrompt,
+  ]);
 
   const updateDraft = useCallback((patch: Partial<EvolucaoDraft>) => {
     setDraft((current) => ({
@@ -140,11 +167,12 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
     if (!userId || !todayPrompt) return;
 
     const actionsTakenMd = draft.actionsTakenMd.trim();
+    const completedChecklistCount = draft.checklist.filter((item) => item.completed).length;
     const selfRating = Number.parseInt(draft.selfRating, 10);
     const mood = draft.mood;
 
-    if (!actionsTakenMd) {
-      toast.error("Escreva quais ações você tomou hoje.");
+    if (!actionsTakenMd && completedChecklistCount === 0) {
+      toast.error("Marque pelo menos um check ou escreva o que voce aplicou hoje.");
       return;
     }
 
@@ -154,7 +182,7 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
     }
 
     if (!mood) {
-      toast.error("Escolha como você terminou o dia.");
+      toast.error("Escolha como voce terminou o dia.");
       return;
     }
 
@@ -166,7 +194,9 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
         userId,
         entryDate: todayDateKey,
         promptId: todayPrompt.id,
+        checklistJson: draft.checklist,
         actionsTakenMd,
+        tomorrowFocus: draft.tomorrowFocus,
         selfRating,
         mood,
       });
@@ -176,17 +206,30 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
       }
 
       setEntries((current) => {
-        const next = current.filter((entry) => entry.id !== response.data?.id && entry.entry_date !== response.data?.entry_date);
-        return [response.data as EvolucaoEntry, ...next];
+        const next = current.filter(
+          (entry) =>
+            entry.id !== response.data?.id && entry.entry_date !== response.data?.entry_date,
+        );
+        return [normalizeDailyReflectionEntry(response.data as EvolucaoEntry), ...next];
       });
-      toast.success("Registro de evolução salvo.");
+      toast.success("Registro de evolucao salvo.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao salvar registro do dia.";
       toast.error(message);
     } finally {
       setSaving(false);
     }
-  }, [draft.actionsTakenMd, draft.mood, draft.selfRating, todayDateKey, todayEntry?.id, todayPrompt, userId]);
+  }, [
+    draft.actionsTakenMd,
+    draft.checklist,
+    draft.mood,
+    draft.selfRating,
+    draft.tomorrowFocus,
+    todayDateKey,
+    todayEntry?.id,
+    todayPrompt,
+    userId,
+  ]);
 
   return {
     draft,
@@ -200,6 +243,7 @@ export function useEvolucaoFeature({ userId }: { userId: string | null }) {
     todayDateKey,
     todayEntry,
     todayPrompt,
+    carryOverFocus,
     updateDraft,
     saveTodayEntry,
     reload: loadData,
