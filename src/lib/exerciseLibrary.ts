@@ -7,9 +7,9 @@ function yt(query: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
 }
 
-const LIBRARY: Record<string, ExerciseInfo> = {
+const LIBRARY = {
   "Supino com barra": {
-    description: "Deite no banco com os pes apoiados no chao. Segure a barra na largura dos ombros, cotovelos a ~45 graus do tronco. Desça controlado em 2 segundos ate a barra tocar levemente o peito e pressione de forma explosiva. Mantenha as escapulas retraidas e a lombar neutra durante todo o movimento.",
+    description: "Deite no banco com os pes apoiados no chao. Segure a barra na largura dos ombros, cotovelos a ~45 graus do tronco. Desca controlado em 2 segundos ate a barra tocar levemente o peito e pressione de forma explosiva. Mantenha as escapulas retraidas e a lombar neutra durante todo o movimento.",
     youtubeSearch: yt("supino com barra tecnica"),
   },
   "Supino com halteres": {
@@ -17,11 +17,11 @@ const LIBRARY: Record<string, ExerciseInfo> = {
     youtubeSearch: yt("supino com halteres tecnica"),
   },
   "Supino com halteres neutros": {
-    description: "Igual ao supino com halteres, mas com as palmas voltadas uma para a outra (pegada neutra). Reduz o estresse no ombro e e indicado para quem tem historico de dor no ombro ou cotovelo. Desça os halteres ao lado do peito e pressione de volta.",
+    description: "Igual ao supino com halteres, mas com as palmas voltadas uma para a outra (pegada neutra). Reduz o estresse no ombro e e indicado para quem tem historico de dor no ombro ou cotovelo. Desca os halteres ao lado do peito e pressione de volta.",
     youtubeSearch: yt("supino neutro halteres tecnica"),
   },
   "Supino inclinado com halteres": {
-    description: "Banco inclinado entre 30 e 45 graus. Segure os halteres na altura do peito, desça controlado e pressione para cima e levemente para dentro. O angulo de inclinacao recruta mais a cabeca clavicular do peitoral e o deltoid anterior. Nao deixe os cotovelos ultrapassar a linha do banco.",
+    description: "Banco inclinado entre 30 e 45 graus. Segure os halteres na altura do peito, desca controlado e pressione para cima e levemente para dentro. O angulo de inclinacao recruta mais a cabeca clavicular do peitoral e o deltoid anterior. Nao deixe os cotovelos ultrapassar a linha do banco.",
     youtubeSearch: yt("supino inclinado halteres tecnica"),
   },
   "Landmine press": {
@@ -53,23 +53,27 @@ const LIBRARY: Record<string, ExerciseInfo> = {
     youtubeSearch: yt("pronacao supinacao antebraco exercicio"),
   },
   "Front squat": {
-    description: "Barra apoiada sobre os deltoides anteriores com cotovelos altos (posicao de rack frontal) ou com pegada cruzada. Desça com o tronco mais vertical possivel ate a dobra do joelho atingir ou superar o paralelo. O centro de massa frontal exige maior ativacao de quadriceps e core. Cotovelos altos durante todo o movimento.",
+    description: "Barra apoiada sobre os deltoides anteriores com cotovelos altos (posicao de rack frontal) ou com pegada cruzada. Desca com o tronco mais vertical possivel ate a dobra do joelho atingir ou superar o paralelo. O centro de massa frontal exige maior ativacao de quadriceps e core. Cotovelos altos durante todo o movimento.",
     youtubeSearch: yt("front squat agachamento frontal tecnica"),
   },
   "Safety bar squat": {
-    description: "Similar ao agachamento com barra, mas com a barra especial que distribui o peso pelas alcas laterais, reduzindo estresse nos ombros e cotovelos. Permite tronco mais vertical. Indicado para quem tem limitacoes de mobilidade de ombro. Desça controlado e empurre o chao no retorno.",
+    description: "Similar ao agachamento com barra, mas com a barra especial que distribui o peso pelas alcas laterais, reduzindo estresse nos ombros e cotovelos. Permite tronco mais vertical. Indicado para quem tem limitacoes de mobilidade de ombro. Desca controlado e empurre o chao no retorno.",
     youtubeSearch: yt("safety bar squat tecnica"),
   },
   "Trap-bar deadlift": {
-    description: "Fique no centro da barra hexagonal, pegada nas alças laterais, quadris entre a posicao de agachamento e deadlift convencional. Empurre o chao afastando-se dele. A posicao mais simetrica reduz estresse na lombar e permite mais carga que o deadlift convencional. Optima escolha para potencia de membros inferiores.",
+    description: "Fique no centro da barra hexagonal, pegada nas alcas laterais, quadris entre a posicao de agachamento e deadlift convencional. Empurre o chao afastando-se dele. A posicao mais simetrica reduz estresse na lombar e permite mais carga que o deadlift convencional. Optima escolha para potencia de membros inferiores.",
     youtubeSearch: yt("trap bar deadlift hexagonal tecnica"),
   },
+  RDL: {
+    description: "Romanian deadlift. Segure a barra ou os halteres com os joelhos levemente flexionados, empurre o quadril para tras e desca mantendo a coluna neutra ate sentir alongamento forte nos posteriores. Suba trazendo o quadril para frente sem perder a tensao no core. Priorize controle e amplitude limpa, sem arredondar a lombar.",
+    youtubeSearch: yt("romanian deadlift RDL tecnica"),
+  },
   "Hip thrust": {
-    description: "Apoie a escápula no banco, barra sobre os quadris com acolchoamento. Parta com os quadris baixos e empurre para cima ate a extensao completa, apertando os gluteos no topo por 1 segundo. Joelhos a 90 graus no topo. Melhor exercicio isolado para gluteo maximo. Mantenha o queixo recolhido para nao hiperextender a cervical.",
+    description: "Apoie a escapula no banco, barra sobre os quadris com acolchoamento. Parta com os quadris baixos e empurre para cima ate a extensao completa, apertando os gluteos no topo por 1 segundo. Joelhos a 90 graus no topo. Melhor exercicio isolado para gluteo maximo. Mantenha o queixo recolhido para nao hiperextender a cervical.",
     youtubeSearch: yt("hip thrust gluteo tecnica"),
   },
   "Bulgarian split squat": {
-    description: "Pe traseiro apoiado no banco, pe da frente a um passo a frente. Desça verticalmente ate o joelho da frente atingir 90 graus. Mantenha o tronco levemente inclinado a frente e o joelho alinhado com o pe. Excelente para equilibrio, correcao de assimetrias e mobilidade de quadril. Exigente em estabilidade.",
+    description: "Pe traseiro apoiado no banco, pe da frente a um passo a frente. Desca verticalmente ate o joelho da frente atingir 90 graus. Mantenha o tronco levemente inclinado a frente e o joelho alinhado com o pe. Excelente para equilibrio, correcao de assimetrias e mobilidade de quadril. Exigente em estabilidade.",
     youtubeSearch: yt("bulgarian split squat agachamento bulgaro tecnica"),
   },
   "Box jump baixo": {
@@ -77,18 +81,18 @@ const LIBRARY: Record<string, ExerciseInfo> = {
     youtubeSearch: yt("box jump tecnica iniciante"),
   },
   "Hamstring curl": {
-    description: "Deitado de brucos na maquina, envolva as canelas no rolete. Flexione os joelhos puxando os calcanhares em direcao aos gluteos de forma controlada. Desça lentamente (2-3 segundos). Essencial para balancear a forca entre quadriceps e isquiotibiais, reduzindo risco de lesao no esporte.",
+    description: "Deitado de brucos na maquina, envolva as canelas no rolete. Flexione os joelhos puxando os calcanhares em direcao aos gluteos de forma controlada. Desca lentamente (2-3 segundos). Essencial para balancear a forca entre quadriceps e isquiotibiais, reduzindo risco de lesao no esporte.",
     youtubeSearch: yt("hamstring curl flexao joelho maquina tecnica"),
   },
   "Calf raise": {
-    description: "Em pe na ponta dos pes (borda de um step ou maquina), suba o maximo possivel e desça controlando ate sentir o alongamento. Pausa no topo por 1 segundo. Amplitude completa em cada repeticao. Pode ser feito unilateral para maior intensidade. Fundamental para saude do tornozelo e Aquiles.",
+    description: "Em pe na ponta dos pes (borda de um step ou maquina), suba o maximo possivel e desca controlando ate sentir o alongamento. Pausa no topo por 1 segundo. Amplitude completa em cada repeticao. Pode ser feito unilateral para maior intensidade. Fundamental para saude do tornozelo e Aquiles.",
     youtubeSearch: yt("calf raise panturrilha tecnica amplitude"),
   },
   "Step-up": {
     description: "Apoie um pe sobre um step ou banco (altura de 40-50cm). Empurre pelo calcanhar do pe que esta no step para subir, sem usar impulso da perna de baixo. Desca controlado. Trabalha unilateralmente quadriceps, gluteos e estabilidade pelvica. Mantenha o joelho alinhado sobre o segundo dedo do pe.",
     youtubeSearch: yt("step up exercicio tecnica"),
   },
-  "CMJ": {
+  CMJ: {
     description: "Counter Movement Jump. De pe ereto, faca um rapido agachamento parcial (contra-movimento) e salte verticalmente o mais alto possivel com os bracos auxiliando. Aterrisse suavemente amortecendo o impacto. Mede e desenvolve potencia explosiva de membros inferiores. Pare se sentir queda na altura do salto.",
     youtubeSearch: yt("counter movement jump CMJ tecnica"),
   },
@@ -101,7 +105,7 @@ const LIBRARY: Record<string, ExerciseInfo> = {
     youtubeSearch: yt("medicine ball scoop toss tecnica"),
   },
   "Rotational shot put throw": {
-    description: "Segure a medicine ball no lado do corpo. Gire os quadris explosivamente lancando a bola contra uma parede ou para um parceiro. O movimento começa nos pes, passa pelo quadril e termina no braco. Imita o padrao de forcas do golpe de beach tennis. Execute dos dois lados.",
+    description: "Segure a medicine ball no lado do corpo. Gire os quadris explosivamente lancando a bola contra uma parede ou para um parceiro. O movimento comeca nos pes, passa pelo quadril e termina no braco. Imita o padrao de forcas do golpe de beach tennis. Execute dos dois lados.",
     youtubeSearch: yt("medicine ball rotational throw tecnica"),
   },
   "Bike sprint": {
@@ -113,7 +117,7 @@ const LIBRARY: Record<string, ExerciseInfo> = {
     youtubeSearch: yt("shuttle run sprint mudanca direcao tecnica"),
   },
   "Bike finisher": {
-    description: "Na bike ergometrica, alterne 30 segundos forte com 30 segundos leve. Intensidade moderada a alta no periodo forte — nao e um sprint maximo como o bike sprint. Serve como acabamento metabolico para fechar a sessao. Reduza ou pule se a recuperacao estiver comprometida.",
+    description: "Na bike ergometrica, alterne 30 segundos forte com 30 segundos leve. Intensidade moderada a alta no periodo forte, nao e um sprint maximo como o bike sprint. Serve como acabamento metabolico para fechar a sessao. Reduza ou pule se a recuperacao estiver comprometida.",
     youtubeSearch: yt("bike ergometrica cardio finisher"),
   },
   "Farmer carry": {
@@ -125,10 +129,10 @@ const LIBRARY: Record<string, ExerciseInfo> = {
     youtubeSearch: yt("pallof press anti rotacao tecnica"),
   },
   "Zone 2 bike": {
-    description: "Pedalo na bike em ritmo confortavelmente conversavel (voce consegue falar frases completas). Frequencia cardiaca entre 60-70% do maximo. Desenvolve base aerobia, melhora recuperacao entre treinos e aumenta densidade mitocondrial. Resista a tentacao de ir mais rapido — a eficacia esta no ritmo leve.",
+    description: "Pedalo na bike em ritmo confortavelmente conversavel (voce consegue falar frases completas). Frequencia cardiaca entre 60-70% do maximo. Desenvolve base aerobia, melhora recuperacao entre treinos e aumenta densidade mitocondrial. Resista a tentacao de ir mais rapido, a eficacia esta no ritmo leve.",
     youtubeSearch: yt("zone 2 training bike aerobio base"),
   },
-  "Mobilidade quadril tornozelo e torácica": {
+  "Mobilidade quadril, tornozelo e toracica": {
     description: "Circuito de mobilidade articular: 90/90 stretch para rotacao interna e externa de quadril, mobilizacao de tornozelo em cadeia fechada e rotacao toracica com suporte. Realize cada exercicio por 10 repeticoes controladas. Priorize qualidade de movimento e amplitude sem dor.",
     youtubeSearch: yt("mobilidade quadril tornozelo toracica circuito"),
   },
@@ -144,8 +148,36 @@ const LIBRARY: Record<string, ExerciseInfo> = {
     description: "Sessao na quadra de beach tennis. Registre a duracao real da sessao e o sRPE (percepcao subjetiva de esforco de 1 a 10) ao final. Esses dados alimentam o calculo de carga semanal e ajudam a balancear a carga total entre musculacao e esporte.",
     youtubeSearch: yt("beach tennis treino tecnica"),
   },
+} satisfies Record<string, ExerciseInfo>;
+
+const EXERCISE_NAME_ALIASES: Record<string, keyof typeof LIBRARY> = {
+  "Rotação externa com cabo": "Rotacao externa com cabo",
+  "Pronação e supinação de antebraço": "Pronacao e supinacao de antebraco",
+  "Mobilidade quadril, tornozelo e torácica": "Mobilidade quadril, tornozelo e toracica",
+  "Mobilidade quadril tornozelo e toracica": "Mobilidade quadril, tornozelo e toracica",
 };
 
+const NORMALIZED_LIBRARY = new Map<string, keyof typeof LIBRARY>(
+  Object.keys(LIBRARY).map((name) => [normalizeExerciseName(name), name as keyof typeof LIBRARY]),
+);
+
+function normalizeExerciseName(exerciseName: string) {
+  return exerciseName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
 export function getExerciseInfo(exerciseName: string): ExerciseInfo | null {
-  return LIBRARY[exerciseName] ?? null;
+  const directMatch = LIBRARY[exerciseName];
+  if (directMatch) return directMatch;
+
+  const alias = EXERCISE_NAME_ALIASES[exerciseName];
+  if (alias) return LIBRARY[alias];
+
+  const normalizedMatch = NORMALIZED_LIBRARY.get(normalizeExerciseName(exerciseName));
+  return normalizedMatch ? LIBRARY[normalizedMatch] : null;
 }

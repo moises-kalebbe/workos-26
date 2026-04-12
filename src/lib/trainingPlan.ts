@@ -190,8 +190,8 @@ function upperDayExercises(block: BlockDefinition, deload: boolean) {
     makeExercise({ exercise_name: main.row, category: "main", prescribed_sets: Math.max(3, main.sets - 1), target_rep_min: main.repMin, target_rep_max: Math.max(main.repMax, main.repMin + 1), rest_seconds: 120, tempo: "21X1", load_mode: "rpe", target_rpe: 8, target_rir: 2, progression_rule: mainLiftRule(main.row), notes: null }, deload, "main"),
     makeExercise({ exercise_name: "Puxada vertical", category: "secondary", prescribed_sets: 3, target_rep_min: 6, target_rep_max: 10, rest_seconds: 90, tempo: "21X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Subir quando sobrar folga técnica.", notes: null }, deload),
     makeExercise({ exercise_name: "Face pull", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 45, tempo: "2112", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Qualidade de escápula primeiro.", notes: null }, deload, "accessory"),
-    makeExercise({ exercise_name: "Rotação externa com cabo", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 45, tempo: "2112", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Manguito limpo e sem compensação.", notes: null }, deload, "accessory"),
-    makeExercise({ exercise_name: "Pronação e supinação de antebraço", category: "prehab", prescribed_sets: 2, target_rep_min: 10, target_rep_max: 15, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Subir progressivamente sem irritar cotovelo.", notes: null }, deload, "accessory"),
+    makeExercise({ exercise_name: "Rotacao externa com cabo", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 45, tempo: "2112", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Manguito limpo e sem compensação.", notes: null }, deload, "accessory"),
+    makeExercise({ exercise_name: "Pronacao e supinacao de antebraco", category: "prehab", prescribed_sets: 2, target_rep_min: 10, target_rep_max: 15, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Subir progressivamente sem irritar cotovelo.", notes: null }, deload, "accessory"),
   ];
 }
 
@@ -212,8 +212,8 @@ function powerDayExercises(block: BlockDefinition, deload: boolean) {
 function recoveryDayExercises(_block: BlockDefinition, deload: boolean): ExerciseDraft[] {
   return [
     { exercise_name: "Zone 2 bike", category: "recovery", prescribed_sets: 1, target_rep_min: deload ? 20 : 30, target_rep_max: deload ? 20 : 30, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 5, target_rir: null, progression_rule: "Ritmo conversável.", notes: "Base aeróbia sem fadiga." },
-    { exercise_name: "Mobilidade quadril, tornozelo e torácica", category: "mobility", prescribed_sets: 1, target_rep_min: 10, target_rep_max: 10, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 4, target_rir: null, progression_rule: "Qualidade de movimento acima de volume.", notes: "Circuito de 10 minutos." },
-    makeExercise({ exercise_name: "Rotação externa com cabo", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 6.5, target_rir: 3, progression_rule: "Sem compensação no tronco.", notes: null }, deload, "accessory"),
+    { exercise_name: "Mobilidade quadril, tornozelo e toracica", category: "mobility", prescribed_sets: 1, target_rep_min: 10, target_rep_max: 10, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 4, target_rir: null, progression_rule: "Qualidade de movimento acima de volume.", notes: "Circuito de 10 minutos." },
+    makeExercise({ exercise_name: "Rotacao externa com cabo", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 6.5, target_rir: 3, progression_rule: "Sem compensação no tronco.", notes: null }, deload, "accessory"),
     makeExercise({ exercise_name: "Trap-3 raise", category: "prehab", prescribed_sets: 2, target_rep_min: 10, target_rep_max: 12, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 6.5, target_rir: 3, progression_rule: "Escápula limpa do começo ao fim.", notes: null }, deload, "accessory"),
     makeExercise({ exercise_name: "Copenhagen plank", category: "core", prescribed_sets: 2, target_rep_min: 20, target_rep_max: 30, rest_seconds: 30, tempo: null, load_mode: "time", target_rpe: 7, target_rir: null, progression_rule: "Progredir primeiro pelo tempo.", notes: null }, deload, "accessory"),
   ];
@@ -412,4 +412,5 @@ export function recommendLoadProgression({
   const overRpe = set_rpe.some((rpe) => rpe > target_rpe + 0.5);
   return { action: "maintain", recommended_load_increment_kg: null, remove_main_sets: 0, skip_finisher: false, reason: underTarget || overRpe ? "Manter carga até estabilizar reps e percepção de esforço." : "Sessão estável; repetir antes de subir a carga." };
 }
+
 
