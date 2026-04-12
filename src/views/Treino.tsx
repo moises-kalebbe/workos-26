@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -63,8 +63,8 @@ function SmallStat({
           <Icon className="h-4 w-4 text-primary" />
           <p className="text-xs uppercase tracking-[0.16em]">{label}</p>
         </div>
-        <p className="mt-3 text-2xl font-semibold text-foreground">{value}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{helper}</p>
+        <p className="mt-3 truncate text-2xl font-semibold text-foreground">{value}</p>
+        <p className="mt-1 break-words text-sm text-muted-foreground">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -157,6 +157,7 @@ export default function TreinoPage() {
     waistCm: "",
     notesMd: "",
   });
+  const sessionTabRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!selectedSessionId && todaySession) {
@@ -172,6 +173,19 @@ export default function TreinoPage() {
   useEffect(() => {
     setDraft(createTrainingSessionDraft(selectedSession));
   }, [selectedSession]);
+
+  useEffect(() => {
+    if (activeTab !== "sessao") return;
+    if (typeof window === "undefined" || window.innerWidth >= 768) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      sessionTabRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [activeTab, selectedSessionId]);
 
   useEffect(() => {
     const latestMeasurement = measurements[0];
@@ -262,6 +276,11 @@ export default function TreinoPage() {
     }));
   }
 
+  function openSession(sessionId: string) {
+    setSelectedSessionId(sessionId);
+    setActiveTab("sessao");
+  }
+
   if (loading && !profile && sessionsWithContext.length === 0) {
     return <LoadingState message="Carregando modulo de treino..." />;
   }
@@ -277,7 +296,7 @@ export default function TreinoPage() {
           title="Treino"
           description="Crie seu programa profissional de 24 semanas para beach tennis com carga, evolucao e rotina mental."
           actions={(
-            <Button asChild variant="outline" className="gap-2">
+            <Button asChild variant="outline" className="w-full justify-between gap-2 sm:w-auto sm:justify-center">
               <Link href="/">
                 Voltar ao dashboard
                 <ChevronRight className="h-4 w-4" />
@@ -347,7 +366,7 @@ export default function TreinoPage() {
           <>
             <Badge variant="secondary">Semana {currentWeekNumber}/24</Badge>
             {currentBlock ? <Badge variant="outline">{currentBlock.focus_label}</Badge> : null}
-            <Button asChild variant="outline" className="gap-2">
+            <Button asChild variant="outline" className="w-full justify-between gap-2 sm:w-auto sm:justify-center">
               <Link href="/">
                 Voltar ao dashboard
                 <ChevronRight className="h-4 w-4" />
@@ -394,53 +413,57 @@ export default function TreinoPage() {
         </TabsList>
 
         <TabsContent value="hoje" className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="rounded-2xl border-border bg-card/95">
-              <CardHeader>
+          <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+            <Card className="min-w-0 rounded-2xl border-border bg-card/95">
+              <CardHeader className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{todaySession ? formatDateLabel(todaySession.session_date) : "Sem sessao"}</Badge>
                   {todaySession ? <Badge variant="secondary">{formatSessionBadge(todaySession.session_type)}</Badge> : null}
                   {todaySession?.is_deload_week ? <Badge className="border-warning/30 bg-warning/10 text-warning">Deload</Badge> : null}
                 </div>
-                <CardTitle>{todaySession?.title || "Nenhuma sessao disponivel"}</CardTitle>
-                <CardDescription>
-                  {todaySession
-                    ? `${todaySession.objective} Janela ${formatTimeSlot(todaySession.time_slot)}.`
-                    : "O programa nao encontrou uma sessao para hoje."}
-                </CardDescription>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Sessao do dia</p>
+                    <CardTitle className="text-xl leading-tight sm:text-2xl">{todaySession?.title || "Nenhuma sessao disponivel"}</CardTitle>
+                  </div>
+                  <CardDescription className="max-w-2xl text-sm leading-6">
+                    {todaySession
+                      ? `${todaySession.objective} Janela ${formatTimeSlot(todaySession.time_slot)}.`
+                      : "O programa nao encontrou uma sessao para hoje."}
+                  </CardDescription>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5">
                 {todaySession ? (
                   <>
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl border border-border bg-background/40 p-4">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Duracao alvo</p>
                         <p className="mt-2 text-lg font-semibold text-foreground">{todaySession.target_duration_minutes} min</p>
                       </div>
-                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                      <div className="rounded-xl border border-border bg-background/40 p-4">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">RPE alvo</p>
                         <p className="mt-2 text-lg font-semibold text-foreground">{todaySession.target_rpe || "-"}</p>
                       </div>
-                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                      <div className="rounded-xl border border-border bg-background/40 p-4">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Status</p>
                         <p className="mt-2 text-lg font-semibold text-foreground">{todaySession.log ? "Registrada" : "Pendente"}</p>
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-border bg-background/30 p-4">
+                    <div className="rounded-xl border border-border bg-background/30 p-4 sm:p-5">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Regras do dia</p>
-                      <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-                        <li>Se readiness estiver 2 ou menos, corte 1 serie do principal e tire o finisher.</li>
-                        <li>Se dormiu menos de 6h, priorize tecnica e reduza a densidade.</li>
-                        <li>Beach tennis noturno entra na mesma carga semanal.</li>
+                      <ul className="mt-3 space-y-3 text-sm leading-6 text-muted-foreground">
+                        <li>Readiness 2 ou menos: corte 1 serie do principal e retire o finisher.</li>
+                        <li>Sono abaixo de 6h: priorize tecnica e reduza a densidade do treino.</li>
+                        <li>Beach tennis noturno conta na mesma carga semanal.</li>
                       </ul>
                     </div>
 
                     <Button
-                      className="gap-2"
+                      className="h-12 w-full justify-between gap-2 rounded-xl px-4 text-base"
                       onClick={() => {
-                        setSelectedSessionId(todaySession.id);
-                        setActiveTab("sessao");
+                        openSession(todaySession.id);
                       }}
                     >
                       Abrir sessao do dia
@@ -457,7 +480,7 @@ export default function TreinoPage() {
               </CardContent>
             </Card>
 
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-3 lg:space-y-4">
               <Card className="rounded-2xl border-border bg-card/95">
                 <CardHeader>
                   <CardTitle>Dica mental do dia</CardTitle>
@@ -539,7 +562,7 @@ export default function TreinoPage() {
                 Grade fixa com musculacao de segunda a sexta pela manha e beach tennis segunda, terca, quarta e domingo.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 xl:grid-cols-7">
+            <CardContent className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
               {sessionsByDay.map((day) => (
                 <div key={day.key} className="space-y-3 rounded-2xl border border-border bg-background/30 p-3">
                   <div>
@@ -559,8 +582,7 @@ export default function TreinoPage() {
                             : "border-border bg-card/70 hover:border-primary/40",
                         )}
                         onClick={() => {
-                          setSelectedSessionId(session.id);
-                          setActiveTab("sessao");
+                          openSession(session.id);
                         }}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -582,16 +604,16 @@ export default function TreinoPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="sessao" className="space-y-4">
+        <TabsContent value="sessao" className="space-y-4" ref={sessionTabRef}>
           <Card className="rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Registro de sessao</CardTitle>
               <CardDescription>Prescricao, execucao por serie e sugestao de progressao baseada na ultima resposta do treino.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="space-y-4">
-                  <div className="space-y-2">
+            <CardContent className="space-y-5">
+              <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="min-w-0 space-y-5">
+                  <div className="space-y-2.5">
                     <Label>Escolha a sessao</Label>
                     <Select value={selectedSession?.id || ""} onValueChange={setSelectedSessionId}>
                       <SelectTrigger>
@@ -599,8 +621,8 @@ export default function TreinoPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {sessionsWithContext.map((session) => (
-                          <SelectItem key={session.id} value={session.id}>
-                            {`S${session.week_number} | ${formatDateLabel(session.session_date)} | ${session.title}`}
+                          <SelectItem key={session.id} value={session.id} className="max-w-full">
+                            <span className="block truncate">{`S${session.week_number} | ${formatDateLabel(session.session_date)} | ${session.title}`}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -609,17 +631,17 @@ export default function TreinoPage() {
 
                   {selectedSession ? (
                     <>
-                      <div className="rounded-2xl border border-border bg-background/30 p-4">
+                      <div className="rounded-2xl border border-border bg-background/30 p-4 sm:p-5">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline">{formatLongDateLabel(selectedSession.session_date)}</Badge>
                           <Badge variant="secondary">{formatSessionBadge(selectedSession.session_type)}</Badge>
                           {selectedSession.block ? <Badge variant="outline">{selectedSession.block.focus_label}</Badge> : null}
                         </div>
-                        <h3 className="mt-3 text-lg font-semibold text-foreground">{selectedSession.title}</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">{selectedSession.objective}</p>
+                        <h3 className="mt-3 text-lg font-semibold leading-tight text-foreground sm:text-xl">{selectedSession.title}</h3>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedSession.objective}</p>
                       </div>
 
-                      <div className="grid gap-3 md:grid-cols-2">
+                      <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-2">
                           <Label>Duracao (min)</Label>
                           <Input value={draft.durationMinutes} onChange={(event) => updateDraftField("durationMinutes", event.target.value)} />
@@ -651,7 +673,7 @@ export default function TreinoPage() {
                         <Textarea value={draft.notesMd} onChange={(event) => updateDraftField("notesMd", event.target.value)} className="min-h-[110px]" />
                       </div>
 
-                      <Button onClick={() => void saveSessionLog(selectedSession, draft)} disabled={saving} className="gap-2">
+                      <Button onClick={() => void saveSessionLog(selectedSession, draft)} disabled={saving} className="h-12 w-full gap-2 sm:w-auto">
                         <Dumbbell className="h-4 w-4" />
                         {saving ? "Salvando..." : "Salvar sessao"}
                       </Button>
@@ -665,7 +687,7 @@ export default function TreinoPage() {
                   )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="min-w-0 space-y-4">
                   {selectedSession ? (
                     <>
                       {progressionHints.length > 0 ? (
@@ -700,7 +722,7 @@ export default function TreinoPage() {
                                 {exercise.target_rpe ? <Badge variant="outline">RPE {exercise.target_rpe}</Badge> : null}
                               </div>
                               <div className="flex items-center justify-between gap-2">
-                                <CardTitle className="text-lg">{exercise.exercise_name}</CardTitle>
+                                <CardTitle className="min-w-0 flex-1 break-words text-lg">{exercise.exercise_name}</CardTitle>
                                 {getExerciseInfo(exercise.exercise_name) ? (
                                   <button
                                     type="button"
@@ -739,7 +761,7 @@ export default function TreinoPage() {
 
                               {rows.map((row, rowIndex) => (
                                 <div key={`${exercise.id}-${row.setNumber}`} className="rounded-xl border border-border bg-background/30 p-3">
-                                  <div className="mb-3 flex items-center justify-between gap-3">
+                                  <div className="mb-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <p className="text-sm font-semibold text-foreground">Serie {row.setNumber}</p>
                                     <label className="flex items-center gap-2 text-xs text-muted-foreground">
                                       <Checkbox
@@ -750,7 +772,7 @@ export default function TreinoPage() {
                                     </label>
                                   </div>
 
-                                  <div className="grid gap-3 md:grid-cols-4">
+                                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                                     <div className="space-y-2">
                                       <Label>Reps</Label>
                                       <Input
@@ -823,8 +845,8 @@ export default function TreinoPage() {
         </TabsContent>
 
         <TabsContent value="evolucao" className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-            <Card className="rounded-2xl border-border bg-card/95">
+          <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+            <Card className="min-w-0 rounded-2xl border-border bg-card/95">
               <CardHeader>
                 <CardTitle>Evolucao de carga e desempenho</CardTitle>
                 <CardDescription>Session load combinado com estimativa de e1RM dos exercicios principais.</CardDescription>
@@ -852,7 +874,7 @@ export default function TreinoPage() {
               </CardContent>
             </Card>
 
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <Card className="rounded-2xl border-border bg-card/95">
                 <CardHeader>
                   <CardTitle>Checkpoint rapido</CardTitle>

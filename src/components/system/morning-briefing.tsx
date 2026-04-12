@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { format, isToday, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, CheckSquare, Play, Wallet, X } from "lucide-react";
+import { CheckSquare, Play, Wallet, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { db } from "@/lib/dbClient";
@@ -21,14 +22,6 @@ type BriefingData = {
   mainProjectName: string | null;
 };
 
-function formatTime(iso: string) {
-  try {
-    return format(parseISO(iso), "HH:mm");
-  } catch {
-    return iso.slice(11, 16);
-  }
-}
-
 function formatMoney(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
@@ -41,11 +34,17 @@ function todayIso() {
 export function MorningBriefing() {
   const { user } = useAuth();
   const timer = useTimer();
+  const pathname = usePathname() || "/";
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<BriefingData | null>(null);
+  const suppressAutoOpen =
+    pathname.startsWith("/treino") &&
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 767px)").matches;
 
   useEffect(() => {
     if (!user) return;
+    if (suppressAutoOpen) return;
     const today = todayIso();
     if (localStorage.getItem(STORAGE_KEY) === today) return;
 
@@ -53,7 +52,14 @@ export function MorningBriefing() {
     if (hour < 5 || hour >= 13) return;
 
     void loadAndShow(user.id, today);
-  }, [user]);
+  }, [pathname, suppressAutoOpen, user]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (suppressAutoOpen) {
+      setOpen(false);
+    }
+  }, [open, suppressAutoOpen]);
 
   async function loadAndShow(userId: string, today: string) {
     const todayEnd = `${today}T23:59:59`;
