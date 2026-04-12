@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -9,11 +9,15 @@ import {
   ChevronRight,
   Dumbbell,
   Info,
+  Pencil,
+  RotateCcw,
   Scale,
   Target,
+  Trash2,
   Zap,
 } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { DeleteConfirmDialog } from "@/components/system/delete-confirm-dialog";
 import { EmptyState } from "@/components/system/empty-state";
 import { ErrorState } from "@/components/system/error-state";
 import { LoadingState } from "@/components/system/loading-state";
@@ -29,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { TreinoOnboardingInput, TreinoSessionDraft, TreinoSetDraft } from "@/features/treino/types";
-import { createTrainingSessionDraft, useTreinoFeature } from "@/features/treino/hooks";
+import { createEmptyTreinoSetDraft, createTrainingSessionDraft, useTreinoFeature } from "@/features/treino/hooks";
 import { useAuth } from "@/hooks/useAuth";
 import { getExerciseInfo } from "@/lib/exerciseLibrary";
 import { recommendLoadProgression } from "@/lib/trainingPlan";
@@ -121,6 +125,29 @@ function pickProgressionLabel(action: string) {
   return "Manter";
 }
 
+function createMeasurementDraft({
+  measurement,
+  fallbackWeightKg,
+  measurementDate,
+}: {
+  measurement?: {
+    id?: string;
+    weight_kg?: number | null;
+    waist_cm?: number | null;
+    notes_md?: string | null;
+  } | null;
+  fallbackWeightKg?: number | null;
+  measurementDate: string;
+}) {
+  return {
+    measurementId: measurement?.id || null,
+    measurementDate,
+    weightKg: measurement?.weight_kg ? String(measurement.weight_kg) : fallbackWeightKg ? String(fallbackWeightKg) : "",
+    waistCm: measurement?.waist_cm ? String(measurement.waist_cm) : "",
+    notesMd: measurement?.notes_md || "",
+  };
+}
+
 export default function TreinoPage() {
   const { user } = useAuth();
   const {
@@ -137,10 +164,14 @@ export default function TreinoPage() {
     mentalPrompts,
     measurements,
     profile,
+    deleteMeasurement,
+    deleteSessionLog,
     saveMeasurement,
     saveSessionLog,
-    saving,
+    savingMeasurement,
+    savingSession,
     sessionsWithContext,
+    todayKey,
     todayMentalEntry,
     todayMentalPrompt,
     todaySession,
@@ -153,10 +184,14 @@ export default function TreinoPage() {
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [draft, setDraft] = useState<TreinoSessionDraft>(createTrainingSessionDraft(null));
   const [measurementDraft, setMeasurementDraft] = useState({
+    measurementId: null as string | null,
+    measurementDate: "",
     weightKg: "",
     waistCm: "",
     notesMd: "",
   });
+  const [sessionDeleteOpen, setSessionDeleteOpen] = useState(false);
+  const [measurementPendingDelete, setMeasurementPendingDelete] = useState<(typeof measurements)[number] | null>(null);
   const sessionTabRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -189,12 +224,15 @@ export default function TreinoPage() {
 
   useEffect(() => {
     const latestMeasurement = measurements[0];
-    setMeasurementDraft({
-      weightKg: latestMeasurement?.weight_kg ? String(latestMeasurement.weight_kg) : profile?.weight_kg ? String(profile.weight_kg) : "",
-      waistCm: latestMeasurement?.waist_cm ? String(latestMeasurement.waist_cm) : "",
-      notesMd: "",
+    setMeasurementDraft((current) => {
+      if (current.measurementId) return current;
+      return createMeasurementDraft({
+        measurement: latestMeasurement,
+        fallbackWeightKg: profile?.weight_kg,
+        measurementDate: todayKey,
+      });
     });
-  }, [measurements, profile?.weight_kg]);
+  }, [measurements, profile?.weight_kg, todayKey]);
 
   const currentBlock = blocks.find((block) => currentWeekNumber >= block.week_start && currentWeekNumber <= block.week_end) || null;
   const latestMeasurement = measurements[0] || null;
@@ -273,6 +311,38 @@ export default function TreinoPage() {
           index === setIndex ? { ...row, ...patch } : row,
         ),
       },
+    }));
+  }
+
+  function revertSessionDraft() {
+    setDraft(createTrainingSessionDraft(selectedSession));
+  }
+
+  function clearExerciseSet(exerciseId: string, setIndex: number) {
+    setDraft((current) => ({
+      ...current,
+      exerciseSets: {
+        ...current.exerciseSets,
+        [exerciseId]: (current.exerciseSets[exerciseId] || []).map((row, index) =>
+          index === setIndex ? createEmptyTreinoSetDraft(row.setNumber) : row,
+        ),
+      },
+    }));
+  }
+
+  function resetMeasurementEditor() {
+    setMeasurementDraft(createMeasurementDraft({
+      measurement: measurements[0] || null,
+      fallbackWeightKg: profile?.weight_kg,
+      measurementDate: todayKey,
+    }));
+  }
+
+  function openMeasurementEditor(measurement: (typeof measurements)[number]) {
+    setMeasurementDraft(createMeasurementDraft({
+      measurement,
+      fallbackWeightKg: profile?.weight_kg,
+      measurementDate: measurement.measurement_date,
     }));
   }
 
@@ -673,10 +743,28 @@ export default function TreinoPage() {
                         <Textarea value={draft.notesMd} onChange={(event) => updateDraftField("notesMd", event.target.value)} className="min-h-[110px]" />
                       </div>
 
-                      <Button onClick={() => void saveSessionLog(selectedSession, draft)} disabled={saving} className="h-12 w-full gap-2 sm:w-auto">
-                        <Dumbbell className="h-4 w-4" />
-                        {saving ? "Salvando..." : "Salvar sessao"}
-                      </Button>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                        <Button onClick={() => void saveSessionLog(selectedSession, draft)} disabled={savingSession} className="h-12 w-full gap-2 sm:w-auto">
+                          <Dumbbell className="h-4 w-4" />
+                          {savingSession ? "Salvando..." : "Salvar sessao"}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={revertSessionDraft} disabled={savingSession} className="h-12 w-full gap-2 sm:w-auto">
+                          <RotateCcw className="h-4 w-4" />
+                          Reverter alteracoes
+                        </Button>
+                        {selectedSession.log ? (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => setSessionDeleteOpen(true)}
+                            disabled={savingSession}
+                            className="h-12 w-full gap-2 sm:w-auto"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir registro
+                          </Button>
+                        ) : null}
+                      </div>
                     </>
                   ) : (
                     <EmptyState
@@ -763,13 +851,24 @@ export default function TreinoPage() {
                                 <div key={`${exercise.id}-${row.setNumber}`} className="rounded-xl border border-border bg-background/30 p-3">
                                   <div className="mb-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <p className="text-sm font-semibold text-foreground">Serie {row.setNumber}</p>
-                                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <Checkbox
-                                        checked={row.completed}
-                                        onCheckedChange={(checked) => updateExerciseSet(exercise.id, rowIndex, { completed: checked === true })}
-                                      />
-                                      Concluida
-                                    </label>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Checkbox
+                                          checked={row.completed}
+                                          onCheckedChange={(checked) => updateExerciseSet(exercise.id, rowIndex, { completed: checked === true })}
+                                        />
+                                        Concluida
+                                      </label>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => clearExerciseSet(exercise.id, rowIndex)}
+                                        className="h-8 px-2 text-xs"
+                                      >
+                                        Limpar serie
+                                      </Button>
+                                    </div>
                                   </div>
 
                                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -878,7 +977,11 @@ export default function TreinoPage() {
               <Card className="rounded-2xl border-border bg-card/95">
                 <CardHeader>
                   <CardTitle>Checkpoint rapido</CardTitle>
-                  <CardDescription>Atualize peso, cintura e observacoes do ciclo.</CardDescription>
+                  <CardDescription>
+                    {measurementDraft.measurementId
+                      ? `Editando checkpoint de ${formatLongDateLabel(measurementDraft.measurementDate)}.`
+                      : "Atualize peso, cintura e observacoes do ciclo."}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid gap-3 md:grid-cols-2">
@@ -905,10 +1008,26 @@ export default function TreinoPage() {
                       className="min-h-[100px]"
                     />
                   </div>
-                  <Button className="gap-2" onClick={() => void saveMeasurement(measurementDraft)}>
-                    <Scale className="h-4 w-4" />
-                    Salvar checkpoint
-                  </Button>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <Button
+                      className="gap-2"
+                      onClick={async () => {
+                        const saved = await saveMeasurement(measurementDraft);
+                        if (saved) {
+                          resetMeasurementEditor();
+                        }
+                      }}
+                      disabled={savingMeasurement}
+                    >
+                      <Scale className="h-4 w-4" />
+                      {savingMeasurement ? "Salvando..." : measurementDraft.measurementId ? "Atualizar checkpoint" : "Salvar checkpoint"}
+                    </Button>
+                    {measurementDraft.measurementId ? (
+                      <Button type="button" variant="outline" onClick={resetMeasurementEditor} disabled={savingMeasurement}>
+                        Voltar para hoje
+                      </Button>
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -959,6 +1078,16 @@ export default function TreinoPage() {
                         {measurement.waist_cm ? `Cintura ${measurement.waist_cm.toFixed(1)} cm.` : "Sem cintura registrada."}
                       </p>
                       {measurement.notes_md ? <p className="mt-2 text-sm text-foreground">{measurement.notes_md}</p> : null}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => openMeasurementEditor(measurement)}>
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Button>
+                        <Button type="button" variant="destructive" size="sm" onClick={() => setMeasurementPendingDelete(measurement)}>
+                          <Trash2 className="h-4 w-4" />
+                          Excluir
+                        </Button>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -1056,6 +1185,35 @@ export default function TreinoPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <DeleteConfirmDialog
+        open={sessionDeleteOpen}
+        onOpenChange={setSessionDeleteOpen}
+        itemLabel={selectedSession ? `o registro de ${selectedSession.title}` : "este registro"}
+        onConfirm={async () => {
+          const deleted = await deleteSessionLog(selectedSession);
+          if (deleted) {
+            setSessionDeleteOpen(false);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={!!measurementPendingDelete}
+        onOpenChange={(open) => {
+          if (!open) setMeasurementPendingDelete(null);
+        }}
+        itemLabel={measurementPendingDelete ? `o checkpoint de ${formatLongDateLabel(measurementPendingDelete.measurement_date)}` : "este checkpoint"}
+        onConfirm={async () => {
+          if (!measurementPendingDelete) return;
+          const deleted = await deleteMeasurement(measurementPendingDelete.id);
+          if (deleted) {
+            if (measurementDraft.measurementId === measurementPendingDelete.id) {
+              resetMeasurementEditor();
+            }
+            setMeasurementPendingDelete(null);
+          }
+        }}
+      />
     </div>
   );
 }

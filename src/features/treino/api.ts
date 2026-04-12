@@ -43,7 +43,11 @@ export const treinoApi = {
     return db.from("training_exercise_logs").select("*").in("training_log_id", logIds).order("set_number", { ascending: true }) as Promise<{ data: TrainingExerciseLog[] | null; error: { message: string } | null }>;
   },
   async getMeasurements() {
-    return db.from("athlete_measurements").select("*").order("measurement_date", { ascending: false }) as Promise<{ data: AthleteMeasurement[] | null; error: { message: string } | null }>;
+    return db
+      .from("athlete_measurements")
+      .select("*")
+      .order("measurement_date", { ascending: false })
+      .order("updated_at", { ascending: false }) as Promise<{ data: AthleteMeasurement[] | null; error: { message: string } | null }>;
   },
   async getMentalPrompts() {
     return db.from("mental_game_prompts").select("*").order("position") as Promise<{ data: MentalGamePrompt[] | null; error: { message: string } | null }>;
@@ -139,12 +143,12 @@ export const treinoApi = {
     }))).select("*") as { data: TrainingSessionExercise[] | null; error: { message: string } | null };
     if (exercisesResult.error) return { data: null, error: exercisesResult.error };
 
-    await db.from("athlete_measurements").insert({
+    await db.from("athlete_measurements").upsert({
       user_id: userId,
       measurement_date: startDate,
       weight_kg: weightKg,
       notes_md: "Checkpoint inicial criado no onboarding do modulo Treino.",
-    });
+    }, { onConflict: "user_id,measurement_date" });
 
     return { data: { profile: profileResult.data, program: programResult.data }, error: null };
   },
@@ -209,6 +213,19 @@ export const treinoApi = {
 
     return logResult;
   },
+  async deleteTrainingLog({
+    userId,
+    sessionId,
+  }: {
+    userId: string;
+    sessionId: string;
+  }) {
+    return db
+      .from("training_logs")
+      .delete()
+      .eq("user_id", userId)
+      .eq("training_session_id", sessionId) as Promise<{ data: TrainingLog[] | null; error: { message: string } | null }>;
+  },
   async saveMentalEntry({
     userId,
     entryDate,
@@ -249,14 +266,27 @@ export const treinoApi = {
   }) {
     return db
       .from("athlete_measurements")
-      .insert({
+      .upsert({
         user_id: userId,
         measurement_date: measurementDate,
         weight_kg: weightKg,
         waist_cm: waistCm,
         notes_md: notesMd,
-      })
+      }, { onConflict: "user_id,measurement_date" })
       .select("*")
       .single() as Promise<{ data: AthleteMeasurement | null; error: { message: string } | null }>;
+  },
+  async deleteMeasurement({
+    userId,
+    measurementId,
+  }: {
+    userId: string;
+    measurementId: string;
+  }) {
+    return db
+      .from("athlete_measurements")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", measurementId) as Promise<{ data: AthleteMeasurement[] | null; error: { message: string } | null }>;
   },
 };

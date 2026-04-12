@@ -1,3 +1,4 @@
+import React from "react";
 import { Trash2 } from "lucide-react";
 import { ConfirmActionDialog } from "@/components/system/confirm-action-dialog";
 

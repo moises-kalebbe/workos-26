@@ -54,6 +54,31 @@ function estimateE1RM(loadKg: number, reps: number) {
   return loadKg * (1 + reps / 30);
 }
 
+export function createEmptyTreinoSetDraft(setNumber: number): TreinoSetDraft {
+  return {
+    setNumber,
+    repsCompleted: "",
+    loadKg: "",
+    rpe: "",
+    durationSeconds: "",
+    distanceMeters: "",
+    completed: false,
+    notes: "",
+  };
+}
+
+export function isTreinoSetDraftFilled(row: TreinoSetDraft) {
+  return Boolean(
+    row.completed
+      || row.repsCompleted
+      || row.loadKg
+      || row.rpe
+      || row.durationSeconds
+      || row.distanceMeters
+      || row.notes.trim(),
+  );
+}
+
 export function createTrainingSessionDraft(session: TreinoSessionWithContext | null): TreinoSessionDraft {
   if (!session) {
     return {
@@ -77,7 +102,7 @@ export function createTrainingSessionDraft(session: TreinoSessionWithContext | n
       const rows: TreinoSetDraft[] = Array.from({ length: exercise.prescribed_sets }, (_, index) => {
         const current = existing[index];
         return {
-          setNumber: index + 1,
+          ...createEmptyTreinoSetDraft(index + 1),
           repsCompleted: current?.reps_completed ? String(current.reps_completed) : "",
           loadKg: current?.load_kg ? String(current.load_kg) : "",
           rpe: current?.rpe ? String(current.rpe) : "",
@@ -106,7 +131,8 @@ export function createTrainingSessionDraft(session: TreinoSessionWithContext | n
 
 export function useTreinoFeature({ userId }: { userId: string | null }) {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingSession, setSavingSession] = useState(false);
+  const [savingMeasurement, setSavingMeasurement] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(false);
   const [profile, setProfile] = useState<TreinoProfile | null>(null);
   const [programs, setPrograms] = useState<any[]>([]);
@@ -390,12 +416,12 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
   }, [refresh, userId]);
 
   const saveSessionLog = useCallback(async (session: TreinoSessionWithContext | null, draft: TreinoSessionDraft) => {
-    if (!userId || !session) return;
-    setSaving(true);
+    if (!userId || !session) return false;
+    setSavingSession(true);
     try {
       const exerciseRows = session.exercises.flatMap((exercise) =>
         (draft.exerciseSets[exercise.id] || [])
-          .filter((row) => row.completed || row.repsCompleted || row.loadKg || row.durationSeconds || row.distanceMeters)
+          .filter(isTreinoSetDraftFilled)
           .map((row) => ({
             training_session_exercise_id: exercise.id,
             set_number: row.setNumber,
@@ -427,10 +453,33 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
       if (response.error) throw new Error(response.error.message);
       toast.success("Sessao salva.");
       await refresh();
+      return true;
     } catch (caughtError) {
       toast.error(caughtError instanceof Error ? caughtError.message : "Falha ao salvar a sessao.");
+      return false;
     } finally {
-      setSaving(false);
+      setSavingSession(false);
+    }
+  }, [refresh, userId]);
+
+  const deleteSessionLog = useCallback(async (session: TreinoSessionWithContext | null) => {
+    if (!userId || !session?.log) return false;
+    setSavingSession(true);
+    try {
+      const response = await treinoApi.deleteTrainingLog({
+        userId,
+        sessionId: session.id,
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      toast.success("Registro da sessao excluido.");
+      await refresh();
+      return true;
+    } catch (caughtError) {
+      toast.error(caughtError instanceof Error ? caughtError.message : "Falha ao excluir o registro da sessao.");
+      return false;
+    } finally {
+      setSavingSession(false);
     }
   }, [refresh, userId]);
 
@@ -451,12 +500,23 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
     }
   }, [refresh, todayKey, todayMentalPrompt, userId]);
 
-  const saveMeasurement = useCallback(async ({ weightKg, waistCm, notesMd }: { weightKg: string; waistCm: string; notesMd: string }) => {
-    if (!userId) return;
+  const saveMeasurement = useCallback(async ({
+    measurementDate,
+    weightKg,
+    waistCm,
+    notesMd,
+  }: {
+    measurementDate: string;
+    weightKg: string;
+    waistCm: string;
+    notesMd: string;
+  }) => {
+    if (!userId) return false;
+    setSavingMeasurement(true);
     try {
       const response = await treinoApi.saveMeasurement({
         userId,
-        measurementDate: todayKey,
+        measurementDate,
         weightKg: numberOrNull(weightKg),
         waistCm: numberOrNull(waistCm),
         notesMd: notesMd.trim() || null,
@@ -464,10 +524,34 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
       if (response.error) throw new Error(response.error.message);
       toast.success("Checkpoint salvo.");
       await refresh();
+      return true;
     } catch (caughtError) {
       toast.error(caughtError instanceof Error ? caughtError.message : "Falha ao salvar checkpoint.");
+      return false;
+    } finally {
+      setSavingMeasurement(false);
     }
-  }, [refresh, todayKey, userId]);
+  }, [refresh, userId]);
+
+  const deleteMeasurement = useCallback(async (measurementId: string) => {
+    if (!userId) return false;
+    setSavingMeasurement(true);
+    try {
+      const response = await treinoApi.deleteMeasurement({
+        userId,
+        measurementId,
+      });
+      if (response.error) throw new Error(response.error.message);
+      toast.success("Checkpoint excluido.");
+      await refresh();
+      return true;
+    } catch (caughtError) {
+      toast.error(caughtError instanceof Error ? caughtError.message : "Falha ao excluir checkpoint.");
+      return false;
+    } finally {
+      setSavingMeasurement(false);
+    }
+  }, [refresh, userId]);
 
   return {
     activeProgram,
@@ -483,9 +567,12 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
     mentalPrompts,
     measurements,
     profile,
+    deleteMeasurement,
+    deleteSessionLog,
     saveMeasurement,
     saveSessionLog,
-    saving,
+    savingMeasurement,
+    savingSession,
     sessionsWithContext,
     timezone,
     todayKey,
