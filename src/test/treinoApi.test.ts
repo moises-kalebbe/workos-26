@@ -85,4 +85,70 @@ describe("treinoApi", () => {
       { type: "eq", column: "id", value: "measurement_789" },
     ]);
   });
+
+  it("normaliza exercicios legados do treino para equivalentes de academia comum", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: "exercise_1",
+            user_id: "user_123",
+            training_session_id: "session_1",
+            prescribed_order: 3,
+            exercise_name: "Medicine ball scoop toss",
+            category: "power",
+            prescribed_sets: 4,
+            target_rep_min: 4,
+            target_rep_max: 4,
+            rest_seconds: 60,
+            tempo: "X",
+            load_mode: "rpe",
+            target_rpe: 7,
+            target_rir: null,
+            progression_rule: "Maior rotação sem perder eixo.",
+            notes: null,
+            created_at: "2026-04-14T00:00:00.000Z",
+            updated_at: "2026-04-14T00:00:00.000Z",
+          },
+          {
+            id: "exercise_2",
+            user_id: "user_123",
+            training_session_id: "session_1",
+            prescribed_order: 6,
+            exercise_name: "Shuttle curto",
+            category: "conditioning",
+            prescribed_sets: 4,
+            target_rep_min: 15,
+            target_rep_max: 15,
+            rest_seconds: 45,
+            tempo: null,
+            load_mode: "distance",
+            target_rpe: 8,
+            target_rir: null,
+            progression_rule: "Agressividade sem perder postura.",
+            notes: "15 metros totais por repetição.",
+            created_at: "2026-04-14T00:00:00.000Z",
+            updated_at: "2026-04-14T00:00:00.000Z",
+          },
+        ],
+      }),
+    });
+
+    const result = await treinoApi.getSessionExercises(["session_1"]);
+
+    expect(result.error).toBeNull();
+    expect(result.data?.[0]).toMatchObject({
+      exercise_name: "Jump shrug com barra",
+      rest_seconds: 75,
+      notes: "Barra leve ou com anilhas pequenas.",
+    });
+    expect(result.data?.[1]).toMatchObject({
+      exercise_name: "Bike sprint estendido",
+      load_mode: "time",
+      target_rep_min: 15,
+      target_rep_max: 15,
+      notes: "15 segundos forte / 45 fácil.",
+    });
+  });
 });

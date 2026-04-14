@@ -13,6 +13,35 @@ import type {
   TrainingSessionExercise,
 } from "@/types";
 
+const LEGACY_TRAINING_EXERCISE_OVERRIDES: Record<string, Partial<TrainingSessionExercise>> = {
+  "Medicine ball scoop toss": {
+    exercise_name: "Jump shrug com barra",
+    rest_seconds: 75,
+    notes: "Barra leve ou com anilhas pequenas.",
+    progression_rule: "Explodir com barra leve sem transformar em levantamento pesado.",
+  },
+  "Rotational shot put throw": {
+    exercise_name: "Rotacao explosiva no cabo",
+    target_rep_min: 6,
+    target_rep_max: 6,
+    notes: "Alternar lados a cada série.",
+    progression_rule: "Velocidade do quadril até as mãos, sem perder o eixo.",
+  },
+  "Shuttle curto": {
+    exercise_name: "Bike sprint estendido",
+    load_mode: "time",
+    target_rep_min: 15,
+    target_rep_max: 15,
+    notes: "15 segundos forte / 45 fácil.",
+    progression_rule: "Sustentar cadência alta sem travar as pernas.",
+  },
+};
+
+function normalizeLegacyTrainingExercise(exercise: TrainingSessionExercise): TrainingSessionExercise {
+  const override = LEGACY_TRAINING_EXERCISE_OVERRIDES[exercise.exercise_name];
+  return override ? { ...exercise, ...override } : exercise;
+}
+
 export const treinoApi = {
   db,
   async getTimezone() {
@@ -32,7 +61,13 @@ export const treinoApi = {
   },
   async getSessionExercises(sessionIds: string[]) {
     if (!sessionIds.length) return { data: [], error: null } as { data: TrainingSessionExercise[]; error: null };
-    return db.from("training_session_exercises").select("*").in("training_session_id", sessionIds).order("prescribed_order", { ascending: true }) as Promise<{ data: TrainingSessionExercise[] | null; error: { message: string } | null }>;
+    const result = await db.from("training_session_exercises").select("*").in("training_session_id", sessionIds).order("prescribed_order", { ascending: true }) as { data: TrainingSessionExercise[] | null; error: { message: string } | null };
+    if (result.error || !result.data) return result;
+
+    return {
+      data: result.data.map(normalizeLegacyTrainingExercise),
+      error: null,
+    } as { data: TrainingSessionExercise[]; error: null };
   },
   async getLogs(sessionIds: string[]) {
     if (!sessionIds.length) return { data: [], error: null } as { data: TrainingLog[]; error: null };
