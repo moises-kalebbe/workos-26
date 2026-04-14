@@ -100,21 +100,21 @@ const LIBRARY = {
     description: "Salto lateral em uma perna so. Empurre lateralmente com uma perna e aterrisse suavemente na outra, amortecendo o impacto no quadril e joelho. Mantenha o tronco levemente inclinado a frente. Desenvolve potencia lateral e estabilidade de tornozelo, movimentos fundamentais no beach tennis.",
     youtubeSearch: yt("lateral bound salto lateral pliometria tecnica"),
   },
-  "Medicine ball scoop toss": {
-    description: "Segure a medicine ball na frente do corpo. Agache levemente e lance a bola para cima e a frente usando extensao de quadril e joelhos (movimento de hip hinge). Os bracos soltam a bola na frente do corpo. Treina potencia rotacional e de extensao, padrao fundamental para golpes de beach tennis.",
-    youtubeSearch: yt("medicine ball scoop toss tecnica"),
+  "Jump shrug com barra": {
+    description: "Segure a barra nas coxas com carga leve. Faca um dip curto de joelhos e quadril e exploda para cima estendendo tornozelos, joelhos e quadris, terminando com um encolhimento forte dos ombros. A barra sobe pela aceleracao, nao por puxada de braco. Foque em velocidade e postura. E um substituto de potencia quando nao ha medicine ball ou espaco para arremessos.",
+    youtubeSearch: yt("barbell jump shrug tecnica"),
   },
-  "Rotational shot put throw": {
-    description: "Segure a medicine ball no lado do corpo. Gire os quadris explosivamente lancando a bola contra uma parede ou para um parceiro. O movimento comeca nos pes, passa pelo quadril e termina no braco. Imita o padrao de forcas do golpe de beach tennis. Execute dos dois lados.",
-    youtubeSearch: yt("medicine ball rotational throw tecnica"),
+  "Rotacao explosiva no cabo": {
+    description: "Com o cabo regulado na altura do peito, fique de lado para a polia, segure o puxador com as duas maos e gire quadril e tronco de forma explosiva levando as maos a frente do corpo. Controle a volta sem deixar a pilha bater. O objetivo e transferir forca do chao pelo tronco ate os bracos, sem precisar arremessar bola na parede.",
+    youtubeSearch: yt("cable rotational punch woodchop power tecnica"),
   },
   "Bike sprint": {
     description: "Na bike ergometrica, alterne 10 segundos de pedalo maximo (sprint total) com 50 segundos em ritmo leve. Mantenha a postura ereta ou levemente inclinada. Ajuste a resistencia para que o sprint seja realmente dificil. Desenvolve capacidade anaerobica e RSA (Repeated Sprint Ability).",
     youtubeSearch: yt("bike ergometrica sprint HIIT tecnica"),
   },
-  "Shuttle curto": {
-    description: "Coloque dois cones a 5 metros um do outro (total de 10-15m ida e volta). Parta em sprint maximo, toque o cone, mude de direcao e retorne. Desenvolve aceleracao, desaceleracao e mudanca de direcao, qualidades criticas no beach tennis. Execute com o maximo de agressividade na saida.",
-    youtubeSearch: yt("shuttle run sprint mudanca direcao tecnica"),
+  "Bike sprint estendido": {
+    description: "Na bike ergometrica, alterne 15 segundos muito forte com 45 segundos leves. O bloco e um pouco mais longo que o sprint curto e serve para substituir tiros livres quando a academia nao tem espaco para correr. Mantenha cadencia alta e tente repetir a mesma potencia em todas as series.",
+    youtubeSearch: yt("bike sprint 15 45 hiit tecnica"),
   },
   "Bike finisher": {
     description: "Na bike ergometrica, alterne 30 segundos forte com 30 segundos leve. Intensidade moderada a alta no periodo forte, nao e um sprint maximo como o bike sprint. Serve como acabamento metabolico para fechar a sessao. Reduza ou pule se a recuperacao estiver comprometida.",

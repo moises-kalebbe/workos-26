@@ -72,6 +72,28 @@ describe("training plan builder", () => {
     expect(week4SetCount).toBeLessThan(week3SetCount);
   });
 
+  it("uses gym-friendly power-day substitutions instead of wall throws and free sprints", () => {
+    const plan = buildTrainingPlan({
+      athleteProfile: ATHLETE_PROFILE,
+      now: new Date("2026-04-10T12:00:00.000Z"),
+    });
+
+    const powerSession = plan.sessions.find(
+      (session) => session.week_number === 1 && session.day_of_week === "tuesday" && session.time_slot === "morning",
+    );
+
+    const exerciseNames = plan.sessionExercises
+      .filter((exercise) => exercise.session_builder_key === powerSession?.builder_key)
+      .map((exercise) => exercise.exercise_name);
+
+    expect(exerciseNames).toContain("Jump shrug com barra");
+    expect(exerciseNames).toContain("Rotacao explosiva no cabo");
+    expect(exerciseNames).toContain("Bike sprint estendido");
+    expect(exerciseNames).not.toContain("Medicine ball scoop toss");
+    expect(exerciseNames).not.toContain("Rotational shot put throw");
+    expect(exerciseNames).not.toContain("Shuttle curto");
+  });
+
   it("does not advance the mental prompt before local midnight even if UTC already changed", () => {
     const prompts = [
       { id: "prompt_1", position: 1, title: "Respira", cue: "respira", application_hint: "solta o ar", category: "breathing", evidence_tag: "pst" },

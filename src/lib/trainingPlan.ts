@@ -197,14 +197,14 @@ function upperDayExercises(block: BlockDefinition, deload: boolean) {
 
 function powerDayExercises(block: BlockDefinition, deload: boolean) {
   const sprintSets = block.focus_key === "power_rsa" ? 8 : block.focus_key === "reconditioning" ? 6 : 7;
-  const shuttleSets = block.focus_key === "power_rsa" ? 6 : 4;
+  const bikeExtendedSets = block.focus_key === "power_rsa" ? 6 : 4;
   return [
     makeExercise({ exercise_name: "CMJ", category: "power", prescribed_sets: 4, target_rep_min: 3, target_rep_max: 3, rest_seconds: 75, tempo: "X", load_mode: "bodyweight", target_rpe: 7, target_rir: null, progression_rule: "Parar antes de perder altura no salto.", notes: null }, deload, "main"),
     makeExercise({ exercise_name: "Lateral bound", category: "power", prescribed_sets: 3, target_rep_min: 4, target_rep_max: 4, rest_seconds: 60, tempo: "X", load_mode: "bodyweight", target_rpe: 7, target_rir: null, progression_rule: "Aumentar amplitude só mantendo aterrissagem limpa.", notes: null }, deload),
-    makeExercise({ exercise_name: "Medicine ball scoop toss", category: "power", prescribed_sets: 4, target_rep_min: 4, target_rep_max: 4, rest_seconds: 60, tempo: "X", load_mode: "rpe", target_rpe: 7, target_rir: null, progression_rule: "Maior rotação sem perder eixo.", notes: null }, deload),
-    makeExercise({ exercise_name: "Rotational shot put throw", category: "power", prescribed_sets: 4, target_rep_min: 4, target_rep_max: 4, rest_seconds: 60, tempo: "X", load_mode: "rpe", target_rpe: 7, target_rir: null, progression_rule: "Velocidade do quadril até o braço.", notes: null }, deload),
+    makeExercise({ exercise_name: "Jump shrug com barra", category: "power", prescribed_sets: 4, target_rep_min: 4, target_rep_max: 4, rest_seconds: 75, tempo: "X", load_mode: "rpe", target_rpe: 7, target_rir: null, progression_rule: "Explodir com barra leve sem transformar em levantamento pesado.", notes: "Barra leve ou com anilhas pequenas." }, deload),
+    makeExercise({ exercise_name: "Rotacao explosiva no cabo", category: "power", prescribed_sets: 4, target_rep_min: 6, target_rep_max: 6, rest_seconds: 60, tempo: "X", load_mode: "rpe", target_rpe: 7, target_rir: null, progression_rule: "Velocidade do quadril até as mãos, sem perder o eixo.", notes: "Alternar lados a cada série." }, deload),
     makeExercise({ exercise_name: "Bike sprint", category: "conditioning", prescribed_sets: sprintSets, target_rep_min: 10, target_rep_max: 10, rest_seconds: 50, tempo: null, load_mode: "time", target_rpe: 8, target_rir: null, progression_rule: "Manter potência alta em todos os tiros.", notes: "10 segundos forte / 50 fácil." }, deload),
-    makeExercise({ exercise_name: "Shuttle curto", category: "conditioning", prescribed_sets: shuttleSets, target_rep_min: 15, target_rep_max: 15, rest_seconds: 45, tempo: null, load_mode: "distance", target_rpe: 8, target_rir: null, progression_rule: "Agressividade sem perder postura.", notes: "15 metros totais por repetição." }, deload),
+    makeExercise({ exercise_name: "Bike sprint estendido", category: "conditioning", prescribed_sets: bikeExtendedSets, target_rep_min: 15, target_rep_max: 15, rest_seconds: 45, tempo: null, load_mode: "time", target_rpe: 8, target_rir: null, progression_rule: "Sustentar cadência alta sem travar as pernas.", notes: "15 segundos forte / 45 fácil." }, deload),
     makeExercise({ exercise_name: "Pallof press", category: "core", prescribed_sets: 3, target_rep_min: 8, target_rep_max: 10, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Estabilidade anti-rotação acima de carga.", notes: null }, deload, "accessory"),
   ];
 }
