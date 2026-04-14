@@ -193,9 +193,18 @@ export default function TreinoPage() {
   const [sessionDeleteOpen, setSessionDeleteOpen] = useState(false);
   const [measurementPendingDelete, setMeasurementPendingDelete] = useState<(typeof measurements)[number] | null>(null);
   const sessionTabRef = useRef<HTMLDivElement | null>(null);
+  const previousTodaySessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!selectedSessionId && todaySession) {
+    if (!todaySession) return;
+
+    const shouldFollowToday =
+      !selectedSessionId
+      || selectedSessionId === previousTodaySessionIdRef.current;
+
+    previousTodaySessionIdRef.current = todaySession.id;
+
+    if (shouldFollowToday) {
       setSelectedSessionId(todaySession.id);
     }
   }, [selectedSessionId, todaySession]);

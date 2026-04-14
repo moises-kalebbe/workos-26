@@ -13,6 +13,7 @@ import type {
   TreinoSessionWithContext,
   TreinoSetDraft,
 } from "@/features/treino/types";
+import { getDateKeyInTimezone, getMillisecondsUntilNextDateChangeInTimezone } from "@/lib/timeline";
 import { selectMentalGamePrompt } from "@/lib/trainingPlan";
 
 function numberOrNull(value: unknown) {
@@ -39,15 +40,6 @@ function toDateKey(value: unknown): string {
   if (!value) return "";
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   return String(value).slice(0, 10);
-}
-
-function getTodayKey(timezone: string) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
 }
 
 function estimateE1RM(loadKg: number, reps: number) {
@@ -146,6 +138,25 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
   const [mentalEntries, setMentalEntries] = useState<TreinoMentalEntry[]>([]);
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const syncNow = () => {
+      setNow(new Date());
+    };
+
+    const timerId = window.setTimeout(syncNow, getMillisecondsUntilNextDateChangeInTimezone(now, timezone));
+    window.addEventListener("focus", syncNow);
+    document.addEventListener("visibilitychange", syncNow);
+
+    return () => {
+      window.clearTimeout(timerId);
+      window.removeEventListener("focus", syncNow);
+      document.removeEventListener("visibilitychange", syncNow);
+    };
+  }, [now, timezone]);
 
   const refresh = useCallback(async () => {
     if (!userId) {
@@ -295,7 +306,7 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
   }, [refresh]);
 
   const activeProgram = programs.find((program) => program.status === "active") || programs[0] || null;
-  const todayKey = getTodayKey(timezone);
+  const todayKey = getDateKeyInTimezone(now, timezone);
 
   const sessionsWithContext = useMemo<TreinoSessionWithContext[]>(() => {
     const blockMap = new Map(blocks.map((block) => [block.id, block]));
@@ -345,10 +356,10 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
     () => profile ? selectMentalGamePrompt({
       prompts: mentalPrompts,
       rotationStartedOn: profile.mental_rotation_started_on,
-      now: new Date(),
+      now,
       timezone,
     }) : null,
-    [mentalPrompts, profile, timezone],
+    [mentalPrompts, now, profile, timezone],
   );
 
   const todayMentalEntry = useMemo(

@@ -32,6 +32,15 @@ export function getDateKeyInTimezone(date: Date, timezone: string): string {
   return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
 }
 
+export function getMillisecondsUntilNextDateChangeInTimezone(date: Date, timezone: string): number {
+  const parts = getDateParts(date, timezone);
+  const elapsedMs =
+    (((parts.hour * 60) + parts.minute) * 60 + parts.second) * 1000
+    + date.getMilliseconds();
+
+  return Math.max(1_000, (MINUTES_IN_DAY * 60 * 1000) - elapsedMs + 50);
+}
+
 export function getMinutesOfDayInTimezone(date: Date, timezone: string): number {
   const parts = getDateParts(date, timezone);
   return Math.max(0, Math.min(MINUTES_IN_DAY, parts.hour * 60 + parts.minute));
