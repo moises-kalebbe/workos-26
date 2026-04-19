@@ -14,7 +14,9 @@ set -euo pipefail
 #   DB_NAME            workos-db
 
 MIG_DIR="${MIG_DIR:-}"
-POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-workos-postgres}"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
+POSTGRES_SERVICE="${POSTGRES_SERVICE:-workos_workos-postgres}"
+POSTGRES_IMAGE_MATCH="${POSTGRES_IMAGE_MATCH:-postgres:17-alpine}"
 DB_USER="${DB_USER:-workos-user}"
 DB_NAME="${DB_NAME:-workos-db}"
 
@@ -22,6 +24,41 @@ if [ -z "${MIG_DIR}" ] || [ ! -d "${MIG_DIR}" ]; then
   echo "[migrate] MIG_DIR nao setado ou nao existe: '${MIG_DIR}'" >&2
   exit 1
 fi
+
+# Em Docker Swarm, container_name do compose eh ignorado. Resolvemos o
+# container id real procurando por:
+#   1) nome/id passado explicito em POSTGRES_CONTAINER
+#   2) nome que comeca com a service (ex: workos_workos-postgres.1.abcd)
+#   3) ancestor que bate com a imagem do postgres
+resolve_postgres_container() {
+  if [ -n "${POSTGRES_CONTAINER}" ] && docker ps --format '{{.Names}}' | grep -Fxq "${POSTGRES_CONTAINER}"; then
+    echo "${POSTGRES_CONTAINER}"
+    return 0
+  fi
+
+  local by_service
+  by_service="$(docker ps --filter "name=${POSTGRES_SERVICE}" --format '{{.ID}}' | head -n 1 || true)"
+  if [ -n "${by_service}" ]; then
+    echo "${by_service}"
+    return 0
+  fi
+
+  local by_image
+  by_image="$(docker ps --filter "ancestor=${POSTGRES_IMAGE_MATCH}" --format '{{.ID}}' | head -n 1 || true)"
+  if [ -n "${by_image}" ]; then
+    echo "${by_image}"
+    return 0
+  fi
+
+  return 1
+}
+
+if ! POSTGRES_CONTAINER="$(resolve_postgres_container)"; then
+  echo "[migrate] nao encontrei o container do Postgres. containers em execucao:" >&2
+  docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' >&2 || true
+  exit 1
+fi
+echo "[migrate] usando container ${POSTGRES_CONTAINER}"
 
 psql_cmd() {
   docker exec -i "${POSTGRES_CONTAINER}" psql -v ON_ERROR_STOP=1 -U "${DB_USER}" -d "${DB_NAME}" "$@"
