@@ -54,6 +54,7 @@ export const LOCAL_DB_TABLES = new Set([
   "agenda_meeting_topics",
   "notification_preferences",
   "google_tokens",
+  "cinemateca_movies",
 ]);
 
 function isSafeIdentifier(value: string) {

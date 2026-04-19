@@ -6,6 +6,7 @@ import {
   BookOpen,
   Calendar,
   ClipboardList,
+  Clapperboard,
   Columns3,
   Dumbbell,
   LayoutDashboard,
@@ -34,6 +35,7 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
   { icon: Brain, label: "Skills", path: "/skills" },
   { icon: BrainCircuit, label: "Second Brain", path: "/second-brain" },
   { icon: Lock, label: "Cofre", path: "/vault" },
+  { icon: Clapperboard, label: "Cinemateca", path: "/cinemateca" },
   { icon: BarChart3, label: "Relatorios", path: "/reports" },
 ];
 
