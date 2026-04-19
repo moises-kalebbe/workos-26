@@ -65,7 +65,6 @@ psql_cmd() {
 }
 
 echo "[migrate] garantindo tabela schema_migrations"
-table_preexisted="$(psql_cmd -tA -c "SELECT CASE WHEN EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='schema_migrations') THEN 1 ELSE 0 END" 2>/dev/null | tr -d '[:space:]' || echo 0)"
 psql_cmd <<'SQL' >/dev/null
 CREATE TABLE IF NOT EXISTS schema_migrations (
   filename TEXT PRIMARY KEY,
@@ -73,20 +72,20 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 );
 SQL
 
-# Bootstrap: na primeira vez que a tabela eh criada, marca como aplicadas
-# as migrations que ja foram rodadas manualmente em producao antes do tracking.
-if [ "${table_preexisted}" = "0" ]; then
-  bootstrap_file="${MIG_DIR}/.applied-before-tracking"
-  if [ -f "${bootstrap_file}" ]; then
-    echo "[migrate] bootstrap: marcando migrations antigas como aplicadas a partir de ${bootstrap_file}"
-    while IFS= read -r line; do
-      line="$(echo "${line}" | tr -d '\r' | awk '{$1=$1}1')"
-      [ -z "${line}" ] && continue
-      case "${line}" in \#*) continue;; esac
-      if ! [[ "${line}" =~ ^[A-Za-z0-9._-]+$ ]]; then continue; fi
-      psql_cmd -c "INSERT INTO schema_migrations (filename) VALUES ('${line}') ON CONFLICT DO NOTHING" >/dev/null
-    done < "${bootstrap_file}"
-  fi
+# Sincroniza bootstrap de forma idempotente em toda execução (ON CONFLICT DO NOTHING).
+# Garante que migrations já aplicadas manualmente antes do rastreamento nunca sejam
+# re-executadas, mesmo que a tabela schema_migrations já existisse quando o arquivo
+# .applied-before-tracking foi atualizado com novas entradas.
+bootstrap_file="${MIG_DIR}/.applied-before-tracking"
+if [ -f "${bootstrap_file}" ]; then
+  echo "[migrate] sincronizando bootstrap a partir de ${bootstrap_file}"
+  while IFS= read -r line; do
+    line="$(echo "${line}" | tr -d '\r' | awk '{$1=$1}1')"
+    [ -z "${line}" ] && continue
+    case "${line}" in \#*) continue;; esac
+    if ! [[ "${line}" =~ ^[A-Za-z0-9._-]+$ ]]; then continue; fi
+    psql_cmd -c "INSERT INTO schema_migrations (filename) VALUES ('${line}') ON CONFLICT DO NOTHING" >/dev/null
+  done < "${bootstrap_file}"
 fi
 
 shopt -s nullglob
