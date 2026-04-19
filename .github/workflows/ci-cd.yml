@@ -113,6 +113,7 @@ jobs:
       APP_BASE_URL: ${{ vars.APP_BASE_URL }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+      MERCADOPAGO_ACCESS_TOKEN: ${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}
       RUN_PUBLISH_INPUT: ${{ github.event.inputs.run_publish }}
       RUN_DEPLOY_INPUT: ${{ github.event.inputs.run_deploy }}
       DEPLOY_IMAGE_TAG_INPUT: ${{ github.event.inputs.deploy_image_tag }}
@@ -192,6 +193,7 @@ jobs:
           docker --context production service update \
             --with-registry-auth \
             --image "${IMAGE_NAME}:${DEPLOY_IMAGE_TAG}" \
+            --env-add "MERCADOPAGO_ACCESS_TOKEN=${MERCADOPAGO_ACCESS_TOKEN}" \
             workos_workos
 
       - name: Verify swarm rollout
