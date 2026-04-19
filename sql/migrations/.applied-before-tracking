@@ -1,0 +1,16 @@
+001_initial_schema.sql
+002_rebuild_existing_schema.sql
+003_financial_entries.sql
+004_financial_entry_payment_url.sql
+005_financial_contracts.sql
+006_financial_contract_backfill.sql
+007_financial_contract_rebuild.sql
+008_agenda_meeting_topics.sql
+009_agenda_meeting_topics_checklist.sql
+010_seed_general_skills_n8n_supabase.sql
+011_daily_reflection_journal.sql
+012_notification_preferences.sql
+013_financial_forecast_contract_guards.sql
+014_daily_reflection_actionable_checklist.sql
+015_training_module.sql
+016_training_measurements_unique.sql
