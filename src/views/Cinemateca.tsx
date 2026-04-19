@@ -470,7 +470,7 @@ export default function CinematecaPage() {
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Film className="h-4 w-4 text-primary" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Coleção</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Coleção</p>
           </div>
           <p className="mt-3 text-3xl font-semibold text-foreground">{stats.total}</p>
           <p className="mt-1 text-xs text-muted-foreground">filmes na sua prateleira</p>
@@ -479,7 +479,7 @@ export default function CinematecaPage() {
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Eye className="h-4 w-4 text-success" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Assistidos</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Assistidos</p>
           </div>
           <p className="mt-3 text-3xl font-semibold text-foreground">{stats.watched}</p>
           <p className="mt-1 text-xs text-muted-foreground">ja passaram pela sua TV</p>
@@ -488,7 +488,7 @@ export default function CinematecaPage() {
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
             <BookmarkPlus className="h-4 w-4 text-primary" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Quero assistir</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Quero assistir</p>
           </div>
           <p className="mt-3 text-3xl font-semibold text-foreground">{stats.wantToWatch}</p>
           <p className="mt-1 text-xs text-muted-foreground">esperando na fila</p>
@@ -497,7 +497,7 @@ export default function CinematecaPage() {
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Star className="h-4 w-4 text-warning" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Sua media</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Sua media</p>
           </div>
           <p className="mt-3 text-3xl font-semibold text-foreground">{stats.avg || "—"}</p>
           <p className="mt-1 text-xs text-muted-foreground">{stats.ratedCount} filme(s) avaliado(s)</p>
@@ -551,7 +551,7 @@ export default function CinematecaPage() {
               type="button"
               onClick={() => setGenre(g)}
               className={cn(
-                "rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                "rounded-full border px-2.5 py-1 text-eyebrow transition-colors",
                 genre === g
                   ? "border-primary/30 bg-primary/10 text-primary"
                   : "border-border/70 bg-background/40 text-muted-foreground hover:text-foreground",
@@ -646,7 +646,7 @@ function PosterCard({
               <Clapperboard className="h-6 w-6 text-white/40" />
               <div className="space-y-1.5">
                 <p className="font-serif text-lg font-semibold leading-tight text-white line-clamp-3">{title}</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/60">
+                <p className="text-caption uppercase tracking-loose text-white/60">
                   {year ? `${year}` : ""}{year && genre ? " · " : ""}{genre || ""}
                 </p>
               </div>
@@ -655,21 +655,21 @@ function PosterCard({
         )}
 
         {status ? (
-          <span className={cn("absolute left-2 top-2 rounded-full border px-2 py-0.5 text-[10px] font-semibold backdrop-blur", statusBadgeStyle(status))}>
+          <span className={cn("absolute left-2 top-2 rounded-full border px-2 py-0.5 text-caption font-semibold backdrop-blur", statusBadgeStyle(status))}>
             {statusLabel(status)}
           </span>
         ) : (
-          <span className="absolute left-2 top-2 rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-[10px] font-semibold text-white/80 backdrop-blur">
+          <span className="absolute left-2 top-2 rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-caption font-semibold text-white/80 backdrop-blur">
             Catalogo
           </span>
         )}
 
         {userRating != null ? (
-          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full border border-warning/30 bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-warning backdrop-blur">
+          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full border border-warning/30 bg-black/55 px-2 py-0.5 text-caption font-semibold text-warning backdrop-blur">
             <Star className="h-3 w-3 fill-current" /> {userRating}
           </span>
         ) : imdb && imdb !== "N/D" ? (
-          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full border border-white/15 bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white/85 backdrop-blur">
+          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full border border-white/15 bg-black/55 px-2 py-0.5 text-caption font-semibold text-white/85 backdrop-blur">
             <Star className="h-3 w-3" /> {imdb}
           </span>
         ) : null}
@@ -677,7 +677,7 @@ function PosterCard({
 
       <div className="px-0.5">
         <p className="truncate text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-eyebrow text-muted-foreground">
           {year || "—"}{genre ? ` · ${splitGenres(genre)[0]}` : ""}
         </p>
 
@@ -689,7 +689,7 @@ function PosterCard({
                 e.stopPropagation();
                 void onQuickAdd(item.seed, "want_to_watch");
               }}
-              className="flex-1 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/15"
+              className="flex-1 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-eyebrow font-medium text-primary hover:bg-primary/15"
             >
               + Lista
             </button>
@@ -699,7 +699,7 @@ function PosterCard({
                 e.stopPropagation();
                 void onQuickAdd(item.seed, "watched");
               }}
-              className="flex-1 rounded-lg border border-success/25 bg-success-muted px-2 py-1 text-[11px] font-medium text-success hover:bg-success/20"
+              className="flex-1 rounded-lg border border-success/25 bg-success-muted px-2 py-1 text-eyebrow font-medium text-success hover:bg-success/20"
             >
               <Check className="inline h-3 w-3" /> Vi
             </button>
@@ -791,7 +791,7 @@ function DetailContent({
 
         <div className="rounded-2xl border border-border bg-background/50 p-4 space-y-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Status</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-label text-muted-foreground">Status</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {(
                 [
@@ -824,9 +824,9 @@ function DetailContent({
           {owned ? (
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Sua nota</p>
+                <p className="text-eyebrow font-semibold uppercase tracking-label text-muted-foreground">Sua nota</p>
                 {owned.user_rating != null ? (
-                  <button type="button" onClick={clearRating} className="text-[11px] text-muted-foreground hover:text-danger">
+                  <button type="button" onClick={clearRating} className="text-eyebrow text-muted-foreground hover:text-danger">
                     Limpar
                   </button>
                 ) : null}
@@ -857,9 +857,9 @@ function DetailContent({
           {owned ? (
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Anotacoes</p>
+                <p className="text-eyebrow font-semibold uppercase tracking-label text-muted-foreground">Anotacoes</p>
                 {notesDirty ? (
-                  <button type="button" onClick={saveNotes} className="text-[11px] font-medium text-primary hover:underline">
+                  <button type="button" onClick={saveNotes} className="text-eyebrow font-medium text-primary hover:underline">
                     Salvar
                   </button>
                 ) : null}

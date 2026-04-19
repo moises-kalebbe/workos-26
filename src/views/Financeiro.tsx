@@ -67,6 +67,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatMoney } from "@/lib/utils";
+import { MercadoPagoWidget } from "@/components/mercadopago/MercadoPagoWidget";
 import type { FinancialContract, FinancialEntry, Project } from "@/types";
 
 type FinanceiroProject = Pick<Project, "id" | "name" | "client" | "color">;
@@ -161,9 +162,9 @@ const WRAPPED_BADGE_CLASS = "min-w-0 max-w-full";
 const WRAPPED_META_ITEM_CLASS = "min-w-0 break-words";
 
 const chartConfig = {
-  income: { label: "Receita", color: "#2DD4BF" },
-  expense: { label: "Despesa", color: "#F59E0B" },
-  profit: { label: "Lucro", color: "#38BDF8" },
+  income: { label: "Receita", color: "hsl(var(--chart-1))" },
+  expense: { label: "Despesa", color: "hsl(var(--chart-2))" },
+  profit: { label: "Lucro", color: "hsl(var(--chart-3))" },
 };
 
 function todayDateInput() {
@@ -328,11 +329,11 @@ function mapEntriesWithRelations(
 function statusClassName(status: FinanceiroVisualStatus) {
   switch (status) {
     case "overdue":
-      return "border-rose-500/20 bg-rose-500/10 text-rose-300";
+      return "border-rose-500/20 bg-rose-500/10 text-danger-foreground";
     case "upcoming":
-      return "border-amber-500/20 bg-amber-500/10 text-amber-300";
+      return "border-warning/20 bg-warning-muted text-warning-foreground";
     case "paid":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+      return "border-success/20 bg-success-muted text-success-foreground";
     default:
       return "border-border bg-background/40 text-muted-foreground";
   }
@@ -402,11 +403,11 @@ function StatsCard({
 }) {
   const iconClass =
     tone === "success"
-      ? "text-emerald-300"
+      ? "text-success-foreground"
       : tone === "warning"
-        ? "text-amber-300"
+        ? "text-warning-foreground"
         : tone === "danger"
-          ? "text-rose-300"
+          ? "text-danger-foreground"
           : "text-primary";
 
   return (
@@ -414,7 +415,7 @@ function StatsCard({
       <CardHeader className="min-w-0 space-y-0 p-4 pb-0 sm:p-5 sm:pb-0">
         <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
           <Icon className={cn("h-4 w-4", iconClass)} />
-          <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.18em] break-words">{label}</p>
+          <p className="min-w-0 text-eyebrow font-semibold uppercase tracking-eyebrow break-words">{label}</p>
         </div>
       </CardHeader>
       <CardContent className="min-w-0 p-4 pt-3 sm:p-5 sm:pt-3">
@@ -426,7 +427,7 @@ function StatsCard({
 }
 
 function MoneyDelta({ value }: { value: number }) {
-  return <span className={cn("font-semibold", value >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatMoney(value)}</span>;
+  return <span className={cn("font-semibold", value >= 0 ? "text-success-foreground" : "text-danger-foreground")}>{formatMoney(value)}</span>;
 }
 
 function groupProjectionByYear(points: Array<{ monthKey: string; label: string; income: number; expense: number; profit: number }>) {
@@ -991,7 +992,7 @@ export default function FinanceiroPage() {
       <section className="rounded-2xl border border-border bg-card/95 p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Fluxo rápido</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Fluxo rápido</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Ações principais</h2>
             <p className="mt-1 text-sm text-muted-foreground">Cadastre, ajuste e reprocesse sem sair da tela.</p>
           </div>
@@ -1027,7 +1028,7 @@ export default function FinanceiroPage() {
       <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
         <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar financeiro</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Radar financeiro</p>
             <CardTitle className="mt-1">Painel executivo</CardTitle>
             <CardDescription className="mt-1">Filtros globais para operação, histórico e projeção.</CardDescription>
           </div>
@@ -1134,7 +1135,7 @@ export default function FinanceiroPage() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 overflow-x-hidden space-y-4 md:space-y-6">
-        <TabsList className="grid h-auto w-full max-w-full grid-cols-3 overflow-hidden rounded-2xl border border-border bg-card/95 p-1">
+        <TabsList className="grid h-auto w-full max-w-full grid-cols-4 overflow-hidden rounded-2xl border border-border bg-card/95 p-1">
           <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="executivo">
             <span className="sm:hidden">Painel</span>
             <span className="hidden sm:inline">Executivo</span>
@@ -1146,6 +1147,10 @@ export default function FinanceiroPage() {
           <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="contratos">
             <span className="sm:hidden">Contr.</span>
             <span className="hidden sm:inline">Contratos</span>
+          </TabsTrigger>
+          <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="mercadopago">
+            <span className="sm:hidden">MP</span>
+            <span className="hidden sm:inline">Mercado Pago</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1384,7 +1389,7 @@ export default function FinanceiroPage() {
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge className={contract.status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-border bg-background/40 text-muted-foreground"}>
+                          <Badge className={contract.status === "active" ? "border-success/20 bg-success-muted text-success-foreground" : "border-border bg-background/40 text-muted-foreground"}>
                             {contract.status === "active" ? "Ativo" : "Inativo"}
                           </Badge>
                           <Badge className={WRAPPED_BADGE_CLASS} variant="outline">{formatEntryTypeLabel(contract.type)}</Badge>
@@ -1432,6 +1437,10 @@ export default function FinanceiroPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="mercadopago" className="space-y-4 md:space-y-6">
+          <MercadoPagoWidget />
         </TabsContent>
       </Tabs>
 
@@ -1584,7 +1593,7 @@ export default function FinanceiroPage() {
                   <tbody>
                     {csvRows.map((row, i) => (
                       <tr key={i} className={cn("border-b border-border/50", !row.valid && "bg-rose-500/10")}>
-                        <td className="px-3 py-2">{row.title || <span className="text-rose-400">{row.error}</span>}</td>
+                        <td className="px-3 py-2">{row.title || <span className="text-danger-foreground">{row.error}</span>}</td>
                         <td className="px-3 py-2">{row.amount}</td>
                         <td className="px-3 py-2">{row.type === "income" ? "Entrada" : "Saída"}</td>
                         <td className="px-3 py-2">{row.due_date}</td>

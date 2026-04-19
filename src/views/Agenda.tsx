@@ -164,7 +164,7 @@ function getResponseBadge(event: CalendarEvent) {
   if (event.selfResponseStatus === "accepted") {
     return {
       label: "Aceita",
-      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+      className: "border-success/30 bg-success-muted text-success-foreground",
     };
   }
 
@@ -304,13 +304,13 @@ function EventCard({
       className={cn(
         "rounded-lg border bg-card p-4 transition-colors",
         isDeclined ? "border-danger/40 opacity-90" : "border-border",
-        eventBucket === "live" && "border-primary/40 shadow-[0_0_0_1px_rgba(56,189,248,0.18)]",
+        eventBucket === "live" && "border-primary/40 shadow-ring",
       )}
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start">
         <div className="flex items-center justify-center rounded-lg bg-primary/10 px-3 py-2 text-center md:min-w-[58px]">
           <div>
-            <p className="text-[11px] font-semibold uppercase text-primary">
+            <p className="text-eyebrow font-semibold uppercase text-primary">
               {format(startDate, "MMM", { locale: ptBR })}
             </p>
             <p className="text-xl font-bold leading-tight text-foreground">{format(startDate, "dd")}</p>
@@ -352,7 +352,7 @@ function EventCard({
           {description && <p className="text-xs text-muted-foreground">{description}</p>}
 
           {showAcceptedState && (
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+            <div className="rounded-lg border border-success/30 bg-success-muted px-3 py-2 text-xs text-success-foreground">
               Presenca confirmada. Esta reunião já foi aceita por você.
             </div>
           )}
@@ -1011,7 +1011,7 @@ export default function AgendaPage() {
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Preset ativo</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Preset ativo</p>
               <p className="mt-1 text-sm text-foreground">
                 {activePreset === "today"
                   ? "Mostrando a agenda do dia atual dentro da semana corrente."
@@ -1040,22 +1040,22 @@ export default function AgendaPage() {
       <div className="space-y-3 rounded-xl border border-border bg-card p-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-border bg-background/60 p-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pendentes</p>
+            <p className="text-xs uppercase tracking-loose text-muted-foreground">Pendentes</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.pending}</p>
             <p className="text-xs text-muted-foreground">Convites aguardando sua resposta.</p>
           </div>
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Em andamento</p>
+            <p className="text-xs uppercase tracking-loose text-muted-foreground">Em andamento</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.live}</p>
             <p className="text-xs text-muted-foreground">Reuniões acontecendo agora.</p>
           </div>
           <div className="rounded-lg border border-border bg-background/60 p-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Confirmadas</p>
+            <p className="text-xs uppercase tracking-loose text-muted-foreground">Confirmadas</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.confirmed}</p>
             <p className="text-xs text-muted-foreground">Próximas reuniões já aceitas.</p>
           </div>
           <div className="rounded-lg border border-border bg-background/60 p-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Encerradas</p>
+            <p className="text-xs uppercase tracking-loose text-muted-foreground">Encerradas</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.past}</p>
             <p className="text-xs text-muted-foreground">Eventos que já aconteceram.</p>
           </div>
@@ -1202,7 +1202,7 @@ export default function AgendaPage() {
                   {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 </span>
                 {isToday(date) && (
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-caption font-bold uppercase text-primary-foreground">
                     Hoje
                   </span>
                 )}

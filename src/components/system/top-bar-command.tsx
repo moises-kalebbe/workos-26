@@ -47,9 +47,9 @@ export function TopBarCommand() {
         onClick={() => setOpen(true)}
         aria-label="Abrir busca rápida"
       >
-        <Search className="h-4 w-4 text-cyan-300" />
+        <Search className="h-4 w-4 text-primary" />
         <span className="hidden text-sm md:inline">Buscar página</span>
-        <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-muted-foreground/80">
+        <span className="rounded-full border border-border/60 px-2 py-0.5 text-eyebrow text-muted-foreground/80">
           Ctrl K
         </span>
       </Button>

@@ -20,10 +20,10 @@ export function LeiDoDia({ now }: { now: Date }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <Swords className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">
                 Lei do Dia
               </p>
-              <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-caption font-semibold text-muted-foreground">
                 #{lei.number}
               </span>
             </div>
@@ -42,7 +42,7 @@ export function LeiDoDia({ now }: { now: Date }) {
         <div className="mt-4 space-y-3 border-t border-border/60 pt-4">
           <p className="text-sm text-muted-foreground">{lei.summary}</p>
           <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary mb-1">
+            <p className="text-eyebrow font-semibold uppercase tracking-label text-primary mb-1">
               Aplicar hoje
             </p>
             <p className="text-sm text-foreground">{lei.applicationHint}</p>

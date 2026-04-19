@@ -143,12 +143,12 @@ export function MorningBriefing() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="w-[calc(100vw-1rem)] max-w-lg rounded-2xl border-border bg-card p-0 overflow-hidden">
         {/* Header */}
-        <div className="bg-[linear-gradient(135deg,rgba(8,18,38,0.98),rgba(15,25,44,0.94))] px-6 py-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Bom dia</p>
+        <div className="bg-hero px-6 py-5">
+          <p className="text-eyebrow font-semibold uppercase tracking-loose text-primary/80">Bom dia</p>
           <h2 className="mt-1 text-xl font-semibold capitalize text-foreground">{dayLabel}</h2>
           {data.mainProjectName && (
-            <p className="mt-1 text-sm text-slate-400">
-              Foco sugerido: <span className="text-cyan-300">{data.mainProjectName}</span>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Foco sugerido: <span className="text-primary">{data.mainProjectName}</span>
             </p>
           )}
         </div>

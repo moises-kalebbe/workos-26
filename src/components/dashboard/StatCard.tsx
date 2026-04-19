@@ -55,7 +55,7 @@ export function StatCard({ title, value, icon: Icon, color, subtitle }: StatCard
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-eyebrow font-semibold uppercase tracking-wider text-muted-foreground">
             {title}
           </p>
           <p className={cn("mt-2 font-mono text-2xl font-bold tabular-nums", colors.text)}>

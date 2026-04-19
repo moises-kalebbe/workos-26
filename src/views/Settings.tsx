@@ -64,8 +64,8 @@ function SummaryCard({
   return (
     <div className="rounded-2xl border border-border bg-card/95 p-3 md:p-5">
       <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className={accent === "success" ? "h-4 w-4 text-emerald-300" : "h-4 w-4 text-primary"} />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">{label}</p>
+        <Icon className={accent === "success" ? "h-4 w-4 text-success-foreground" : "h-4 w-4 text-primary"} />
+        <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">{label}</p>
       </div>
       <p className="mt-2 text-xl font-semibold text-foreground md:mt-4 md:text-2xl">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground md:mt-2 md:text-sm">{helper}</p>
@@ -383,10 +383,10 @@ export default function SettingsPage() {
       />
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-[1.35fr_0.9fr_0.9fr_0.9fr]">
-        <div className="col-span-2 rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-4 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)] md:p-5 xl:col-span-1">
-          <div className="flex items-center gap-2 text-cyan-200/80">
-            <Activity className="h-4 w-4 text-cyan-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Área da conta</p>
+        <div className="col-span-2 rounded-2xl border border-primary/20 bg-hero p-4 shadow-glow md:p-5 xl:col-span-1">
+          <div className="flex items-center gap-2 text-brand-text/80">
+            <Activity className="h-4 w-4 text-primary" />
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Área da conta</p>
           </div>
 
           <div className="mt-4 flex items-start gap-4">
@@ -457,7 +457,7 @@ export default function SettingsPage() {
         <TabsContent value="profile" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
           <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
             <div className="rounded-2xl border border-border bg-card/95 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Identidade</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Identidade</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Como sua conta aparece</h2>
 
               <div className="mt-5 flex flex-col items-start gap-4">
@@ -482,7 +482,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="rounded-2xl border border-border bg-card/95 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Dados do perfil</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Dados do perfil</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Atualize nome, avatar e conta base</h2>
 
               <div className="mt-5 space-y-4">
@@ -529,7 +529,7 @@ export default function SettingsPage() {
         <TabsContent value="companies" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Empresas e contratos</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Empresas e contratos</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Mantenha base comercial e financeira organizada</h2>
             </div>
 
@@ -551,7 +551,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2">
               <Calculator className="h-4 w-4 text-primary" />
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Calculadora de contrato</p>
+                <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Calculadora de contrato</p>
                 <h3 className="mt-1 text-lg font-semibold text-foreground">Defina valor/hora e valor/dia sem conta manual</h3>
               </div>
             </div>
@@ -639,19 +639,19 @@ export default function SettingsPage() {
 
               <div className="grid gap-3">
                 <div className="rounded-xl border border-border/70 bg-background/35 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Valor por hora</p>
+                  <p className="text-eyebrow uppercase tracking-eyebrow text-muted-foreground">Valor por hora</p>
                   <p className="mt-2 text-lg font-semibold text-foreground">
                     {calculatorResult.hourlyRate ? formatMoney(roundToMoney(calculatorResult.hourlyRate)) : "--"}
                   </p>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-background/35 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Valor por dia</p>
+                  <p className="text-eyebrow uppercase tracking-eyebrow text-muted-foreground">Valor por dia</p>
                   <p className="mt-2 text-lg font-semibold text-foreground">
                     {calculatorResult.dailyRate ? formatMoney(roundToMoney(calculatorResult.dailyRate)) : "--"}
                   </p>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-background/35 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Horas por dia</p>
+                  <p className="text-eyebrow uppercase tracking-eyebrow text-muted-foreground">Horas por dia</p>
                   <p className="mt-2 text-lg font-semibold text-foreground">
                     {calculatorResult.hoursPerDay ? `${calculatorResult.hoursPerDay.toFixed(2)}h` : "--"}
                   </p>
@@ -702,13 +702,13 @@ export default function SettingsPage() {
 
                     <div className="grid grid-cols-2 gap-3 xl:min-w-[360px]">
                       <div className="rounded-xl border border-border/70 bg-background/35 px-4 py-3">
-                        <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Contrato mensal</p>
+                        <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Contrato mensal</p>
                         <p className="mt-1 text-sm font-semibold text-foreground">
                           {project.monthly_agreed_amount ? formatMoney(project.monthly_agreed_amount) : "--"}
                         </p>
                       </div>
                       <div className="rounded-xl border border-border/70 bg-background/35 px-4 py-3">
-                        <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Dias por semana</p>
+                        <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Dias por semana</p>
                         <p className="mt-1 text-sm font-semibold text-foreground">
                           {project.workdays?.length ? `${project.workdays.length} dias` : "--"}
                         </p>
@@ -752,7 +752,7 @@ export default function SettingsPage() {
         <TabsContent value="preferences" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
           <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="rounded-2xl border border-border bg-card/95 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Preferencias gerais</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Preferencias gerais</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Timezone e comportamento da conta</h2>
 
               <div className="mt-5 space-y-4">
@@ -773,7 +773,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="rounded-xl border border-border/70 bg-background/35 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Horário local</p>
+                  <p className="text-eyebrow uppercase tracking-eyebrow text-muted-foreground">Horário local</p>
                   <p className="mt-2 text-lg font-semibold text-foreground">
                     {new Date().toLocaleTimeString("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit" })}
                   </p>
@@ -788,7 +788,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="rounded-2xl border border-border bg-card/95 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Plano</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Plano</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Situacao atual da conta</h2>
 
               <div className="mt-5 rounded-xl border border-border/70 bg-background/35 p-4">

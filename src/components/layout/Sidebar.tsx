@@ -30,7 +30,7 @@ export function Sidebar() {
       <aside className="hidden h-screen w-72 flex-col border-r border-border/80 bg-card/70 md:flex md:sticky md:top-0">
         <div className="flex items-center gap-3 px-5 py-5">
           <LogoMark />
-          <span className="bg-gradient-to-r from-cyan-300 to-sky-500 bg-clip-text text-lg font-bold text-transparent">
+          <span className="gradient-brand-text text-lg font-bold">
             {APP_NAME}
           </span>
         </div>
@@ -38,7 +38,7 @@ export function Sidebar() {
         <nav className="flex-1 overflow-y-auto px-3 pb-2">
           {DASHBOARD_NAV_GROUPS.map((group) => (
             <div key={group.label} className="mt-4 first:mt-0">
-              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              <p className="mb-1 px-3 text-caption font-semibold uppercase tracking-widest text-muted-foreground/60">
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -95,7 +95,7 @@ export function Sidebar() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium text-foreground">{user?.primaryEmailAddress?.emailAddress}</p>
-              <p className="text-[10px] text-muted-foreground">Plano Free</p>
+              <p className="text-caption text-muted-foreground">Plano Free</p>
             </div>
           </div>
         </div>
@@ -113,11 +113,11 @@ export function Sidebar() {
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "flex min-w-[60px] shrink-0 snap-start flex-col items-center gap-0.5 rounded-md px-2 py-1.5 text-[10px] transition-colors",
+                  "flex min-w-15 shrink-0 snap-start flex-col items-center gap-0.5 rounded-md px-2 py-1.5 text-caption transition-colors",
                   isActive ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                <item.icon className="h-[18px] w-[18px]" />
+                <item.icon className="h-4.5 w-4.5" />
                 {(item.shortLabel || item.label).split(" ")[0]}
               </Link>
             );

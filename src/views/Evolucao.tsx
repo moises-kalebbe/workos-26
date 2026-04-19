@@ -73,7 +73,7 @@ export default function EvolucaoPage() {
       <section className="rounded-2xl border border-border bg-card/95 p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Histórico</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Histórico</p>
             <h2 className="mt-1 text-xl font-semibold text-foreground">Entradas anteriores</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Veja a sequência dos prompts, seu estado emocional e as ações que você registrou.
@@ -123,19 +123,19 @@ export default function EvolucaoPage() {
                     </div>
 
                     <div className="self-start rounded-xl border border-border/70 bg-background/70 px-3 py-2 text-left sm:self-auto sm:text-right">
-                      <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Humor</p>
+                      <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Humor</p>
                       <p className={mood?.tone || "text-foreground"}>{mood?.label || entry.mood}</p>
                     </div>
                   </div>
 
                   <div className="mt-4 rounded-xl border border-border/70 bg-card/80 p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Ações tomadas</p>
+                    <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Ações tomadas</p>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{entry.actions_taken_md}</p>
                   </div>
 
                   {entry.checklist_json.length > 0 ? (
                     <div className="mt-4 rounded-xl border border-border/70 bg-background/60 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Aplicacao pratica</p>
+                      <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Aplicacao pratica</p>
                       <div className="mt-2 space-y-2">
                         {entry.checklist_json.map((checklistItem) => (
                           <label key={checklistItem.id} className="flex items-start gap-3 text-sm text-foreground">
@@ -151,7 +151,7 @@ export default function EvolucaoPage() {
 
                   {entry.tomorrow_focus ? (
                     <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Proxima acao</p>
+                      <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Proxima acao</p>
                       <p className="mt-2 text-sm text-foreground">{entry.tomorrow_focus}</p>
                     </div>
                   ) : null}

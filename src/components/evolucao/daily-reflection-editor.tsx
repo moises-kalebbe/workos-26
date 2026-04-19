@@ -57,7 +57,7 @@ export function DailyReflectionEditor({
     <section className="rounded-2xl border border-border bg-card/95 p-5 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Diário guiado</p>
+          <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Diário guiado</p>
           <h2 className="mt-1 text-xl font-semibold text-foreground">{title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
@@ -93,14 +93,14 @@ export function DailyReflectionEditor({
             <p className="mt-2 text-sm text-muted-foreground">{prompt.summary}</p>
 
             <div className="mt-4 rounded-xl border border-border/70 bg-background/60 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Como aplicar</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Como aplicar</p>
               <p className="mt-1 text-sm text-foreground">{prompt.application_hint}</p>
             </div>
           </div>
 
           {carryOverFocus ? (
             <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Carry-over de ontem</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Carry-over de ontem</p>
               <p className="mt-2 text-sm text-foreground">{carryOverFocus}</p>
             </div>
           ) : null}
@@ -108,7 +108,7 @@ export function DailyReflectionEditor({
           <div className="rounded-2xl border border-border/70 bg-background/40 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Aplicacao pratica</p>
+                <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Aplicacao pratica</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Marque o que voce realmente aplicou hoje. A ideia aqui e execucao, nao so leitura.
                 </p>

@@ -117,7 +117,7 @@ export function NotificationPreferencesCard() {
       <div className="rounded-2xl border border-border bg-card/95 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Notificacoes</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Notificacoes</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Alertas de reuniao, financeiro e tarefas</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               O sistema roda dentro do app e usa notificacao do navegador quando a permissao estiver ativa.
@@ -331,13 +331,13 @@ export function NotificationPreferencesCard() {
       </div>
 
       <div className="rounded-2xl border border-border bg-card/95 p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Status</p>
+        <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Status</p>
         <h2 className="mt-1 text-lg font-semibold text-foreground">Saude do motor de notificacoes</h2>
 
         <div className="mt-5 space-y-3">
           <div className="rounded-xl border border-border/70 bg-background/35 p-4">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+              <CheckCircle2 className="h-4 w-4 text-success-foreground" />
               <p className="text-sm font-medium text-foreground">Ultima avaliacao</p>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{formatDateLabel(lastEvaluatedAt)}</p>

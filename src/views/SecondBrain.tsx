@@ -521,22 +521,22 @@ export default function SecondBrainPage() {
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card/90 p-4">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Inbox</p>
+          <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Inbox</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.inboxCount}</p>
           <p className="mt-1 text-xs text-muted-foreground">Notas capturadas aguardando processamento.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card/90 p-4">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Ativas</p>
+          <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Ativas</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.activeCount}</p>
           <p className="mt-1 text-xs text-muted-foreground">Notas prontas para consulta e conexão.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card/90 p-4">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Arquivadas</p>
+          <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Arquivadas</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.archivedCount}</p>
           <p className="mt-1 text-xs text-muted-foreground">Histórico preservado fora do fluxo principal.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card/90 p-4">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Tags em alta</p>
+          <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Tags em alta</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {secondBrainStats.topTags.length === 0 ? (
               <span className="text-sm text-muted-foreground">Sem tags ainda</span>
@@ -553,7 +553,7 @@ export default function SecondBrainPage() {
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Captura rápida</p>
+            <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Captura rápida</p>
             <h2 className="mt-1 text-xl font-semibold text-foreground">Jogue primeiro no Inbox</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Cole ideias, trechos, links ou insights sem se preocupar em organizar tudo agora.
@@ -668,7 +668,7 @@ export default function SecondBrainPage() {
                   onClick={() => setSelectedNoteId(note.id)}
                   className={`w-full rounded-2xl border p-4 text-left transition-colors ${
                     selectedNoteId === note.id
-                      ? "border-primary bg-primary/10 shadow-[0_0_0_1px_rgba(56,189,248,0.12)]"
+                      ? "border-primary bg-primary/10 shadow-ring-sm"
                       : "border-border bg-background/30 hover:border-muted-foreground/40 hover:bg-background/60"
                   }`}
                 >
@@ -683,16 +683,16 @@ export default function SecondBrainPage() {
                     {note.content_md.slice(0, 120) || "Sem conteúdo ainda."}
                   </p>
 
-                  <p className="mt-2 text-[11px] text-muted-foreground">
+                  <p className="mt-2 text-eyebrow text-muted-foreground">
                     Atualizada em {formatDateTime(note.updated_at)}
                   </p>
 
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-caption">
                       {projectMap.get(note.project_id || "")?.name || "Conhecimento geral"}
                     </Badge>
                     {note.tags.slice(0, 3).map((tag) => (
-                      <Badge key={`${note.id}-${tag}`} variant="secondary" className="text-[10px]">
+                      <Badge key={`${note.id}-${tag}`} variant="secondary" className="text-caption">
                         {tag}
                       </Badge>
                     ))}
@@ -767,7 +767,7 @@ export default function SecondBrainPage() {
                 <div className="rounded-2xl border border-border bg-background/40 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Nota em foco</p>
+                      <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Nota em foco</p>
                       <h2 className="mt-2 text-2xl font-semibold text-foreground">{selectedNote.title}</h2>
                       <p className="mt-1 text-sm text-muted-foreground">{getStatusDescription(selectedNote.status)}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -924,7 +924,7 @@ export default function SecondBrainPage() {
                             >
                               {noteMap.get(link.target_note_id)?.title || "Nota removida"}
                             </button>
-                            <Badge variant="outline" className="text-[10px]">
+                            <Badge variant="outline" className="text-caption">
                               {link.link_type}
                             </Badge>
                           </div>
@@ -943,13 +943,13 @@ export default function SecondBrainPage() {
                           <div key={item.note.id} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1.5">
                             <div className="min-w-0">
                               <p className="truncate text-xs font-medium text-foreground">{item.note.title}</p>
-                              <p className="text-[10px] text-muted-foreground">{item.sharedTagsCount} tag(s) em comum</p>
+                              <p className="text-caption text-muted-foreground">{item.sharedTagsCount} tag(s) em comum</p>
                             </div>
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-7 px-2 text-[10px]"
+                              className="h-7 px-2 text-caption"
                               disabled={mutating}
                               onClick={() => void handleCreateManualLink(item.note.id)}
                             >

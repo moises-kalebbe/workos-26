@@ -113,28 +113,28 @@ const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtas
       style={style}
       {...attributes}
       {...listeners}
-      className="group cursor-grab rounded-xl border border-border/80 bg-[linear-gradient(180deg,rgba(22,28,42,0.98),rgba(16,22,34,0.98))] p-4 transition-all hover:border-primary/25 hover:bg-card active:cursor-grabbing"
+      className="group cursor-grab rounded-xl border border-border/80 bg-card-gradient p-4 transition-all hover:border-primary/25 hover:bg-card active:cursor-grabbing"
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             {priority ? (
-              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", priority.className)}>
+              <span className={cn("rounded-full px-2 py-0.5 text-caption font-semibold", priority.className)}>
                 {priority.label}
               </span>
             ) : null}
-            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", quadrant.className)}>
+            <span className={cn("rounded-full px-2 py-0.5 text-caption font-semibold", quadrant.className)}>
               {quadrant.label}
             </span>
             {companyLabel ? (
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-caption font-medium text-muted-foreground">
                 {companyLabel}
               </span>
             ) : null}
           </div>
-          <p className="text-[15px] font-semibold leading-5 text-foreground">{task.title}</p>
+          <p className="text-sm font-semibold leading-5 text-foreground">{task.title}</p>
           {task.due_date ? (
-            <div className="mt-2 flex items-center gap-2 text-[11px]">
+            <div className="mt-2 flex items-center gap-2 text-eyebrow">
               <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
               <span className={cn(
                 "text-muted-foreground",
@@ -162,7 +162,7 @@ const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtas
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Skill vinculada</p>
+              <p className="text-caption font-semibold uppercase tracking-wide text-primary">Skill vinculada</p>
               <button
                 type="button"
                 onClick={() => onPreviewSkill(skill)}
@@ -191,7 +191,7 @@ const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtas
             </div>
           </div>
           {skill.summary ? (
-            <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{skill.summary}</p>
+            <p className="mt-1 line-clamp-2 text-eyebrow text-muted-foreground">{skill.summary}</p>
           ) : null}
         </div>
       ) : null}
@@ -206,7 +206,7 @@ const TaskCard = React.memo(({ task, companyLabel, skill, onMove, onToggleSubtas
                 style={{ width: `${subtasks.length > 0 ? (completedCount / subtasks.length) * 100 : 0}%` }}
               />
             </div>
-            <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+            <span className="text-caption font-mono text-muted-foreground tabular-nums">
               {completedCount}/{subtasks.length}
             </span>
           </div>
@@ -747,7 +747,7 @@ export default function KanbanPage() {
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Preset ativo</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Preset ativo</p>
               <p className="mt-1 text-sm text-foreground">
                 {activePreset === "overdue"
                   ? "Mostrando apenas tarefas abertas e atrasadas."
@@ -1048,10 +1048,10 @@ export default function KanbanPage() {
       </Dialog>
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-[1.25fr_0.9fr_0.9fr_0.9fr]">
-        <div className="col-span-2 rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-4 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)] md:p-5 xl:col-span-1">
-          <div className="flex items-center gap-2 text-cyan-200/80">
-            <Activity className="h-4 w-4 text-cyan-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Foco recomendado</p>
+        <div className="col-span-2 rounded-2xl border border-primary/20 bg-hero p-4 shadow-glow md:p-5 xl:col-span-1">
+          <div className="flex items-center gap-2 text-brand-text/80">
+            <Activity className="h-4 w-4 text-primary" />
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Foco recomendado</p>
           </div>
           <div className="mt-3">
             <p className="text-lg font-semibold text-foreground">
@@ -1078,13 +1078,13 @@ export default function KanbanPage() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card/95 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Abertas</p>
+          <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-muted-foreground">Abertas</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{boardSummary.openCount}</p>
           <p className="mt-2 text-sm text-muted-foreground">Tarefas fora de concluido</p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card/95 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Em andamento</p>
+          <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-muted-foreground">Em andamento</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{boardSummary.inProgressCount}</p>
           <p className="mt-2 text-sm text-muted-foreground">Capacidade atual do board</p>
         </div>
@@ -1092,7 +1092,7 @@ export default function KanbanPage() {
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-warning" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Prazos</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-muted-foreground">Prazos</p>
           </div>
           <p className="mt-3 text-3xl font-semibold text-foreground">{boardSummary.dueTodayCount + boardSummary.overdueCount}</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -1104,7 +1104,7 @@ export default function KanbanPage() {
       <section className="rounded-2xl border border-border bg-card/95 p-4 md:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Filtros do quadro</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Filtros do quadro</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Refine o que entra no board</h2>
           </div>
 
@@ -1191,11 +1191,11 @@ export default function KanbanPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
+                    <p className="mt-1 text-eyebrow text-muted-foreground">
                       {col.index === 0 ? "Entrada e fila priorizada" : col.index === 1 ? "Execução atual do time" : "Entregas finalizadas"}
                     </p>
                   </div>
-                  <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                  <span className="rounded-full bg-primary/15 px-2 py-0.5 text-eyebrow font-semibold text-primary">
                     {columnTasks.length}
                   </span>
                 </div>

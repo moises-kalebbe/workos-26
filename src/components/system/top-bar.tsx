@@ -60,14 +60,14 @@ export function TopBar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-[linear-gradient(180deg,rgba(10,15,28,0.96),rgba(10,15,28,0.88))] backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-xl">
       <div className="mx-auto grid min-h-12 max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 md:min-h-16 md:gap-4 md:px-6 md:py-3 lg:px-8">
         <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
           <LogoMark className="h-7 w-7 md:hidden" />
           <div className="min-w-0">
             <div className="hidden items-center gap-2 md:flex">
-              <span className="inline-flex h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_16px_rgba(34,211,238,0.9)]" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80">Area de trabalho</p>
+              <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-glow-sm" />
+              <p className="text-eyebrow font-semibold uppercase tracking-loose text-brand-text/80">Area de trabalho</p>
             </div>
             <div className="flex min-w-0 flex-col gap-0.5 md:flex-row md:items-end md:gap-3">
               <h1 className="truncate text-sm font-semibold text-foreground md:text-[1.05rem]">{pageTitle}</h1>
@@ -77,15 +77,15 @@ export function TopBar() {
         </div>
 
         <div className="flex flex-wrap items-center justify-self-end gap-1.5 md:gap-2">
-          <div className="flex items-center gap-1.5 rounded-xl border border-cyan-500/15 bg-white/[0.03] px-2.5 py-1.5 text-xs text-foreground shadow-[0_12px_28px_-22px_rgba(34,211,238,0.9)] md:gap-2 md:rounded-2xl md:px-3 md:py-2 md:text-sm">
-            <Clock3 className="h-3.5 w-3.5 text-cyan-300 md:h-4 md:w-4" />
+          <div className="flex items-center gap-1.5 rounded-xl border border-primary/15 bg-foreground/[0.03] px-2.5 py-1.5 text-xs text-foreground shadow-glow-sm md:gap-2 md:rounded-2xl md:px-3 md:py-2 md:text-sm">
+            <Clock3 className="h-3.5 w-3.5 text-primary md:h-4 md:w-4" />
             <span className="font-medium tabular-nums">{clock ?? "--:--"}</span>
           </div>
           <div
             className="hidden items-center gap-2 rounded-2xl border border-border/60 bg-white/[0.03] px-3 py-2 text-xs text-muted-foreground lg:flex"
             aria-live="polite"
           >
-            <CloudSun className="h-4 w-4 text-cyan-300" />
+            <CloudSun className="h-4 w-4 text-primary" />
             <span className="font-medium text-foreground">Limeira, SP</span>
             <span className="text-border">/</span>
             {weather.loading ? (

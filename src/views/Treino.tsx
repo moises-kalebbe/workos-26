@@ -65,7 +65,7 @@ function SmallStat({
       <CardContent className="p-3 md:p-4">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Icon className="h-4 w-4 text-primary" />
-          <p className="text-xs uppercase tracking-[0.16em]">{label}</p>
+          <p className="text-xs uppercase tracking-label">{label}</p>
         </div>
         <p className="mt-2 truncate text-xl font-semibold text-foreground md:text-2xl">{value}</p>
         <p className="mt-1 break-words text-xs text-muted-foreground md:text-sm">{helper}</p>
@@ -502,7 +502,7 @@ export default function TreinoPage() {
                 </div>
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Sessao do dia</p>
+                    <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Sessao do dia</p>
                     <CardTitle className="text-xl leading-tight sm:text-2xl">{todaySession?.title || "Nenhuma sessao disponivel"}</CardTitle>
                   </div>
                   <CardDescription className="max-w-2xl text-sm leading-6">
@@ -517,21 +517,21 @@ export default function TreinoPage() {
                   <>
                     <div className="grid grid-cols-3 gap-2">
                       <div className="rounded-xl border border-border bg-background/40 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Duração alvo</p>
+                        <p className="text-caption uppercase tracking-label text-muted-foreground">Duração alvo</p>
                         <p className="mt-1.5 text-base font-semibold text-foreground">{todaySession.target_duration_minutes} min</p>
                       </div>
                       <div className="rounded-xl border border-border bg-background/40 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">RPE alvo</p>
+                        <p className="text-caption uppercase tracking-label text-muted-foreground">RPE alvo</p>
                         <p className="mt-1.5 text-base font-semibold text-foreground">{todaySession.target_rpe || "-"}</p>
                       </div>
                       <div className="rounded-xl border border-border bg-background/40 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Status</p>
+                        <p className="text-caption uppercase tracking-label text-muted-foreground">Status</p>
                         <p className="mt-1.5 text-base font-semibold text-foreground">{todaySession.log ? "Registrada" : "Pendente"}</p>
                       </div>
                     </div>
 
                     <div className="rounded-xl border border-border bg-background/30 p-4 sm:p-5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Regras do dia</p>
+                      <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Regras do dia</p>
                       <ul className="mt-3 space-y-3 text-sm leading-6 text-muted-foreground">
                         <li>Readiness 2 ou menos: corte 1 serie do principal e retire o finisher.</li>
                         <li>Sono abaixo de 6h: priorize tecnica e reduza a densidade do treino.</li>
@@ -610,15 +610,15 @@ export default function TreinoPage() {
                   {currentBlock ? (
                     <>
                       <div className="rounded-xl border border-border bg-background/30 p-3">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Volume</p>
+                        <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Volume</p>
                         <p className="mt-2 text-sm text-foreground">{currentBlock.volume_guidance}</p>
                       </div>
                       <div className="rounded-xl border border-border bg-background/30 p-3">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Intensidade</p>
+                        <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Intensidade</p>
                         <p className="mt-2 text-sm text-foreground">{currentBlock.intensity_guidance}</p>
                       </div>
                       <div className="rounded-xl border border-border bg-background/30 p-3">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Meta nutricional base</p>
+                        <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Meta nutricional base</p>
                         <p className="mt-2 text-sm text-foreground">
                           Proteina alvo inicial {profile.protein_target_g_per_kg.toFixed(1)} g/kg/dia com perda lenta, sem deficit agressivo.
                         </p>
@@ -657,7 +657,7 @@ export default function TreinoPage() {
                         className={cn(
                           "w-full rounded-xl border p-3 text-left transition-colors",
                           session.log
-                            ? "border-emerald-500/30 bg-emerald-500/10"
+                            ? "border-success/30 bg-success-muted"
                             : "border-border bg-card/70 hover:border-primary/40",
                         )}
                         onClick={() => {
@@ -789,7 +789,7 @@ export default function TreinoPage() {
                     <>
                       {progressionHints.length > 0 ? (
                         <div className="rounded-2xl border border-border bg-background/30 p-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Sugestao de progressao</p>
+                          <p className="text-eyebrow font-semibold uppercase tracking-label text-primary">Sugestao de progressao</p>
                           <div className="mt-3 space-y-2">
                             {progressionHints.map((hint) => (
                               <div key={hint.exerciseId} className="rounded-xl border border-border bg-card/80 p-3">
@@ -841,7 +841,7 @@ export default function TreinoPage() {
                                       href={info.youtubeSearch}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+                                      className="inline-flex items-center gap-1 text-xs font-medium text-primary/80 hover:text-primary hover:underline"
                                     >
                                       Ver no YouTube ↗
                                     </a>
@@ -1047,7 +1047,7 @@ export default function TreinoPage() {
                 </CardHeader>
                 <CardContent className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
                   <div className="rounded-xl border border-border bg-background/30 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Sono recente</p>
+                    <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Sono recente</p>
                     <p className="mt-2 text-lg font-semibold text-foreground">
                       {chartPoints.length > 0 && chartPoints[chartPoints.length - 1]?.sleepHours
                         ? `${chartPoints[chartPoints.length - 1].sleepHours.toFixed(1)} h`
@@ -1055,11 +1055,11 @@ export default function TreinoPage() {
                     </p>
                   </div>
                   <div className="rounded-xl border border-border bg-background/30 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Aderencia mental</p>
+                    <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Aderencia mental</p>
                     <p className="mt-2 text-lg font-semibold text-foreground">{mentalAdherence}%</p>
                   </div>
                   <div className="rounded-xl border border-border bg-background/30 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Ultimo checkpoint</p>
+                    <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Ultimo checkpoint</p>
                     <p className="mt-2 text-lg font-semibold text-foreground">
                       {latestMeasurement ? formatDateLabel(latestMeasurement.measurement_date) : "Nao registrado"}
                     </p>
@@ -1125,7 +1125,7 @@ export default function TreinoPage() {
                           <Badge
                             className={cn(
                               entry.applied
-                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                ? "border-success/30 bg-success-muted text-success-foreground"
                                 : "border-border bg-background text-muted-foreground",
                             )}
                           >
@@ -1177,11 +1177,11 @@ export default function TreinoPage() {
 
                     <div className="mt-4 space-y-3">
                       <div className="rounded-xl border border-border bg-card/80 p-3">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Intensidade</p>
+                        <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Intensidade</p>
                         <p className="mt-2 text-sm text-foreground">{block.intensity_guidance}</p>
                       </div>
                       <div className="rounded-xl border border-border bg-card/80 p-3">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Checkpoint</p>
+                        <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Checkpoint</p>
                         <p className="mt-2 text-sm text-foreground">
                           Semana {block.week_end} com volume reduzido, revisao de carga, medidas e ajuste fino de recuperacao.
                         </p>

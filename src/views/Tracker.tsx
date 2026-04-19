@@ -387,7 +387,7 @@ export default function TrackerPage() {
         key={project.id}
         className={cn(
           "rounded-2xl border bg-card/95 transition-all",
-          isActive ? "border-primary/40 bg-primary/[0.06] shadow-[0_20px_60px_-40px_rgba(34,211,238,0.55)]" : "border-border hover:border-primary/25",
+          isActive ? "border-primary/40 bg-primary/[0.06] shadow-glow-card" : "border-border hover:border-primary/25",
         )}
       >
         <div className="p-5">
@@ -396,15 +396,15 @@ export default function TrackerPage() {
               <div className="flex flex-wrap items-center gap-3">
                 <span className="inline-block h-3.5 w-3.5 rounded-full" style={{ backgroundColor: project.color }} />
                 <h3 className="truncate text-lg font-semibold text-foreground">{project.name}</h3>
-                <span className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                <span className="rounded-full border border-border/70 px-2.5 py-1 text-eyebrow font-medium text-muted-foreground">
                   {formatMoney(project.hourly_rate)}/h
                 </span>
                 {isActive ? (
-                  <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
+                  <span className="rounded-full border border-success/25 bg-success-muted px-2.5 py-1 text-eyebrow font-semibold text-success-foreground">
                     Em andamento
                   </span>
                 ) : todaySeconds > 0 ? (
-                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-eyebrow font-semibold text-primary">
                     Trabalhado hoje
                   </span>
                 ) : null}
@@ -419,18 +419,18 @@ export default function TrackerPage() {
 
             <div className="grid grid-cols-2 gap-3 xl:min-w-[380px]">
               <div className="rounded-xl border border-border/70 bg-background/35 px-4 py-3">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Hoje</p>
+                <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Hoje</p>
                 <div className="mt-1 flex items-end justify-between gap-3">
                   <p className="font-mono text-xl font-semibold tabular-nums text-foreground">{formatDuration(isActive ? timer.elapsed : todaySeconds)}</p>
-                  <p className="font-mono text-sm font-semibold text-emerald-300">{formatMoney(((isActive ? timer.elapsed : todaySeconds) / 3600) * project.hourly_rate)}</p>
+                  <p className="font-mono text-sm font-semibold text-success-foreground">{formatMoney(((isActive ? timer.elapsed : todaySeconds) / 3600) * project.hourly_rate)}</p>
                 </div>
               </div>
 
               <div className="rounded-xl border border-border/70 bg-background/35 px-4 py-3">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Acumulado</p>
+                <p className="text-eyebrow uppercase tracking-label text-muted-foreground">Acumulado</p>
                 <div className="mt-1 flex items-end justify-between gap-3">
                   <p className="font-mono text-xl font-semibold tabular-nums text-foreground">{formatShortDuration(totalSeconds)}</p>
-                  <p className="font-mono text-sm font-semibold text-cyan-300">{formatMoney(totalValue)}</p>
+                  <p className="font-mono text-sm font-semibold text-primary">{formatMoney(totalValue)}</p>
                 </div>
               </div>
             </div>
@@ -445,7 +445,7 @@ export default function TrackerPage() {
 
             <div className="flex items-center gap-1">
               {!isActive ? (
-                <Button onClick={() => handleStart(project.id)} size="sm" className="bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20">
+                <Button onClick={() => handleStart(project.id)} size="sm" className="bg-success/15 text-success-foreground hover:bg-success/20">
                   <Play className="mr-1 h-3.5 w-3.5" />
                   {primaryActionLabel}
                 </Button>
@@ -479,7 +479,7 @@ export default function TrackerPage() {
         {isExpanded ? (
           <div className="border-t border-border/70 px-5 py-4 animate-fade-in">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Histórico recente</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-label text-muted-foreground">Histórico recente</p>
               <span className="text-xs text-muted-foreground">Ultimas {Math.min(projectSessions.length, 8)} sessões</span>
             </div>
 
@@ -495,7 +495,7 @@ export default function TrackerPage() {
                     </p>
                   </div>
                   <span className="font-mono tabular-nums text-muted-foreground">{formatDuration(session.duration_seconds || 0)}</span>
-                  <span className="font-mono tabular-nums text-emerald-300">
+                  <span className="font-mono tabular-nums text-success-foreground">
                     {formatMoney(((session.duration_seconds || 0) / 3600) * project.hourly_rate)}
                   </span>
                   <span className="text-muted-foreground">{project.client || "Sem cliente"}</span>
@@ -564,10 +564,10 @@ export default function TrackerPage() {
       </Dialog>
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-[1.35fr_0.9fr_0.9fr_0.9fr]">
-        <div className="col-span-2 rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-4 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)] md:p-5 xl:col-span-1">
-          <div className="flex items-center gap-2 text-cyan-200/80">
-            <Activity className="h-4 w-4 text-cyan-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Sessão ativa</p>
+        <div className="col-span-2 rounded-2xl border border-primary/20 bg-hero p-4 shadow-glow md:p-5 xl:col-span-1">
+          <div className="flex items-center gap-2 text-brand-text/80">
+            <Activity className="h-4 w-4 text-primary" />
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Sessão ativa</p>
           </div>
           <div className="mt-3">
             <p className="text-lg font-semibold text-foreground">{activeProject ? activeProject.name : "Nenhum projeto em andamento"}</p>
@@ -580,7 +580,7 @@ export default function TrackerPage() {
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="font-mono text-3xl font-semibold tabular-nums text-foreground">{formatDuration(timer.elapsed)}</p>
-              <p className="mt-1 text-sm text-emerald-300">
+              <p className="mt-1 text-sm text-success-foreground">
                 {activeProject ? formatMoney((timer.elapsed / 3600) * activeProject.hourly_rate) : formatMoney(0)}
               </p>
             </div>
@@ -600,7 +600,7 @@ export default function TrackerPage() {
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock3 className="h-4 w-4 text-primary" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Horas hoje</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Horas hoje</p>
           </div>
           <p className="mt-4 font-mono text-3xl font-semibold tabular-nums text-foreground">{formatDuration(trackerSummary.todaySeconds + timer.elapsed)}</p>
           <p className="mt-2 text-sm text-muted-foreground">{trackerSummary.workedTodayCount} projetos com registro hoje</p>
@@ -608,8 +608,8 @@ export default function TrackerPage() {
 
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Wallet className="h-4 w-4 text-emerald-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Valor hoje</p>
+            <Wallet className="h-4 w-4 text-success-foreground" />
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Valor hoje</p>
           </div>
           <p className="mt-4 font-mono text-3xl font-semibold tabular-nums text-foreground">{formatMoney(trackerSummary.todayValue + (activeProject ? (timer.elapsed / 3600) * activeProject.hourly_rate : 0))}</p>
           <p className="mt-2 text-sm text-muted-foreground">Estimativa baseada na taxa/hora dos projetos</p>
@@ -617,8 +617,8 @@ export default function TrackerPage() {
 
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Activity className="h-4 w-4 text-cyan-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Maior foco</p>
+            <Activity className="h-4 w-4 text-primary" />
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Maior foco</p>
           </div>
           <p className="mt-4 text-lg font-semibold text-foreground">
             {trackerSummary.topProjectToday && trackerSummary.topProjectToday.todaySeconds > 0
@@ -636,7 +636,7 @@ export default function TrackerPage() {
       <section className="rounded-2xl border border-border bg-card/95 p-4 md:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Radar de projetos</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Radar de projetos</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Escolha rápida do próximo foco</h2>
           </div>
 
@@ -694,7 +694,7 @@ export default function TrackerPage() {
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Em andamento</p>
+                  <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Em andamento</p>
                   <h2 className="mt-1 text-lg font-semibold text-foreground">Projeto ativo agora</h2>
                 </div>
               </div>
@@ -706,7 +706,7 @@ export default function TrackerPage() {
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Ritmo do dia</p>
+                  <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Ritmo do dia</p>
                   <h2 className="mt-1 text-lg font-semibold text-foreground">Projetos com registro hoje</h2>
                 </div>
                 <span className="rounded-full bg-background/60 px-3 py-1 text-xs text-muted-foreground">
@@ -723,7 +723,7 @@ export default function TrackerPage() {
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Fila de apoio</p>
+                  <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Fila de apoio</p>
                   <h2 className="mt-1 text-lg font-semibold text-foreground">Projetos sem uso hoje</h2>
                 </div>
                 <span className="rounded-full bg-background/60 px-3 py-1 text-xs text-muted-foreground">

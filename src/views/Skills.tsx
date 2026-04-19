@@ -941,22 +941,22 @@ export default function SkillsPage() {
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card/90 p-4">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Skills</p>
+          <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Skills</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{libraryStats.totalSkills}</p>
           <p className="mt-1 text-xs text-muted-foreground">Itens prontos para consulta e download.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card/90 p-4">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Categorias</p>
+          <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Categorias</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{libraryStats.totalCategories}</p>
           <p className="mt-1 text-xs text-muted-foreground">Grupos ativos para organizar sua biblioteca.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card/90 p-4">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Fonte Manual</p>
+          <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Fonte Manual</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{libraryStats.manualCount}</p>
           <p className="mt-1 text-xs text-muted-foreground">Skills criadas direto no editor do WorkOS.</p>
         </div>
         <div className="rounded-2xl border border-border bg-card/90 p-4">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Ultima Atualizacao</p>
+          <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Ultima Atualizacao</p>
           <p className="mt-3 truncate text-lg font-semibold text-foreground">
             {libraryStats.lastUpdatedSkill?.title || "Sem registros"}
           </p>
@@ -986,7 +986,7 @@ export default function SkillsPage() {
             >
               <div className="flex items-center justify-between gap-2">
                 <span>Todas as categorias</span>
-                <Badge variant="outline" className="text-[10px]">{skills.length}</Badge>
+                <Badge variant="outline" className="text-caption">{skills.length}</Badge>
               </div>
             </button>
 
@@ -1020,7 +1020,7 @@ export default function SkillsPage() {
                           {category.description || "Sem descrição para esta categoria."}
                         </p>
                       </div>
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                      <Badge variant="outline" className="shrink-0 text-caption">
                         {count}
                       </Badge>
                     </div>
@@ -1093,7 +1093,7 @@ export default function SkillsPage() {
                     className={cn(
                       "w-full rounded-2xl border p-4 text-left transition-colors",
                       selectedSkill?.id === skill.id
-                        ? "border-primary bg-primary/10 shadow-[0_0_0_1px_rgba(56,189,248,0.12)]"
+                        ? "border-primary bg-primary/10 shadow-ring-sm"
                         : "border-border bg-background/30 hover:border-muted-foreground/30 hover:bg-background/60",
                     )}
                   >
@@ -1104,20 +1104,20 @@ export default function SkillsPage() {
                           {skill.summary || "Sem resumo"}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge variant="secondary" className="text-[10px]">{category?.name || "Sem categoria"}</Badge>
-                          <Badge variant="outline" className="text-[10px]">{projectName}</Badge>
-                          <Badge variant="outline" className="text-[10px]">{getSourceLabel(skill.source_type)}</Badge>
+                          <Badge variant="secondary" className="text-caption">{category?.name || "Sem categoria"}</Badge>
+                          <Badge variant="outline" className="text-caption">{projectName}</Badge>
+                          <Badge variant="outline" className="text-caption">{getSourceLabel(skill.source_type)}</Badge>
                         </div>
                       </div>
                       <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     </div>
 
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-eyebrow text-muted-foreground">
                         Atualizada em {formatDateTime(skill.updated_at)}
                       </span>
                       {selectedSkill?.id === skill.id && (
-                        <span className="text-[11px] font-medium text-primary">Selecionada</span>
+                        <span className="text-eyebrow font-medium text-primary">Selecionada</span>
                       )}
                     </div>
                   </button>
@@ -1138,7 +1138,7 @@ export default function SkillsPage() {
               <div className="rounded-2xl border border-border bg-background/40 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Skill em foco</p>
+                    <p className="text-eyebrow uppercase tracking-loose text-muted-foreground">Skill em foco</p>
                     <h2 className="mt-2 text-2xl font-semibold text-foreground">{selectedSkill.title}</h2>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                       {selectedSkill.summary || "Sem resumo"}

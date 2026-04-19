@@ -50,7 +50,7 @@ function getHealthLevelClass(level: DashboardProjectHealth["level"]) {
     case "attention":
       return "border-warning/30 bg-warning/10 text-warning";
     default:
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+      return "border-success/30 bg-success-muted text-success-foreground";
   }
 }
 
@@ -147,7 +147,7 @@ function AttentionItemCard({
             <Badge variant="outline">#{item.rank}</Badge>
             {item.projectName ? <Badge variant="secondary">{item.projectName}</Badge> : null}
           </div>
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">{item.eyebrow}</p>
+          <p className="mt-3 text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">{item.eyebrow}</p>
           <h3 className="mt-1 text-base font-semibold text-foreground">{item.title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
         </div>
@@ -198,13 +198,13 @@ export default function IndexPage() {
 
       <section
         data-testid="dashboard-now"
-        className="overflow-hidden rounded-3xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.98),rgba(15,25,44,0.94))] p-4 shadow-[0_24px_80px_-48px_rgba(34,211,238,0.55)] md:p-6"
+        className="overflow-hidden rounded-3xl border border-primary/20 bg-hero p-4 shadow-glow md:p-6"
       >
         <div className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Agora</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-loose text-brand-text/80">Agora</p>
             <h2 className="mt-2 text-xl font-semibold text-foreground md:text-2xl">{dashboard.primaryRecommendation.title}</h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">{dashboard.primaryRecommendation.reason}</p>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{dashboard.primaryRecommendation.reason}</p>
 
             <div className="mt-4 flex flex-wrap gap-2">
               <DashboardActionButton
@@ -227,7 +227,7 @@ export default function IndexPage() {
                 {dashboard.primaryRecommendation.context.map((item) => (
                   <span
                     key={item}
-                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300"
+                    className="rounded-full border border-foreground/10 bg-foreground/5 px-3 py-1 text-xs text-muted-foreground"
                   >
                     {item}
                   </span>
@@ -237,26 +237,26 @@ export default function IndexPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center gap-2 text-slate-300">
-                <Timer className="h-4 w-4 text-cyan-300" />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">Tempo do dia</p>
+            <div className="rounded-2xl border border-foreground/10 bg-foreground/5 p-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Timer className="h-4 w-4 text-primary" />
+                <p className="text-eyebrow font-semibold uppercase tracking-label">Tempo do dia</p>
               </div>
               <p className="mt-3 text-2xl font-semibold text-foreground">{formatDuration(dashboard.trackedTodaySeconds)}</p>
-              <p className="mt-1 text-sm text-slate-300">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {dashboard.totalTargetSeconds > 0
                   ? `${Math.round((dashboard.trackedTodaySeconds / dashboard.totalTargetSeconds) * 100)}% da meta diária agregada.`
                   : "Sem meta diária agregada definida nos projetos."}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center gap-2 text-slate-300">
-                <AlertTriangle className="h-4 w-4 text-amber-300" />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">Fila de atenção</p>
+            <div className="rounded-2xl border border-foreground/10 bg-foreground/5 p-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <AlertTriangle className="h-4 w-4 text-warning-foreground" />
+                <p className="text-eyebrow font-semibold uppercase tracking-label">Fila de atenção</p>
               </div>
               <p className="mt-3 text-2xl font-semibold text-foreground">{dashboard.attentionQueue.length}</p>
-              <p className="mt-1 text-sm text-slate-300">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {dashboard.attentionQueue.length > 0
                   ? `${dashboard.attentionQueue.filter((item) => item.tone === "danger").length} item(ns) crítico(s) agora.`
                   : "Nenhuma pendência crítica detectada neste momento."}
@@ -269,7 +269,7 @@ export default function IndexPage() {
       <section className="rounded-2xl border border-border bg-card p-4 md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Performance</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Performance</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Modulo Treino</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Abra a periodizacao de 24 semanas, registre cargas por exercicio e acompanhe a dica mental diaria.
@@ -291,7 +291,7 @@ export default function IndexPage() {
         >
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Fila de atenção</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Fila de atenção</p>
               <h2 className="mt-1 text-xl font-semibold text-foreground">Tudo o que pede decisão hoje</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Ordem fixa por risco operacional, com atalhos para agir sem trocar de página.
@@ -334,16 +334,16 @@ export default function IndexPage() {
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
               <div className="rounded-xl border border-border bg-background/30 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Em risco</p>
+                <p className="text-eyebrow uppercase tracking-wide text-muted-foreground">Em risco</p>
                 <p className="mt-2 text-2xl font-semibold text-danger">{healthSummary.at_risk}</p>
               </div>
               <div className="rounded-xl border border-border bg-background/30 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Atenção</p>
+                <p className="text-eyebrow uppercase tracking-wide text-muted-foreground">Atenção</p>
                 <p className="mt-2 text-2xl font-semibold text-warning">{healthSummary.attention}</p>
               </div>
               <div className="rounded-xl border border-border bg-background/30 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estáveis</p>
-                <p className="mt-2 text-2xl font-semibold text-emerald-300">{healthSummary.stable}</p>
+                <p className="text-eyebrow uppercase tracking-wide text-muted-foreground">Estáveis</p>
+                <p className="mt-2 text-2xl font-semibold text-success-foreground">{healthSummary.stable}</p>
               </div>
             </div>
           </section>
@@ -454,7 +454,7 @@ export default function IndexPage() {
       <section className="rounded-2xl border border-border bg-card p-4 md:p-6">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Financeiro</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Financeiro</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Resumo financeiro do cockpit</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Entradas, saídas e vencimentos visíveis sem sair do painel principal.
@@ -471,24 +471,24 @@ export default function IndexPage() {
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <div className="rounded-xl border border-border bg-background/30 p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <ArrowUpCircle className="h-4 w-4 text-emerald-300" />
-              <p className="text-[11px] uppercase tracking-wide">A receber</p>
+              <ArrowUpCircle className="h-4 w-4 text-success-foreground" />
+              <p className="text-eyebrow uppercase tracking-wide">A receber</p>
             </div>
             <p className="mt-2 text-2xl font-semibold text-foreground">{formatMoney(dashboard.financialMetrics.receivableOpen)}</p>
           </div>
 
           <div className="rounded-xl border border-border bg-background/30 p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <ArrowDownCircle className="h-4 w-4 text-amber-300" />
-              <p className="text-[11px] uppercase tracking-wide">A pagar</p>
+              <ArrowDownCircle className="h-4 w-4 text-warning-foreground" />
+              <p className="text-eyebrow uppercase tracking-wide">A pagar</p>
             </div>
             <p className="mt-2 text-2xl font-semibold text-foreground">{formatMoney(dashboard.financialMetrics.payableOpen)}</p>
           </div>
 
           <div className="rounded-xl border border-border bg-background/30 p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <AlertTriangle className="h-4 w-4 text-rose-300" />
-              <p className="text-[11px] uppercase tracking-wide">Vencidos</p>
+              <AlertTriangle className="h-4 w-4 text-danger-foreground" />
+              <p className="text-eyebrow uppercase tracking-wide">Vencidos</p>
             </div>
             <p className="mt-2 text-2xl font-semibold text-foreground">{dashboard.financialMetrics.overdueCount}</p>
           </div>
@@ -496,7 +496,7 @@ export default function IndexPage() {
           <div className="rounded-xl border border-border bg-background/30 p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Landmark className="h-4 w-4 text-primary" />
-              <p className="text-[11px] uppercase tracking-wide">Próximos</p>
+              <p className="text-eyebrow uppercase tracking-wide">Próximos</p>
             </div>
             <p className="mt-2 text-2xl font-semibold text-foreground">{dashboard.financialMetrics.upcomingCount}</p>
           </div>
@@ -506,7 +506,7 @@ export default function IndexPage() {
       <section className="rounded-2xl border border-border bg-card p-4 md:p-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Timeline</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Timeline</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Linha do tempo de hoje</h2>
             <p className="text-sm text-muted-foreground">Sessões registradas no timezone {dashboard.timezone}.</p>
           </div>
@@ -523,7 +523,7 @@ export default function IndexPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="relative ml-52 hidden h-4 text-[10px] text-muted-foreground md:block">
+            <div className="relative ml-52 hidden h-4 text-caption text-muted-foreground md:block">
               {dashboard.timelineHourLabels.map((hour) => (
                 <span
                   key={hour}
@@ -539,7 +539,7 @@ export default function IndexPage() {
               <div key={block.id} className="grid gap-2 md:grid-cols-[200px_1fr] md:items-center md:gap-4">
                 <div className="min-w-0">
                   <p className="truncate text-xs font-semibold text-foreground">{block.label}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
+                  <p className="truncate text-eyebrow text-muted-foreground">
                     {block.company || "Sem empresa"} · {formatDuration(block.durationSeconds)} · {formatMoney(block.estimatedValue)}
                   </p>
                 </div>
@@ -576,7 +576,7 @@ export default function IndexPage() {
       <section data-testid="dashboard-project-health" className="rounded-2xl border border-border bg-card p-4 md:p-6">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Saúde por projeto</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Saúde por projeto</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Mapa operacional dos clientes e frentes</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Visão ordenada por risco, com metas do dia, vencimentos e compromissos próximos.
@@ -624,7 +624,7 @@ export default function IndexPage() {
                   </div>
 
                   <div className="mt-4 rounded-xl border border-border/70 bg-background/40 p-3">
-                    <div className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <div className="flex items-center justify-between gap-3 text-eyebrow uppercase tracking-wide text-muted-foreground">
                       <span>Meta do dia</span>
                       <span>{formatTargetLabel(project.trackedSecondsToday, project.targetSecondsToday)}</span>
                     </div>
@@ -632,7 +632,7 @@ export default function IndexPage() {
                       <div
                         className={cn(
                           "h-full rounded-full transition-all",
-                          project.level === "at_risk" ? "bg-danger" : project.level === "attention" ? "bg-warning" : "bg-emerald-400",
+                          project.level === "at_risk" ? "bg-danger" : project.level === "attention" ? "bg-warning" : "bg-success",
                         )}
                         style={{ width: `${progress}%` }}
                       />
@@ -664,7 +664,7 @@ export default function IndexPage() {
                     project.dueTodayTaskCount === 0 &&
                     project.actionableFinanceCount === 0 &&
                     project.meetingCount48h === 0 ? (
-                      <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-emerald-300">
+                      <span className="rounded-full bg-success-muted px-2.5 py-1 text-success-foreground">
                         Sem alertas imediatos
                       </span>
                     ) : null}

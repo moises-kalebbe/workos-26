@@ -44,12 +44,12 @@ type ProjectReport = {
 type PeriodPreset = "7d" | "30d" | "month";
 
 const CHART_COLORS = [
-  "hsl(193 90% 52%)",
-  "hsl(199 89% 48%)",
-  "hsl(172 88% 45%)",
-  "hsl(142 72% 45%)",
-  "hsl(190 95% 43%)",
-  "hsl(215 85% 62%)",
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--chart-1) / 0.7)",
 ];
 
 function toInputDate(date: Date) {
@@ -94,8 +94,8 @@ function ReportStatCard({
   return (
     <div className="rounded-2xl border border-border bg-card/95 p-5">
       <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className={cn("h-4 w-4", accent === "success" ? "text-emerald-300" : "text-primary")} />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">{label}</p>
+        <Icon className={cn("h-4 w-4", accent === "success" ? "text-success-foreground" : "text-primary")} />
+        <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">{label}</p>
       </div>
       <p className="mt-4 font-mono text-3xl font-semibold tabular-nums text-foreground">{value}</p>
       <p className="mt-2 text-sm text-muted-foreground">{helper}</p>
@@ -221,10 +221,10 @@ export default function ReportsPage() {
       </div>
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-[1.35fr_0.9fr_0.9fr_0.9fr]">
-        <div className="col-span-2 rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-4 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)] md:p-5 xl:col-span-1">
-          <div className="flex items-center gap-2 text-cyan-200/80">
-            <Activity className="h-4 w-4 text-cyan-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Leitura do período</p>
+        <div className="col-span-2 rounded-2xl border border-primary/20 bg-hero p-4 shadow-glow md:p-5 xl:col-span-1">
+          <div className="flex items-center gap-2 text-brand-text/80">
+            <Activity className="h-4 w-4 text-primary" />
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow">Leitura do período</p>
           </div>
 
           <div className="mt-3">
@@ -241,7 +241,7 @@ export default function ReportsPage() {
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="font-mono text-3xl font-semibold tabular-nums text-foreground">{totalHours.toFixed(1)}h</p>
-              <p className="mt-1 text-sm text-emerald-300">{formatMoney(totalValue)}</p>
+              <p className="mt-1 text-sm text-success-foreground">{formatMoney(totalValue)}</p>
             </div>
 
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -286,7 +286,7 @@ export default function ReportsPage() {
       <section className="rounded-2xl border border-border bg-card/95 p-4 md:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Filtro do relatório</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Filtro do relatório</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Refine o período e recalcule rápido</h2>
           </div>
 
@@ -344,7 +344,7 @@ export default function ReportsPage() {
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Distribuicao de foco</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Distribuicao de foco</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Horas por projeto</h2>
               <p className="mt-1 text-sm text-muted-foreground">Leitura rápida das frentes que mais consumiram tempo no período.</p>
             </div>
@@ -363,26 +363,26 @@ export default function ReportsPage() {
             ) : (
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={visibleProjects} margin={{ top: 12, right: 8, left: -12, bottom: 0 }} barCategoryGap={18}>
-                  <CartesianGrid stroke="rgba(148,163,184,0.08)" vertical={false} />
+                  <CartesianGrid stroke="hsl(var(--border) / 0.5)" vertical={false} />
                   <XAxis
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "rgba(148,163,184,0.88)", fontSize: 12 }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "rgba(148,163,184,0.72)", fontSize: 11 }}
+                    tick={{ fill: "hsl(var(--muted-foreground) / 0.8)", fontSize: 11 }}
                     width={42}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    cursor={{ fill: "hsl(var(--foreground) / 0.03)" }}
                     contentStyle={{
-                      background: "rgba(9, 15, 27, 0.94)",
-                      border: "1px solid rgba(34,211,238,0.15)",
-                      borderRadius: "14px",
-                      color: "#f8fafc",
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--primary) / 0.2)",
+                      borderRadius: "var(--radius)",
+                      color: "hsl(var(--card-foreground))",
                     }}
                     formatter={(value: number, _name, item) => [
                       `${Number(value).toFixed(1)}h | ${formatMoney(item.payload.value)}`,
@@ -403,7 +403,7 @@ export default function ReportsPage() {
 
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Resumo de projetos</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Resumo de projetos</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Ranking do período</h2>
             <p className="mt-1 text-sm text-muted-foreground">Área de leitura rápida para decidir onde manter energia.</p>
           </div>
@@ -421,7 +421,7 @@ export default function ReportsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-eyebrow font-semibold text-primary">
                           0{index + 1}
                         </span>
                         <p className="truncate font-medium text-foreground">{project.name}</p>
@@ -435,7 +435,7 @@ export default function ReportsPage() {
 
                   <div className="mt-4 flex items-center justify-between gap-3 text-sm">
                     <span className="font-mono tabular-nums text-foreground">{project.hours.toFixed(1)}h</span>
-                    <span className="font-mono tabular-nums text-emerald-300">{formatMoney(project.value)}</span>
+                    <span className="font-mono tabular-nums text-success-foreground">{formatMoney(project.value)}</span>
                   </div>
                 </div>
               ))
@@ -447,7 +447,7 @@ export default function ReportsPage() {
       <section className="rounded-2xl border border-border bg-card/95">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/70 px-5 py-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Histórico recente</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Histórico recente</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Sessões que explicam os números</h2>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-background/60 px-3 py-1 text-xs text-muted-foreground">
@@ -479,7 +479,7 @@ export default function ReportsPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate font-medium text-foreground">{project?.name || "Projeto não identificado"}</p>
-                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] text-primary">
+                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-eyebrow text-primary">
                         {project?.client || "Sem cliente"}
                       </span>
                     </div>
@@ -487,13 +487,13 @@ export default function ReportsPage() {
                   </div>
 
                   <div className="flex items-center justify-between gap-3 md:justify-end">
-                    <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground md:hidden">Duracao</span>
+                    <span className="text-xs uppercase tracking-eyebrow text-muted-foreground md:hidden">Duracao</span>
                     <span className="font-mono text-sm tabular-nums text-foreground">{formatDuration(durationSeconds)}</span>
                   </div>
 
                   <div className="flex items-center justify-between gap-3 md:justify-end">
-                    <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground md:hidden">Valor</span>
-                    <span className="font-mono text-sm tabular-nums text-emerald-300">{formatMoney(value)}</span>
+                    <span className="text-xs uppercase tracking-eyebrow text-muted-foreground md:hidden">Valor</span>
+                    <span className="font-mono text-sm tabular-nums text-success-foreground">{formatMoney(value)}</span>
                   </div>
                 </div>
               );

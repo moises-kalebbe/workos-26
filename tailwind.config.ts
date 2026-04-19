@@ -17,6 +17,14 @@ export default {
         sans: ["var(--font-sans)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
         mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
+      letterSpacing: {
+        eyebrow: "0.18em",
+        label: "0.16em",
+        loose: "0.2em",
+      },
+      spacing: {
+        "4.5": "1.125rem",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -75,19 +83,30 @@ export default {
         },
         success: {
           DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
           muted: "hsl(var(--success) / 0.12)",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
           muted: "hsl(var(--warning) / 0.12)",
         },
         danger: {
           DEFAULT: "hsl(var(--danger))",
+          foreground: "hsl(var(--danger-foreground))",
           muted: "hsl(var(--danger) / 0.12)",
         },
         info: {
           DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
           muted: "hsl(var(--info) / 0.12)",
+        },
+        chart: {
+          "1": "hsl(var(--chart-1))",
+          "2": "hsl(var(--chart-2))",
+          "3": "hsl(var(--chart-3))",
+          "4": "hsl(var(--chart-4))",
+          "5": "hsl(var(--chart-5))",
         },
       },
       borderRadius: {
@@ -128,4 +147,3 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
-

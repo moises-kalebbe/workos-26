@@ -79,14 +79,14 @@ function formatMeetingSnapshot(startAt: string) {
 
 function getStatusBadgeClass(status: MeetingMinutesStatus) {
   if (status === "resolved") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+    return "border-success/30 bg-success-muted text-success-foreground";
   }
 
   if (status === "in_progress") {
-    return "border-cyan-500/30 bg-cyan-500/10 text-cyan-200";
+    return "border-info/30 bg-info-muted text-info-foreground";
   }
 
-  return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+  return "border-warning/30 bg-warning-muted text-warning-foreground";
 }
 
 export default function MeetingMinutesPage() {
@@ -464,18 +464,18 @@ export default function MeetingMinutesPage() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pendentes</p>
+        <div className="rounded-xl border border-warning/20 bg-warning-muted p-4">
+          <p className="text-xs uppercase tracking-loose text-muted-foreground">Pendentes</p>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.pending}</p>
           <p className="text-xs text-muted-foreground">Itens ainda sem execução iniciada.</p>
         </div>
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Em andamento</p>
+        <div className="rounded-xl border border-info/20 bg-info-muted p-4">
+          <p className="text-xs uppercase tracking-loose text-muted-foreground">Em andamento</p>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.in_progress}</p>
           <p className="text-xs text-muted-foreground">Pendências em acompanhamento ativo.</p>
         </div>
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Resolvidos</p>
+        <div className="rounded-xl border border-success/20 bg-success-muted p-4">
+          <p className="text-xs uppercase tracking-loose text-muted-foreground">Resolvidos</p>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.resolved}</p>
           <p className="text-xs text-muted-foreground">Itens concluidos e marcados em check.</p>
         </div>
@@ -490,7 +490,7 @@ export default function MeetingMinutesPage() {
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Novo item</p>
+            <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Novo item</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Checklist da reunião</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Vincule cada item a uma reunião para manter contexto e histórico visível.
@@ -557,7 +557,7 @@ export default function MeetingMinutesPage() {
         <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Visão consolidada</p>
+              <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Visão consolidada</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Itens das atas</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Filtre por reunião, texto ou status e marque rapidamente o que já foi concluido.
@@ -656,7 +656,7 @@ export default function MeetingMinutesPage() {
                   key={item.id}
                   className={cn(
                     "rounded-xl border border-border bg-background/25 p-4 transition-colors",
-                    item.status === "resolved" && "border-emerald-500/20 bg-emerald-500/5",
+                    item.status === "resolved" && "border-success/20 bg-success-muted",
                   )}
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -684,7 +684,7 @@ export default function MeetingMinutesPage() {
                               {MEETING_MINUTES_STATUS_LABEL[item.status]}
                             </Badge>
                             {item.status === "resolved" && (
-                              <Badge variant="outline" className="border-emerald-500/30 text-emerald-200">
+                              <Badge variant="outline" className="border-success/30 text-success-foreground">
                                 <CheckCircle2 className="mr-1 h-3 w-3" />
                                 Check
                               </Badge>
@@ -703,7 +703,7 @@ export default function MeetingMinutesPage() {
 
                           {checklistEntries.length > 0 && (
                             <div className="mt-3 space-y-2 rounded-lg border border-border/60 bg-background/40 p-3">
-                              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                              <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
                                 Checklist da reunião
                               </p>
                               <div className="space-y-1.5">
