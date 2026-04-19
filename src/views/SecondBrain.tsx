@@ -519,7 +519,7 @@ export default function SecondBrainPage() {
         </Button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card/90 p-4">
           <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Inbox</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{secondBrainStats.inboxCount}</p>
@@ -573,7 +573,7 @@ export default function SecondBrainPage() {
             />
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <div className="space-y-2">
               <Label>URL de origem</Label>
               <Input
@@ -634,7 +634,7 @@ export default function SecondBrainPage() {
             />
           </div>
 
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-1">
+          <div className="grid grid-cols-2 gap-2 xl:grid-cols-1">
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as SecondBrainStatusFilter)}>
               <SelectTrigger>
                 <SelectValue placeholder="Filtro de status" />
@@ -655,7 +655,7 @@ export default function SecondBrainPage() {
             />
           </div>
 
-          <div className="max-h-[540px] space-y-2 overflow-auto pr-1">
+          <div className="max-h-[540px] grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-auto pr-1">
             {filteredNotes.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                 Nenhuma nota encontrada.

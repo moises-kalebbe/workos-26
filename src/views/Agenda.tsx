@@ -220,7 +220,7 @@ function AgendaGroup({
         <Badge variant="secondary">{count}</Badge>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {events.map((event) => (
           <EventCard
             key={event.id}

@@ -466,7 +466,7 @@ export default function CinematecaPage() {
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card/95 p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Film className="h-4 w-4 text-primary" />

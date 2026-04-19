@@ -576,7 +576,7 @@ export default function MeetingMinutesPage() {
             </Button>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_260px]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_260px]">
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -643,7 +643,7 @@ export default function MeetingMinutesPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {filteredItems.map((item) => (
                 (() => {
                   const checklistEntries = item.checklist_json.length
