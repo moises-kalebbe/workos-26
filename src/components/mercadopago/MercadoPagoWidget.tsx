@@ -70,12 +70,12 @@ function PaymentRow({ p }: { p: MpPayment }) {
 
 function CofrinhoCard({ box }: { box: MpCofrinho }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-2">
+    <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-1.5">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium truncate">{box.name}</span>
-        <PiggyBank size={16} className="text-muted-foreground shrink-0" />
+        <PiggyBank size={14} className="text-muted-foreground shrink-0" />
       </div>
-      <p className="text-xl font-bold tabular-nums">{formatMoney(box.amount)}</p>
+      <p className="text-lg font-bold tabular-nums">{formatMoney(box.amount)}</p>
     </div>
   );
 }
@@ -162,6 +162,9 @@ export function MercadoPagoWidget() {
 
   const { cofrinhos, recentPayments } = state.data;
   const totalCofrinhos = cofrinhos.reduce((s, c) => s + c.amount, 0);
+  const nonCofrinhoPayments = recentPayments.filter(
+    (p) => !p.amounts?.collector?.transaction_destination?.subpartition?.name,
+  );
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -180,7 +183,7 @@ export function MercadoPagoWidget() {
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
             {cofrinhos.map((box) => (
               <CofrinhoCard key={box.name} box={box} />
             ))}
@@ -193,7 +196,7 @@ export function MercadoPagoWidget() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold">
-              Pagamentos recentes ({recentPayments.length})
+              Pagamentos recentes ({nonCofrinhoPayments.length})
             </CardTitle>
             <Button variant="ghost" size="sm" onClick={load} className="gap-1.5 text-xs h-8">
               <RefreshCw size={13} /> Atualizar
@@ -201,13 +204,13 @@ export function MercadoPagoWidget() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          {recentPayments.length === 0 ? (
+          {nonCofrinhoPayments.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">
               Nenhum pagamento encontrado.
             </p>
           ) : (
             <div className="max-h-[480px] overflow-y-auto pr-1">
-              {recentPayments.map((p) => (
+              {nonCofrinhoPayments.map((p) => (
                 <PaymentRow key={p.id} p={p} />
               ))}
             </div>
