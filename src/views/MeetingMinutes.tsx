@@ -463,7 +463,7 @@ export default function MeetingMinutesPage() {
         )}
       />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pendentes</p>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.pending}</p>

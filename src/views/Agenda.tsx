@@ -1038,7 +1038,7 @@ export default function AgendaPage() {
       )}
 
       <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-border bg-background/60 p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pendentes</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{agendaSummary.pending}</p>

@@ -483,7 +483,7 @@ export default function TreinoPage() {
       </section>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-2xl bg-card/95 p-2 md:grid-cols-5">
+        <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-2xl bg-card/95 p-2 md:grid-cols-5">
           <TabsTrigger value="hoje">Hoje</TabsTrigger>
           <TabsTrigger value="semana">Semana</TabsTrigger>
           <TabsTrigger value="sessao">Sessao</TabsTrigger>
@@ -515,18 +515,18 @@ export default function TreinoPage() {
               <CardContent className="space-y-5">
                 {todaySession ? (
                   <>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-xl border border-border bg-background/40 p-4">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Duracao alvo</p>
-                        <p className="mt-2 text-lg font-semibold text-foreground">{todaySession.target_duration_minutes} min</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Duração alvo</p>
+                        <p className="mt-1.5 text-base font-semibold text-foreground">{todaySession.target_duration_minutes} min</p>
                       </div>
-                      <div className="rounded-xl border border-border bg-background/40 p-4">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">RPE alvo</p>
-                        <p className="mt-2 text-lg font-semibold text-foreground">{todaySession.target_rpe || "-"}</p>
+                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">RPE alvo</p>
+                        <p className="mt-1.5 text-base font-semibold text-foreground">{todaySession.target_rpe || "-"}</p>
                       </div>
-                      <div className="rounded-xl border border-border bg-background/40 p-4">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Status</p>
-                        <p className="mt-2 text-lg font-semibold text-foreground">{todaySession.log ? "Registrada" : "Pendente"}</p>
+                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Status</p>
+                        <p className="mt-1.5 text-base font-semibold text-foreground">{todaySession.log ? "Registrada" : "Pendente"}</p>
                       </div>
                     </div>
 
