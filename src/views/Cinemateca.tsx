@@ -48,7 +48,7 @@ function paletteFor(key: string | number) {
   return POSTER_PALETTES[hash % POSTER_PALETTES.length];
 }
 
-const POSTER_CACHE_KEY = "cinemateca-posters-v1";
+const POSTER_CACHE_KEY = "cinemateca-posters-v2";
 type PosterCacheEntry = { url: string | null; at: number };
 type PosterCache = Record<string, PosterCacheEntry>;
 const POSTER_NEGATIVE_TTL_MS = 1000 * 60 * 60 * 24; // retry failed lookups after 24h
