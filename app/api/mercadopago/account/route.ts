@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import {
+  extractCofrinhos,
   getBalance,
-  getMoneyBoxes,
   getMovements,
+  getMoneyBoxes,
   getRecentPayments,
   isConfigured,
 } from "@/integrations/mercadopago/client";
@@ -26,24 +27,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [balance, movementsData, recentPayments, moneyBoxes] = await Promise.allSettled([
+    const [balanceResult, paymentsResult, movementsResult, moneyBoxesResult] = await Promise.allSettled([
       getBalance(),
+      getRecentPayments(50),
       getMovements(50),
-      getRecentPayments(20),
       getMoneyBoxes(),
     ]);
 
+    const payments = paymentsResult.status === "fulfilled" ? paymentsResult.value : [];
+    const cofrinhos = extractCofrinhos(payments);
+
     return NextResponse.json({
-      balance: balance.status === "fulfilled" ? balance.value : null,
-      movements: movementsData.status === "fulfilled" ? movementsData.value.results : [],
-      movementsTotal: movementsData.status === "fulfilled" ? movementsData.value.total : 0,
-      recentPayments: recentPayments.status === "fulfilled" ? recentPayments.value : [],
-      moneyBoxes: moneyBoxes.status === "fulfilled" ? moneyBoxes.value : [],
-      errors: {
-        balance: balance.status === "rejected" ? balance.reason?.message : null,
-        movements: movementsData.status === "rejected" ? movementsData.reason?.message : null,
-        payments: recentPayments.status === "rejected" ? recentPayments.reason?.message : null,
-      },
+      balance: balanceResult.status === "fulfilled" ? balanceResult.value : null,
+      recentPayments: payments,
+      cofrinhos,
+      movements: movementsResult.status === "fulfilled" ? movementsResult.value.results : [],
+      movementsTotal: movementsResult.status === "fulfilled" ? movementsResult.value.total : 0,
+      moneyBoxes: moneyBoxesResult.status === "fulfilled" ? moneyBoxesResult.value : [],
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";

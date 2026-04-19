@@ -4,6 +4,12 @@ export type MpBalance = {
   total_amount: number;
 };
 
+export type MpCofrinho = {
+  name: string;
+  amount: number;
+  currency_id: string;
+};
+
 export type MpMovement = {
   id: number;
   date: string;
@@ -39,6 +45,16 @@ export type MpPayment = {
     first_name: string | null;
     last_name: string | null;
   } | null;
+  amounts?: {
+    collector?: {
+      transaction_destination?: {
+        subpartition?: {
+          name: string;
+          amount: number;
+        };
+      };
+    };
+  };
 };
 
 export type MpPaymentsResponse = {
@@ -61,9 +77,10 @@ export type MpMoneyBoxesResponse = {
 };
 
 export type MpAccountData = {
-  balance: MpBalance;
-  movements: MpMovement[];
+  balance: MpBalance | null;
   recentPayments: MpPayment[];
-  moneyBoxes: MpMoneyBox[];
+  cofrinhos: MpCofrinho[];
   movementsTotal: number;
+  movements: MpMovement[];
+  moneyBoxes: MpMoneyBox[];
 };
