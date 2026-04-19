@@ -16,7 +16,7 @@ services:
         condition: any
 
   workos:
-    image: ${WORKOS_IMAGE:-ghcr.io/moises-kalebbe/workos-26:latest}
+    image: ghcr.io/moises-kalebbe/workos-26:latest
     environment:
       NODE_ENV: production
       PORT: 3000
