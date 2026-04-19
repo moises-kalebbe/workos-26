@@ -138,7 +138,7 @@ function AttentionItemCard({
   return (
     <article
       data-testid={`dashboard-attention-${item.type}`}
-      className="rounded-2xl border border-border bg-background/25 p-4 transition-colors hover:border-primary/30"
+      className="rounded-2xl border border-border bg-background/25 p-3 transition-colors hover:border-primary/30"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
@@ -190,7 +190,7 @@ export default function IndexPage() {
   const actionPending = (action: DashboardActionDescriptor) => dashboard.actingKey === dashboard.getActionKey(action);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <PageHeader
         title="Painel principal"
         description="Cockpit diário para decidir o próximo passo e executar microações sem trocar de tela."
@@ -198,12 +198,12 @@ export default function IndexPage() {
 
       <section
         data-testid="dashboard-now"
-        className="overflow-hidden rounded-3xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.98),rgba(15,25,44,0.94))] p-5 shadow-[0_24px_80px_-48px_rgba(34,211,238,0.55)] md:p-6"
+        className="overflow-hidden rounded-3xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.98),rgba(15,25,44,0.94))] p-4 shadow-[0_24px_80px_-48px_rgba(34,211,238,0.55)] md:p-6"
       >
         <div className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Agora</p>
-            <h2 className="mt-2 text-2xl font-semibold text-foreground">{dashboard.primaryRecommendation.title}</h2>
+            <h2 className="mt-2 text-xl font-semibold text-foreground md:text-2xl">{dashboard.primaryRecommendation.title}</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-300">{dashboard.primaryRecommendation.reason}</p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -266,8 +266,8 @@ export default function IndexPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <section className="rounded-2xl border border-border bg-card p-4 md:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Performance</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Modulo Treino</h2>
@@ -284,12 +284,12 @@ export default function IndexPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid gap-4 md:gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div
           data-testid="dashboard-attention-queue"
-          className="rounded-2xl border border-border bg-card p-5 md:p-6"
+          className="rounded-2xl border border-border bg-card p-4 md:p-6"
         >
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Fila de atenção</p>
               <h2 className="mt-1 text-xl font-semibold text-foreground">Tudo o que pede decisão hoje</h2>
@@ -332,7 +332,7 @@ export default function IndexPage() {
               Meta do dia, tarefas críticas, financeiro acionável e próximas reuniões em 48h.
             </p>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="mt-4 grid grid-cols-3 gap-3 xl:grid-cols-1">
               <div className="rounded-xl border border-border bg-background/30 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Em risco</p>
                 <p className="mt-2 text-2xl font-semibold text-danger">{healthSummary.at_risk}</p>
@@ -451,8 +451,8 @@ export default function IndexPage() {
         )}
       />
 
-      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <section className="rounded-2xl border border-border bg-card p-4 md:p-6">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Financeiro</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Resumo financeiro do cockpit</h2>
@@ -468,7 +468,7 @@ export default function IndexPage() {
           </Button>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <div className="rounded-xl border border-border bg-background/30 p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <ArrowUpCircle className="h-4 w-4 text-emerald-300" />
@@ -503,8 +503,8 @@ export default function IndexPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <section className="rounded-2xl border border-border bg-card p-4 md:p-6">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Timeline</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Linha do tempo de hoje</h2>
@@ -573,8 +573,8 @@ export default function IndexPage() {
         )}
       </section>
 
-      <section data-testid="dashboard-project-health" className="rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <section data-testid="dashboard-project-health" className="rounded-2xl border border-border bg-card p-4 md:p-6">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Saúde por projeto</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Mapa operacional dos clientes e frentes</h2>
@@ -594,7 +594,7 @@ export default function IndexPage() {
             Nenhum projeto cadastrado ainda. Crie em Configurações para ativar o radar operacional.
           </div>
         ) : (
-          <div className="grid gap-3 xl:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             {dashboard.projectHealth.map((project) => {
               const progress = project.targetSecondsToday > 0
                 ? Math.min(100, Math.round((project.trackedSecondsToday / project.targetSecondsToday) * 100))

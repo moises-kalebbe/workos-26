@@ -719,7 +719,7 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {loadError ? (
         <div className="rounded-2xl border border-danger/30 bg-danger-muted/40 p-4">
           <p className="text-sm font-semibold text-danger">Não foi possível carregar o quadro.</p>
@@ -834,7 +834,7 @@ export default function KanbanPage() {
                   ))}
                 </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Urgencia</Label>
                   <Select value={newUrgency} onValueChange={(value) => setNewUrgency(value as Task["urgency"])}>
@@ -1047,8 +1047,8 @@ export default function KanbanPage() {
         </DialogContent>
       </Dialog>
 
-      <section className="grid gap-3 xl:grid-cols-[1.25fr_0.9fr_0.9fr_0.9fr]">
-        <div className="rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-5 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)]">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-[1.25fr_0.9fr_0.9fr_0.9fr]">
+        <div className="col-span-2 rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-4 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)] md:p-5 xl:col-span-1">
           <div className="flex items-center gap-2 text-cyan-200/80">
             <Activity className="h-4 w-4 text-cyan-300" />
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Foco recomendado</p>

@@ -744,7 +744,7 @@ export default function SkillsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <DeleteConfirmDialog
         open={!!categoryPendingDelete}
         onOpenChange={(open) => {
@@ -939,7 +939,7 @@ export default function SkillsPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card/90 p-4">
           <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Skills</p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{libraryStats.totalSkills}</p>

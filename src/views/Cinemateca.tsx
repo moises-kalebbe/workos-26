@@ -415,7 +415,7 @@ export default function CinematecaPage() {
   const detailSeed = detailItem?.kind === "seed" ? detailItem.seed : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <PageHeader
         title="Cinemateca"
         description="Sua prateleira pessoal: acompanhe o que ja viu, organize o que quer ver e de nota aos favoritos."

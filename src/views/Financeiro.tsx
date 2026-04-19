@@ -981,7 +981,7 @@ export default function FinanceiroPage() {
   }
 
   return (
-    <div className="min-w-0 max-w-full overflow-x-hidden space-y-6">
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-4 md:space-y-6">
       <PageHeader
         className="min-w-0 overflow-hidden"
         title="Financeiro"
@@ -1001,7 +1001,7 @@ export default function FinanceiroPage() {
           Contrato = regra recorrente. LanÃ§amento = parcela gerada pelo contrato ou registro avulso para extras, ajustes e quitaÃ§Ãµes.
         </p>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Button className="w-full justify-center sm:justify-start" variant="outline" onClick={handleResyncForecast} disabled={syncingForecast}>
             <Sparkles className="mr-2 h-4 w-4" />
             {syncingForecast ? "Sincronizando previsão..." : "Reprocessar previsão"}
@@ -1133,7 +1133,7 @@ export default function FinanceiroPage() {
         </CardContent>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 overflow-x-hidden space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 overflow-x-hidden space-y-4 md:space-y-6">
         <TabsList className="grid h-auto w-full max-w-full grid-cols-3 overflow-hidden rounded-2xl border border-border bg-card/95 p-1">
           <TabsTrigger className="w-full min-w-0 whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm" value="executivo">
             <span className="sm:hidden">Painel</span>
@@ -1149,22 +1149,22 @@ export default function FinanceiroPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="executivo" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <TabsContent value="executivo" className="space-y-4 md:space-y-6">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <StatsCard icon={ArrowUpCircle} label="A Receber Agora" value={formatMoney(executiveSnapshot.operation.receivableNow)} helper="Receitas vencidas ou já dentro da janela de alerta." tone="success" />
             <StatsCard icon={ArrowDownCircle} label="A Pagar Agora" value={formatMoney(executiveSnapshot.operation.payableNow)} helper="Despesas vencidas ou dentro da janela operacional." tone="warning" />
             <StatsCard icon={AlertTriangle} label="Vencidos" value={String(executiveSnapshot.operation.overdueCount).padStart(2, "0")} helper="Lançamentos fora do prazo e exigindo ação imediata." tone="danger" />
             <StatsCard icon={CalendarClock} label="Próximos" value={String(executiveSnapshot.operation.upcomingCount).padStart(2, "0")} helper="Lançamentos prestes a vencer dentro da janela de alerta." tone="warning" />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <StatsCard icon={Wallet} label={periodCardCopy.incomeLabel} value={formatMoney(executiveSnapshot.selectedPeriod.income)} helper={periodCardCopy.incomeHelper} tone="success" />
             <StatsCard icon={CreditCard} label={periodCardCopy.expenseLabel} value={formatMoney(executiveSnapshot.selectedPeriod.expense)} helper={periodCardCopy.expenseHelper} tone="warning" />
             <StatsCard icon={BarChart3} label={periodCardCopy.profitLabel} value={formatMoney(executiveSnapshot.selectedPeriod.profit)} helper={periodCardCopy.profitHelper} tone={executiveSnapshot.selectedPeriod.profit >= 0 ? "success" : "danger"} />
             <StatsCard icon={CalendarClock} label={periodCardCopy.plannedLabel} value={formatMoney(executiveSnapshot.selectedPeriod.planned)} helper={periodCardCopy.plannedHelper} tone={executiveSnapshot.selectedPeriod.planned >= 0 ? "success" : "warning"} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
               <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
                 <CardTitle className="text-base">Faturamento 6 meses</CardTitle>
@@ -1305,7 +1305,7 @@ export default function FinanceiroPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="lancamentos" className="space-y-6">
+        <TabsContent value="lancamentos" className="space-y-4 md:space-y-6">
           <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Lançamentos</CardTitle>
@@ -1368,7 +1368,7 @@ export default function FinanceiroPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="contratos" className="space-y-6">
+        <TabsContent value="contratos" className="space-y-4 md:space-y-6">
           <Card className="max-w-full overflow-hidden rounded-2xl border-border bg-card/95">
             <CardHeader>
               <CardTitle>Contratos recorrentes</CardTitle>

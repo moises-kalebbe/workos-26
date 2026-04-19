@@ -62,13 +62,13 @@ function SmallStat({
 }) {
   return (
     <Card className="rounded-2xl border-border bg-card/95">
-      <CardContent className="p-4">
+      <CardContent className="p-3 md:p-4">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Icon className="h-4 w-4 text-primary" />
           <p className="text-xs uppercase tracking-[0.16em]">{label}</p>
         </div>
-        <p className="mt-3 truncate text-2xl font-semibold text-foreground">{value}</p>
-        <p className="mt-1 break-words text-sm text-muted-foreground">{helper}</p>
+        <p className="mt-2 truncate text-xl font-semibold text-foreground md:text-2xl">{value}</p>
+        <p className="mt-1 break-words text-xs text-muted-foreground md:text-sm">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -370,7 +370,7 @@ export default function TreinoPage() {
 
   if (!profile || !activeProgram) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <PageHeader
           title="Treino"
           description="Crie seu programa profissional de 24 semanas para beach tennis com carga, evolucao e rotina mental."
@@ -437,7 +437,7 @@ export default function TreinoPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <PageHeader
         title="Treino"
         description="Planejamento, execucao e analise do ciclo de 24 semanas para beach tennis."
@@ -455,7 +455,7 @@ export default function TreinoPage() {
         )}
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <SmallStat
           icon={Target}
           label="Bloco atual"
@@ -515,7 +515,7 @@ export default function TreinoPage() {
               <CardContent className="space-y-5">
                 {todaySession ? (
                   <>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="rounded-xl border border-border bg-background/40 p-4">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Duracao alvo</p>
                         <p className="mt-2 text-lg font-semibold text-foreground">{todaySession.target_duration_minutes} min</p>

@@ -206,7 +206,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <PageHeader
           className="flex-1"
@@ -220,8 +220,8 @@ export default function ReportsPage() {
         </Button>
       </div>
 
-      <section className="grid gap-3 xl:grid-cols-[1.35fr_0.9fr_0.9fr_0.9fr]">
-        <div className="rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-5 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)]">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-[1.35fr_0.9fr_0.9fr_0.9fr]">
+        <div className="col-span-2 rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,rgba(8,18,38,0.96),rgba(15,25,44,0.92))] p-4 shadow-[0_20px_60px_-40px_rgba(34,211,238,0.5)] md:p-5 xl:col-span-1">
           <div className="flex items-center gap-2 text-cyan-200/80">
             <Activity className="h-4 w-4 text-cyan-300" />
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Leitura do período</p>

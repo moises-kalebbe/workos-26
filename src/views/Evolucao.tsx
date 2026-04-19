@@ -42,7 +42,7 @@ export default function EvolucaoPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <PageHeader
         title="Evolução"
         description="Um registro por dia para transformar ideia boa em ação consciente e acompanhar sua evolução mental e pessoal."
