@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookmarkPlus,
   Check,
@@ -48,6 +48,32 @@ function paletteFor(key: string | number) {
   return POSTER_PALETTES[hash % POSTER_PALETTES.length];
 }
 
+const POSTER_CACHE_KEY = "cinemateca-posters-v1";
+type PosterCacheEntry = { url: string | null; at: number };
+type PosterCache = Record<string, PosterCacheEntry>;
+const POSTER_NEGATIVE_TTL_MS = 1000 * 60 * 60 * 24; // retry failed lookups after 24h
+
+function loadPosterCache(): PosterCache {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(POSTER_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "object" && parsed ? (parsed as PosterCache) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePosterCache(cache: PosterCache) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(POSTER_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // ignore quota
+  }
+}
+
 function splitGenres(genre: string | null | undefined) {
   if (!genre) return [] as string[];
   return genre.split(/[/|,]/).map((g) => g.trim()).filter(Boolean);
@@ -59,6 +85,12 @@ type CatalogItem =
 
 function getItemKey(item: CatalogItem) {
   return item.kind === "owned" ? `owned-${item.movie.id}` : `seed-${item.seed.seed_id}`;
+}
+
+function getPosterCacheKey(item: CatalogItem) {
+  return item.kind === "owned"
+    ? `movie-${item.movie.id}`
+    : `seed-${item.seed.seed_id}`;
 }
 
 function getItemTitle(item: CatalogItem) {
@@ -114,6 +146,9 @@ export default function CinematecaPage() {
   const [newPoster, setNewPoster] = useState("");
   const [newImdb, setNewImdb] = useState("");
 
+  const [resolvedPosters, setResolvedPosters] = useState<Record<string, string>>({});
+  const posterFetchStarted = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -162,6 +197,71 @@ export default function CinematecaPage() {
     const seeds: CatalogItem[] = catalogOnly.map((seed) => ({ kind: "seed", seed }));
     return [...owned, ...seeds];
   }, [movies, catalogOnly]);
+
+  useEffect(() => {
+    const cache = loadPosterCache();
+    const now = Date.now();
+    const hydrated: Record<string, string> = {};
+    for (const item of allItems) {
+      const key = getPosterCacheKey(item);
+      const entry = cache[key];
+      if (entry?.url) hydrated[key] = entry.url;
+    }
+    setResolvedPosters((prev) => ({ ...hydrated, ...prev }));
+
+    const pending: CatalogItem[] = [];
+    for (const item of allItems) {
+      const key = getPosterCacheKey(item);
+      if (item.kind === "owned" && item.movie.poster_url) continue;
+      if (hydrated[key]) continue;
+      const entry = cache[key];
+      if (entry && entry.url === null && now - entry.at < POSTER_NEGATIVE_TTL_MS) continue;
+      if (posterFetchStarted.current.has(key)) continue;
+      pending.push(item);
+    }
+    if (!pending.length) return;
+
+    let cancelled = false;
+    const queue = [...pending];
+    pending.forEach((item) => posterFetchStarted.current.add(getPosterCacheKey(item)));
+
+    const workers = Array.from({ length: 2 }, async () => {
+      while (queue.length && !cancelled) {
+        const item = queue.shift();
+        if (!item) break;
+        const key = getPosterCacheKey(item);
+        const title = getItemTitle(item);
+        const year = getItemYear(item);
+        const params = new URLSearchParams({ title });
+        if (year) params.set("year", String(year));
+        try {
+          const res = await fetch(`/api/cinemateca/poster?${params.toString()}`, { cache: "no-store" });
+          const data = (await res.json().catch(() => null)) as { url: string | null } | null;
+          const url = data?.url || null;
+          const current = loadPosterCache();
+          current[key] = { url, at: Date.now() };
+          savePosterCache(current);
+          if (cancelled) return;
+          if (url) {
+            setResolvedPosters((prev) => ({ ...prev, [key]: url }));
+            if (item.kind === "owned" && user) {
+              const id = item.movie.id;
+              void db.from("cinemateca_movies").update({ poster_url: url }).eq("id", id);
+              setMovies((prev) => prev.map((m) => (m.id === id ? { ...m, poster_url: url } : m)));
+            }
+          }
+        } catch {
+          // swallow, keep fallback gradient
+        }
+      }
+    });
+
+    void Promise.all(workers);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allItems, user]);
 
   const genres = useMemo(() => {
     const set = new Set<string>();
@@ -472,7 +572,13 @@ export default function CinematecaPage() {
       ) : (
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {filteredItems.map((item) => (
-            <PosterCard key={getItemKey(item)} item={item} onOpen={() => setDetailItem(item)} onQuickAdd={quickAddSeed} />
+            <PosterCard
+              key={getItemKey(item)}
+              item={item}
+              resolvedPoster={resolvedPosters[getPosterCacheKey(item)] || null}
+              onOpen={() => setDetailItem(item)}
+              onQuickAdd={quickAddSeed}
+            />
           ))}
         </section>
       )}
@@ -496,20 +602,24 @@ export default function CinematecaPage() {
 
 function PosterCard({
   item,
+  resolvedPoster,
   onOpen,
   onQuickAdd,
 }: {
   item: CatalogItem;
+  resolvedPoster: string | null;
   onOpen: () => void;
   onQuickAdd: (seed: CinematecaSeedMovie, status: CinematecaStatus) => Promise<void>;
 }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const title = getItemTitle(item);
   const year = getItemYear(item);
   const genre = getItemGenre(item);
   const imdb = getItemImdb(item);
   const status = getItemStatus(item);
   const userRating = item.kind === "owned" ? item.movie.user_rating : null;
-  const posterUrl = item.kind === "owned" ? item.movie.poster_url : null;
+  const ownedPoster = item.kind === "owned" ? item.movie.poster_url : null;
+  const posterUrl = imgFailed ? null : ownedPoster || resolvedPoster;
   const palette = paletteFor(item.kind === "owned" ? item.movie.id : item.seed.seed_id);
 
   return (
@@ -520,7 +630,14 @@ function PosterCard({
         className="relative aspect-[2/3] overflow-hidden rounded-2xl border border-border/70 bg-stone-950 text-left shadow-[0_20px_50px_-32px_rgba(0,0,0,0.8)] transition-transform hover:-translate-y-0.5 hover:border-primary/40"
       >
         {posterUrl ? (
-          <img src={posterUrl} alt={title} className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            src={posterUrl}
+            alt={title}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={() => setImgFailed(true)}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         ) : (
           <div className={cn("absolute inset-0 bg-gradient-to-br", palette)}>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.12),transparent_60%)]" />
