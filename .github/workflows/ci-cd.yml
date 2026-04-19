@@ -166,6 +166,19 @@ jobs:
           docker context rm production >/dev/null 2>&1 || true
           docker context create production --docker "host=ssh://${VPS_USER}@${VPS_HOST}:${VPS_PORT:-22}"
 
+      - name: Authenticate VPS Docker to GHCR
+        shell: bash
+        env:
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${VPS_PORT:-22}"
+          SSH_BASE=(ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o IdentitiesOnly=yes -i "$HOME/.ssh/id_ed25519" -p "${SSH_PORT}")
+          printf '%s' "${GITHUB_TOKEN}" | "${SSH_BASE[@]}" "${VPS_USER}@${VPS_HOST}" \
+            "docker login ghcr.io -u '${GITHUB_ACTOR}' --password-stdin"
+
       - name: Apply pending database migrations
         shell: bash
         env:
