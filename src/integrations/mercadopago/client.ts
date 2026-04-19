@@ -76,7 +76,7 @@ export function extractCofrinhos(payments: MpPayment[]): MpCofrinho[] {
   for (const p of payments) {
     const sub = p.amounts?.collector?.transaction_destination?.subpartition;
     if (sub?.name) {
-      map.set(sub.name, (map.get(sub.name) ?? 0) + sub.amount);
+      map.set(sub.name, (map.get(sub.name) ?? 0) + p.transaction_amount);
     }
   }
   return Array.from(map.entries())
