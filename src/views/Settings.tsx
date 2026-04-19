@@ -96,12 +96,14 @@ export default function SettingsPage() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editName, setEditName] = useState("");
   const [editClient, setEditClient] = useState("");
+  const [editNiche, setEditNiche] = useState("");
   const [editRate, setEditRate] = useState("");
   const [editColor, setEditColor] = useState("#8b5cf6");
 
   const [newProjectDialog, setNewProjectDialog] = useState(false);
   const [newName, setNewName] = useState("");
   const [newClient, setNewClient] = useState("");
+  const [newNiche, setNewNiche] = useState("");
   const [newRate, setNewRate] = useState("");
   const [newColor, setNewColor] = useState("#8b5cf6");
 
@@ -203,6 +205,7 @@ export default function SettingsPage() {
       user_id: user.id,
       name: newName,
       client: newClient || null,
+      niche: newNiche || null,
       hourly_rate: parseFloat(newRate) || 0,
       color: newColor,
     });
@@ -214,6 +217,7 @@ export default function SettingsPage() {
       setNewProjectDialog(false);
       setNewName("");
       setNewClient("");
+      setNewNiche("");
       setNewRate("");
       setNewColor("#8b5cf6");
       await loadData();
@@ -228,6 +232,7 @@ export default function SettingsPage() {
       .update({
         name: editName,
         client: editClient || null,
+        niche: editNiche || null,
         hourly_rate: parseFloat(editRate) || 0,
         color: editColor,
       })
@@ -258,6 +263,7 @@ export default function SettingsPage() {
     setEditingProject(project);
     setEditName(project.name);
     setEditClient(project.client || "");
+    setEditNiche(project.niche || "");
     setEditRate(String(project.hourly_rate));
     setEditColor(project.color);
     setEditProjectDialog(true);
@@ -688,6 +694,7 @@ export default function SettingsPage() {
 
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                         <span>{project.client || "Sem cliente definido"}</span>
+                        <span>{project.niche || "Sem nicho definido"}</span>
                         <span>{formatMoney(project.hourly_rate)}/h</span>
                         {project.daily_rate ? <span>{formatMoney(project.daily_rate)}/dia</span> : null}
                       </div>
@@ -812,6 +819,10 @@ export default function SettingsPage() {
               <Label className="text-xs text-muted-foreground">Cliente</Label>
               <Input value={newClient} onChange={(event) => setNewClient(event.target.value)} placeholder="Cliente associado" className="h-11 rounded-2xl border-border bg-background/60" />
             </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Nicho</Label>
+              <Input value={newNiche} onChange={(event) => setNewNiche(event.target.value)} placeholder="Ex: Semijoias" className="h-11 rounded-2xl border-border bg-background/60" />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">R$/hora</Label>
@@ -853,6 +864,10 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Cliente</Label>
               <Input value={editClient} onChange={(event) => setEditClient(event.target.value)} className="h-11 rounded-2xl border-border bg-background/60" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Nicho</Label>
+              <Input value={editNiche} onChange={(event) => setEditNiche(event.target.value)} className="h-11 rounded-2xl border-border bg-background/60" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

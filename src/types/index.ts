@@ -3,6 +3,7 @@ export interface Project {
   user_id: string;
   name: string;
   client: string | null;
+  niche?: string | null;
   hourly_rate: number;
   monthly_agreed_amount?: number | null;
   monthly_agreed_hours?: number | null;

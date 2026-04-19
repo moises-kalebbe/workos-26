@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS projects (
   user_id TEXT NOT NULL,
   name TEXT NOT NULL,
   client TEXT,
+  niche TEXT,
   hourly_rate NUMERIC(10,2) NOT NULL DEFAULT 0,
   color TEXT NOT NULL DEFAULT '#8b5cf6',
   status TEXT NOT NULL DEFAULT 'active',

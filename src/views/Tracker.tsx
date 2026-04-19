@@ -90,11 +90,13 @@ export default function TrackerPage() {
 
   const [newName, setNewName] = useState("");
   const [newClient, setNewClient] = useState("");
+  const [newNiche, setNewNiche] = useState("");
   const [newRate, setNewRate] = useState("");
   const [newColor, setNewColor] = useState("#8b5cf6");
 
   const [editName, setEditName] = useState("");
   const [editClient, setEditClient] = useState("");
+  const [editNiche, setEditNiche] = useState("");
   const [editRate, setEditRate] = useState("");
   const [editColor, setEditColor] = useState("#8b5cf6");
 
@@ -150,6 +152,7 @@ export default function TrackerPage() {
       user_id: user.id,
       name: newName,
       client: newClient || null,
+      niche: newNiche || null,
       hourly_rate: parseFloat(newRate) || 0,
       color: newColor,
     });
@@ -161,6 +164,7 @@ export default function TrackerPage() {
       setDialogOpen(false);
       setNewName("");
       setNewClient("");
+      setNewNiche("");
       setNewRate("");
       await loadData();
     }
@@ -172,6 +176,7 @@ export default function TrackerPage() {
     const { error } = await db.from("projects").update({
       name: editName,
       client: editClient || null,
+      niche: editNiche || null,
       hourly_rate: parseFloat(editRate) || 0,
       color: editColor,
     }).eq("id", editingProject.id);
@@ -213,6 +218,7 @@ export default function TrackerPage() {
     setEditingProject(project);
     setEditName(project.name);
     setEditClient(project.client || "");
+    setEditNiche(project.niche || "");
     setEditRate(String(project.hourly_rate));
     setEditColor(project.color);
     setEditDialogOpen(true);
@@ -294,7 +300,8 @@ export default function TrackerPage() {
       const matchesSearch =
         !normalizedSearch ||
         item.project.name.toLowerCase().includes(normalizedSearch) ||
-        (item.project.client || "").toLowerCase().includes(normalizedSearch);
+        (item.project.client || "").toLowerCase().includes(normalizedSearch) ||
+        (item.project.niche || "").toLowerCase().includes(normalizedSearch);
 
       if (!matchesSearch) return false;
       if (filter === "today") return item.todaySeconds > 0 || item.isActive;
@@ -317,6 +324,8 @@ export default function TrackerPage() {
     setName: (value: string) => void,
     client: string,
     setClient: (value: string) => void,
+    niche: string,
+    setNiche: (value: string) => void,
     rate: string,
     setRate: (value: string) => void,
     color: string,
@@ -333,6 +342,10 @@ export default function TrackerPage() {
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">Cliente</Label>
           <Input value={client} onChange={(event) => setClient(event.target.value)} placeholder="Ex: Empresa X" className="bg-background border-border" />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Nicho</Label>
+          <Input value={niche} onChange={(event) => setNiche(event.target.value)} placeholder="Ex: Semijoias" className="bg-background border-border" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -399,6 +412,7 @@ export default function TrackerPage() {
 
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <span>{project.client || "Sem cliente definido"}</span>
+                <span>{project.niche || "Sem nicho definido"}</span>
                 <span>Ultima sessao: {formatSessionMoment(lastSessionAt)}</span>
               </div>
             </div>
@@ -535,7 +549,7 @@ export default function TrackerPage() {
             <DialogHeader>
               <DialogTitle>Novo Projeto</DialogTitle>
             </DialogHeader>
-            {renderProjectForm(newName, setNewName, newClient, setNewClient, newRate, setNewRate, newColor, setNewColor, createProject, "Criar Projeto")}
+                    {renderProjectForm(newName, setNewName, newClient, setNewClient, newNiche, setNewNiche, newRate, setNewRate, newColor, setNewColor, createProject, "Criar Projeto")}
           </DialogContent>
         </Dialog>
       </div>
@@ -545,7 +559,7 @@ export default function TrackerPage() {
           <DialogHeader>
             <DialogTitle>Editar Projeto</DialogTitle>
           </DialogHeader>
-          {renderProjectForm(editName, setEditName, editClient, setEditClient, editRate, setEditRate, editColor, setEditColor, updateProject, "Salvar Alteracoes")}
+          {renderProjectForm(editName, setEditName, editClient, setEditClient, editNiche, setEditNiche, editRate, setEditRate, editColor, setEditColor, updateProject, "Salvar Alteracoes")}
         </DialogContent>
       </Dialog>
 
@@ -558,7 +572,9 @@ export default function TrackerPage() {
           <div className="mt-3">
             <p className="text-lg font-semibold text-foreground">{activeProject ? activeProject.name : "Nenhum projeto em andamento"}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {activeProject ? activeProject.client || "Sem cliente definido" : "Escolha um projeto para iniciar a próxima sessão."}
+              {activeProject
+                ? [activeProject.client || "Sem cliente definido", activeProject.niche || "Sem nicho definido"].join(" • ")
+                : "Escolha um projeto para iniciar a próxima sessão."}
             </p>
           </div>
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
