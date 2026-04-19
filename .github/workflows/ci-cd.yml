@@ -112,6 +112,7 @@ jobs:
       VPS_PORT: ${{ vars.VPS_PORT }}
       APP_BASE_URL: ${{ vars.APP_BASE_URL }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
       RUN_PUBLISH_INPUT: ${{ github.event.inputs.run_publish }}
       RUN_DEPLOY_INPUT: ${{ github.event.inputs.run_deploy }}
       DEPLOY_IMAGE_TAG_INPUT: ${{ github.event.inputs.deploy_image_tag }}
@@ -151,7 +152,11 @@ jobs:
           fi
           chmod 600 ~/.ssh/id_ed25519
           ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
-          ssh-keyscan -p "${VPS_PORT:-22}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts
+          if [ -n "${VPS_KNOWN_HOSTS:-}" ]; then
+            printf '%s\n' "${VPS_KNOWN_HOSTS}" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -T 30 -p "${VPS_PORT:-22}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts
+          fi
 
       - name: Create Docker context
         shell: bash
