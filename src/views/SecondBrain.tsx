@@ -655,7 +655,7 @@ export default function SecondBrainPage() {
             />
           </div>
 
-          <div className="max-h-[540px] grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-auto pr-1">
+          <div className="max-h-[540px] grid grid-cols-2 gap-2 overflow-auto pr-1">
             {filteredNotes.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                 Nenhuma nota encontrada.

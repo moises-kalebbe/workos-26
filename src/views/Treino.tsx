@@ -720,7 +720,7 @@ export default function TreinoPage() {
                         <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedSession.objective}</p>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
                           <Label>Duracao (min)</Label>
                           <Input value={draft.durationMinutes} onChange={(event) => updateDraftField("durationMinutes", event.target.value)} />
@@ -880,7 +880,7 @@ export default function TreinoPage() {
                                     </div>
                                   </div>
 
-                                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                                     <div className="space-y-2">
                                       <Label>Reps</Label>
                                       <Input

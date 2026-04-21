@@ -839,7 +839,7 @@ export default function SkillsPage() {
               </DialogHeader>
 
               <div className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Título</Label>
                     <Input

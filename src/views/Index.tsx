@@ -236,7 +236,7 @@ export default function IndexPage() {
             ) : null}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-1">
             <div className="rounded-2xl border border-foreground/10 bg-foreground/5 p-4">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Timer className="h-4 w-4 text-primary" />
@@ -332,7 +332,7 @@ export default function IndexPage() {
               Meta do dia, tarefas críticas, financeiro acionável e próximas reuniões em 48h.
             </p>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="mt-4 grid grid-cols-3 gap-3 xl:grid-cols-1">
               <div className="rounded-xl border border-border bg-background/30 p-4">
                 <p className="text-eyebrow uppercase tracking-wide text-muted-foreground">Em risco</p>
                 <p className="mt-2 text-2xl font-semibold text-danger">{healthSummary.at_risk}</p>

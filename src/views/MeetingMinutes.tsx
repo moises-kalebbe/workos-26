@@ -463,7 +463,7 @@ export default function MeetingMinutesPage() {
         )}
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl border border-warning/20 bg-warning-muted p-4">
           <p className="text-xs uppercase tracking-loose text-muted-foreground">Pendentes</p>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.pending}</p>
@@ -643,7 +643,7 @@ export default function MeetingMinutesPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               {filteredItems.map((item) => (
                 (() => {
                   const checklistEntries = item.checklist_json.length

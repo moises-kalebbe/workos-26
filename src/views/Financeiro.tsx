@@ -1033,8 +1033,8 @@ export default function FinanceiroPage() {
             <CardDescription className="mt-1">Filtros globais para operação, histórico e projeção.</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 p-4 pt-4 sm:grid-cols-2 sm:p-5 sm:pt-4 xl:grid-cols-6">
-          <div className="relative min-w-0 sm:col-span-2 xl:col-span-6">
+        <CardContent className="grid grid-cols-2 gap-3 p-4 pt-4 sm:grid-cols-3 sm:p-5 sm:pt-4 xl:grid-cols-6">
+          <div className="relative col-span-2 min-w-0 xl:col-span-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="h-11 rounded-2xl border-border bg-background/60 pl-9"
@@ -1242,7 +1242,7 @@ export default function FinanceiroPage() {
                   ))}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-1 sm:gap-3">
                 {projectionDisplayPoints.map((point) => (
                   <div key={point.monthKey} className="rounded-xl border border-border/70 bg-background/40 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

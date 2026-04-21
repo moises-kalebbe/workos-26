@@ -946,7 +946,7 @@ export default function KanbanPage() {
                 ))}
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Urgencia</Label>
                 <Select value={editUrgency} onValueChange={(value) => setEditUrgency(value as Task["urgency"])}>
