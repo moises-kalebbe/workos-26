@@ -55,6 +55,8 @@ export const LOCAL_DB_TABLES = new Set([
   "notification_preferences",
   "google_tokens",
   "cinemateca_movies",
+  "clients",
+  "client_files",
 ]);
 
 function isSafeIdentifier(value: string) {

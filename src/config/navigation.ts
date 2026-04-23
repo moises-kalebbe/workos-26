@@ -13,6 +13,7 @@ import {
   Lock,
   Settings,
   Timer,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -39,6 +40,7 @@ export const DASHBOARD_NAV_GROUPS: NavGroup[] = [
   {
     label: "Gestão",
     items: [
+      { icon: Users, label: "Clientes", path: "/clientes" },
       { icon: Columns3, label: "Kanban", path: "/kanban" },
       { icon: Timer, label: "Time Tracker", path: "/tracker" },
       { icon: Calendar, label: "Agenda", path: "/agenda" },

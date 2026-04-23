@@ -566,3 +566,30 @@ export interface TimelineSessionBlock {
   color: string | null;
 }
 
+export interface Client {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientFile {
+  id: string;
+  user_id: string;
+  client_id: string;
+  file_name: string;
+  file_mime: string;
+  file_size: number;
+  service_date: string;
+  service_type: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ClientFileWithData = ClientFile & { file_data: string };
+
