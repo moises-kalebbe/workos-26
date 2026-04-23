@@ -122,9 +122,9 @@ function TaskCard({
         )}
       </div>
 
-      {task.assignees.length > 0 && (
+      {(task.assignees ?? []).length > 0 && (
         <div className="mt-2 flex gap-1">
-          {task.assignees.slice(0, 3).map((a) => (
+          {(task.assignees ?? []).slice(0, 3).filter((a) => a?.id != null).map((a) => (
             <div
               key={a.id}
               className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
@@ -420,13 +420,17 @@ export default function ClickUpBoard({ viewId }: { viewId: string | null | undef
       const rawStatuses: CUStatus[] = (view.list?.statuses ?? []).sort(
         (a, b) => (a.orderindex ?? 0) - (b.orderindex ?? 0),
       );
-      setStatuses(rawStatuses);
-      setTasks(tasksRes?.tasks ?? []);
+      setStatuses(rawStatuses.filter((s) => s?.status != null));
+      setTasks((tasksRes?.tasks ?? []).filter((t): t is CUTask => t?.id != null));
 
       if (resolvedListId) {
         try {
           const membersRes = await clickupApi.getListMembers(resolvedListId);
-          setMembers(membersRes.members.map((m) => m.user));
+          setMembers(
+            (membersRes?.members ?? [])
+              .map((m) => m?.user)
+              .filter((u): u is CUMember => u?.id != null),
+          );
         } catch {
           // members are optional
         }
@@ -449,9 +453,10 @@ export default function ClickUpBoard({ viewId }: { viewId: string | null | undef
     const map: Record<string, CUTask[]> = {};
     for (const s of statuses) map[s.status] = [];
     for (const t of tasks) {
-      const key = t.status.status;
+      const key = t.status?.status;
+      if (!key) continue;
       if (!map[key]) map[key] = [];
-      const assigneeMatch = filterAssignee === "__all__" || t.assignees.some((a) => String(a.id) === filterAssignee);
+      const assigneeMatch = filterAssignee === "__all__" || (t.assignees ?? []).some((a) => String(a?.id) === filterAssignee);
       if (assigneeMatch) map[key].push(t);
     }
     return map;
