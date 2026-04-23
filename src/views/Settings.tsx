@@ -332,11 +332,18 @@ export default function SettingsPage() {
     }
     setTestingClickup(true);
     try {
+      const { getClerkToken } = await import("@/lib/clerkBridge");
+      const clerkToken = await getClerkToken();
       const res = await fetch("/api/clickup/team", {
-        headers: { Authorization: `Bearer ${(await import("@/lib/clerkBridge")).getClerkToken() ?? ""}` },
+        headers: clerkToken ? { Authorization: `Bearer ${clerkToken}` } : {},
       });
       const json = await res.json() as { teams?: { name: string }[]; error?: string };
-      if (!res.ok || json.error) throw new Error(json.error ?? "Falha");
+      if (!res.ok || json.error) {
+        const msg = json.error === "clickup_not_configured"
+          ? "Token não salvo — clique em 'Salvar View ID' primeiro"
+          : (json.error ?? "Falha");
+        throw new Error(msg);
+      }
       const workspace = json.teams?.[0]?.name ?? "workspace";
       toast.success(`Conectado ao workspace "${workspace}"`);
     } catch (err) {
