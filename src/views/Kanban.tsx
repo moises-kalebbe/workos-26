@@ -1,4 +1,31 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { Component, useState, useEffect, useMemo } from "react";
+
+class ClickUpErrorBoundary extends Component<{ children: React.ReactNode }, { error: string | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error: error.message };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+          <p className="font-semibold text-foreground">Erro ao carregar board ClickUp</p>
+          <p className="max-w-sm text-sm text-muted-foreground">{this.state.error}</p>
+          <button
+            className="rounded-md border px-3 py-1.5 text-sm"
+            onClick={() => this.setState({ error: null })}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil, Copy, BookOpen, Search, Activity, Clock3, AlertTriangle, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -1271,7 +1298,9 @@ export default function KanbanPage() {
       </TabsContent>
 
       <TabsContent value="clickup" className="mt-0">
-        <ClickUpBoard viewId={clickupViewId} />
+        <ClickUpErrorBoundary>
+          <ClickUpBoard viewId={clickupViewId} />
+        </ClickUpErrorBoundary>
       </TabsContent>
     </Tabs>
   );

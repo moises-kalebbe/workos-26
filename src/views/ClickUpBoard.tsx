@@ -412,15 +412,16 @@ export default function ClickUpBoard({ viewId }: { viewId: string | null | undef
         clickupApi.getViewTasks(resolvedViewId),
       ]);
 
-      const view = viewRes.view;
+      const view = viewRes?.view;
+      if (!view) throw new Error("View não encontrada ou sem permissão de acesso");
       const resolvedListId = view.parent?.id ?? "";
       setListId(resolvedListId);
 
       const rawStatuses: CUStatus[] = (view.list?.statuses ?? []).sort(
-        (a, b) => a.orderindex - b.orderindex,
+        (a, b) => (a.orderindex ?? 0) - (b.orderindex ?? 0),
       );
       setStatuses(rawStatuses);
-      setTasks(tasksRes.tasks ?? []);
+      setTasks(tasksRes?.tasks ?? []);
 
       if (resolvedListId) {
         try {
