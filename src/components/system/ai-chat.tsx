@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import type Anthropic from "@anthropic-ai/sdk";
 
 type Role = "user" | "assistant";
 type ChatMessage = { role: Role; text: string };
