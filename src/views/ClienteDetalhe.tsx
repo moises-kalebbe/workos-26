@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Download,
   FileIcon,
+  FolderOpen,
   Loader2,
   Pencil,
   Plus,
@@ -90,6 +91,43 @@ const EMPTY_UPLOAD: UploadForm = {
   serviceType: "",
   description: "",
 };
+
+function FileRow({
+  file,
+  onDownload,
+  onDelete,
+  showDescription,
+}: {
+  file: ClientFile;
+  onDownload: (f: ClientFile) => void;
+  onDelete: (f: ClientFile) => void;
+  showDescription: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card/80 px-4 py-3">
+      <FileIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium text-foreground">{file.file_name}</p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="text-xs">{file.service_type}</Badge>
+          <span className="text-xs text-muted-foreground">{formatDate(file.service_date)}</span>
+          <span className="text-xs text-muted-foreground">{formatBytes(file.file_size)}</span>
+          {showDescription && file.description && (
+            <span className="text-xs text-muted-foreground">· {file.description}</span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar arquivo" onClick={() => onDownload(file)}>
+          <Download className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" title="Remover arquivo" onClick={() => onDelete(file)}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
   const router = useRouter();
@@ -227,8 +265,9 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
     const oversized = all.length - valid.length;
     if (oversized > 0) toast.warning(`${oversized} arquivo(s) ignorados por exceder 10MB`);
     if (valid.length === 0) return;
+    const folderName = (valid[0] as File & { webkitRelativePath?: string }).webkitRelativePath?.split("/")[0] ?? "";
     setFolderFiles(valid);
-    setUpload((prev) => ({ ...prev, fileName: "", fileData: "", fileMime: "", fileSize: 0 }));
+    setUpload((prev) => ({ ...prev, fileName: "", fileData: "", fileMime: "", fileSize: 0, description: folderName }));
   }
 
   function readFileAsBase64(file: File): Promise<string> {
@@ -386,6 +425,20 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
     return Array.from(months).sort().reverse();
   }, [files]);
 
+  const fileGroups = useMemo(() => {
+    const grouped: Record<string, ClientFile[]> = {};
+    const ungrouped: ClientFile[] = [];
+    for (const f of filteredFiles) {
+      if (f.description) {
+        (grouped[f.description] ??= []).push(f);
+      } else {
+        ungrouped.push(f);
+      }
+    }
+    const entries = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+    return { entries, ungrouped };
+  }, [filteredFiles]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -489,45 +542,23 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
               )}
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              {filteredFiles.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
-                >
-                  <FileIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-foreground">{file.file_name}</p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">{file.service_type}</Badge>
-                      <span className="text-xs text-muted-foreground">{formatDate(file.service_date)}</span>
-                      <span className="text-xs text-muted-foreground">{formatBytes(file.file_size)}</span>
-                      {file.description && (
-                        <span className="text-xs text-muted-foreground">· {file.description}</span>
-                      )}
-                    </div>
+            <div className="flex flex-col gap-4">
+              {fileGroups.entries.map(([folderName, groupFiles]) => (
+                <div key={folderName}>
+                  <div className="mb-1.5 flex items-center gap-2 px-1">
+                    <FolderOpen className="h-4 w-4 shrink-0 text-primary/70" />
+                    <span className="text-sm font-medium text-foreground/80">{folderName}</span>
+                    <span className="text-xs text-muted-foreground">({groupFiles.length})</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title="Baixar arquivo"
-                      onClick={() => handleDownload(file)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:text-destructive"
-                      title="Remover arquivo"
-                      onClick={() => setDeleteFileTarget(file)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <div className="flex flex-col gap-1.5 border-l-2 border-primary/15 pl-3">
+                    {groupFiles.map((file) => (
+                      <FileRow key={file.id} file={file} onDownload={handleDownload} onDelete={setDeleteFileTarget} showDescription={false} />
+                    ))}
                   </div>
                 </div>
+              ))}
+              {fileGroups.ungrouped.map((file) => (
+                <FileRow key={file.id} file={file} onDownload={handleDownload} onDelete={setDeleteFileTarget} showDescription={true} />
               ))}
             </div>
           )}
