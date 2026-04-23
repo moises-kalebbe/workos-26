@@ -16,7 +16,6 @@ set -euo pipefail
 MIG_DIR="${MIG_DIR:-}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
 POSTGRES_SERVICE="${POSTGRES_SERVICE:-workos_workos-postgres}"
-POSTGRES_IMAGE_MATCH="${POSTGRES_IMAGE_MATCH:-postgres:17-alpine}"
 DB_USER="${DB_USER:-workos-user}"
 DB_NAME="${DB_NAME:-workos-db}"
 
@@ -36,19 +35,18 @@ resolve_postgres_container() {
     return 0
   fi
 
-  local by_service
-  by_service="$(docker ps --filter "name=${POSTGRES_SERVICE}" --format '{{.ID}}' | head -n 1 || true)"
-  if [ -n "${by_service}" ]; then
-    echo "${by_service}"
-    return 0
-  fi
-
-  local by_image
-  by_image="$(docker ps --filter "ancestor=${POSTGRES_IMAGE_MATCH}" --format '{{.ID}}' | head -n 1 || true)"
-  if [ -n "${by_image}" ]; then
-    echo "${by_image}"
-    return 0
-  fi
+  # Aguarda até 60s pelo container do serviço (pode estar reiniciando)
+  local attempt
+  for attempt in $(seq 1 12); do
+    local by_service
+    by_service="$(docker ps --filter "name=${POSTGRES_SERVICE}" --format '{{.ID}}' | head -n 1 || true)"
+    if [ -n "${by_service}" ]; then
+      echo "${by_service}"
+      return 0
+    fi
+    echo "[migrate] aguardando container '${POSTGRES_SERVICE}' (tentativa ${attempt}/12)..." >&2
+    sleep 5
+  done
 
   return 1
 }
