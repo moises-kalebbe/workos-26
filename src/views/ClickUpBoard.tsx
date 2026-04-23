@@ -397,9 +397,19 @@ export default function ClickUpBoard({ viewId }: { viewId: string | null | undef
     setError(null);
     setNotConfigured(false);
     try {
+      // Se for Space ID (só dígitos), resolve a primeira board view do espaço
+      const isSpaceId = /^\d+$/.test(viewId);
+      let resolvedViewId = viewId;
+      if (isSpaceId) {
+        const spaceViews = await clickupApi.getSpaceViews(viewId);
+        const boardView = spaceViews.views.find((v) => v.type === "board") ?? spaceViews.views[0];
+        if (!boardView) throw new Error("Nenhuma view encontrada neste espaço");
+        resolvedViewId = boardView.id;
+      }
+
       const [viewRes, tasksRes] = await Promise.all([
-        clickupApi.getView(viewId),
-        clickupApi.getViewTasks(viewId),
+        clickupApi.getView(resolvedViewId),
+        clickupApi.getViewTasks(resolvedViewId),
       ]);
 
       const view = viewRes.view;

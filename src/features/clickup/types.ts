@@ -64,6 +64,10 @@ export interface CUViewResponse {
   view: CUView;
 }
 
+export interface CUSpaceViewsResponse {
+  views: CUView[];
+}
+
 export type CUTaskUpdate = {
   name?: string;
   description?: string;

@@ -1,5 +1,5 @@
 import { getClerkToken } from "@/lib/clerkBridge";
-import type { CUTaskCreate, CUTasksResponse, CUTaskUpdate, CUViewResponse } from "./types";
+import type { CUSpaceViewsResponse, CUTaskCreate, CUTasksResponse, CUTaskUpdate, CUViewResponse } from "./types";
 
 async function cuFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token = await getClerkToken();
@@ -40,6 +40,9 @@ export const clickupApi = {
     cuFetch<{ members: { user: { id: number; username: string; email: string; profilePicture: string | null; color: string } }[] }>(
       `list/${listId}/member`,
     ),
+
+  getSpaceViews: (spaceId: string) =>
+    cuFetch<CUSpaceViewsResponse>(`space/${spaceId}/view`),
 
   testAuth: () =>
     cuFetch<{ teams: { id: string; name: string }[] }>("team"),

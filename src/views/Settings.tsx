@@ -907,16 +907,21 @@ export default function SettingsPage() {
 
             <div className="mt-6 space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">View ID do board</Label>
+                <Label className="text-xs text-muted-foreground">View ID ou URL do board</Label>
                 <Input
-                  placeholder="Ex: 2ky4e1hv-7373"
+                  placeholder="Cole a URL ou o ID: 901313686999"
                   value={clickupViewId}
-                  onChange={(e) => setClickupViewId(e.target.value)}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    // Extrai ID de URLs do tipo /v/b/s/ID ou /v/b/ID
+                    const match = raw.match(/\/v\/b\/(?:s\/)?([a-zA-Z0-9-]+)/);
+                    setClickupViewId(match ? match[1] : raw);
+                  }}
                   className="h-11 rounded-2xl border-border bg-background/60 font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Extraia da URL do board:{" "}
-                  <span className="font-medium text-foreground">app.clickup.com/…/v/b/<u>VIEW-ID</u></span>
+                  Cole a URL completa do board (ex: <span className="font-medium text-foreground">app.clickup.com/…/v/b/s/901313686999</span>) ou só o ID.
                 </p>
               </div>
 
