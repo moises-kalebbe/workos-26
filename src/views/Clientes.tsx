@@ -44,7 +44,7 @@ export default function ClientesPage() {
     setLoading(true);
     try {
       const { data, error } = await db
-        .from<Client[]>("clients")
+        .from("clients")
         .select("*")
         .order("name", { ascending: true });
       if (error) throw new Error(error.message);

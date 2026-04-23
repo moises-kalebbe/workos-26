@@ -117,9 +117,9 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
     setLoading(true);
     try {
       const [clientRes, filesRes] = await Promise.all([
-        db.from<Client[]>("clients").select("*").eq("id", clientId).maybeSingle(),
+        db.from("clients").select("*").eq("id", clientId).maybeSingle(),
         db
-          .from<ClientFile[]>("client_files")
+          .from("client_files")
           .select("id,user_id,client_id,file_name,file_mime,file_size,service_date,service_type,description,created_at,updated_at")
           .eq("client_id", clientId)
           .order("service_date", { ascending: false }),
