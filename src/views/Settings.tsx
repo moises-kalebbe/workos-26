@@ -7,7 +7,9 @@ import {
   Camera,
   Clock3,
   Globe,
+  Loader2,
   Pencil,
+  Plug,
   Plus,
   Save,
   Trash2,
@@ -92,6 +94,12 @@ export default function SettingsPage() {
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [avatarUrl, setAvatarUrl] = useState("");
 
+  const [clickupToken, setClickupToken] = useState("");
+  const [clickupViewId, setClickupViewId] = useState("");
+  const [savingClickup, setSavingClickup] = useState(false);
+  const [testingClickup, setTestingClickup] = useState(false);
+  const [clickupOAuthStatus, setClickupOAuthStatus] = useState<"idle" | "success" | "error">("idle");
+
   const [editProjectDialog, setEditProjectDialog] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editName, setEditName] = useState("");
@@ -129,6 +137,8 @@ export default function SettingsPage() {
       setName(nextProfile.name || "");
       setTimezone(nextProfile.timezone || "America/Sao_Paulo");
       setAvatarUrl(nextProfile.avatar_url || "");
+      setClickupToken(nextProfile.clickup_token || "");
+      setClickupViewId(nextProfile.clickup_view_id || "");
     }
 
     setProjects((projRes.data || []) as Project[]);
@@ -145,8 +155,18 @@ export default function SettingsPage() {
     const requestedTab = searchParams.get("tab");
     const requestedProject = searchParams.get("project");
 
-    if (requestedTab === "companies" || requestedTab === "profile" || requestedTab === "preferences") {
+    if (requestedTab === "companies" || requestedTab === "profile" || requestedTab === "preferences" || requestedTab === "integracoes") {
       setActiveTab(requestedTab);
+    }
+
+    if (searchParams.get("clickup_connected") === "1") {
+      setActiveTab("integracoes");
+      setClickupOAuthStatus("success");
+      toast.success("ClickUp conectado com sucesso!");
+    } else if (searchParams.get("clickup_error")) {
+      setActiveTab("integracoes");
+      setClickupOAuthStatus("error");
+      toast.error(`Erro ao conectar ClickUp: ${searchParams.get("clickup_error")}`);
     }
 
     if (requestedProject) {
@@ -285,6 +305,45 @@ export default function SettingsPage() {
 
   function toggleWorkday(workday: string) {
     setSelectedWorkdays((prev) => (prev.includes(workday) ? prev.filter((value) => value !== workday) : [...prev, workday]));
+  }
+
+  async function saveClickupSettings() {
+    if (!user) return;
+    setSavingClickup(true);
+    try {
+      const { error } = await db.from("profiles").update({
+        clickup_token: clickupToken.trim() || null,
+        clickup_view_id: clickupViewId.trim() || null,
+      }).eq("id", user.id);
+      if (error) throw new Error(error.message);
+      toast.success("Configurações ClickUp salvas");
+      await loadData();
+    } catch {
+      toast.error("Erro ao salvar configurações ClickUp");
+    } finally {
+      setSavingClickup(false);
+    }
+  }
+
+  async function testClickupConnection() {
+    if (!clickupToken.trim()) {
+      toast.error("Informe o token antes de testar");
+      return;
+    }
+    setTestingClickup(true);
+    try {
+      const res = await fetch("/api/clickup/team", {
+        headers: { Authorization: `Bearer ${(await import("@/lib/clerkBridge")).getClerkToken() ?? ""}` },
+      });
+      const json = await res.json() as { teams?: { name: string }[]; error?: string };
+      if (!res.ok || json.error) throw new Error(json.error ?? "Falha");
+      const workspace = json.teams?.[0]?.name ?? "workspace";
+      toast.success(`Conectado ao workspace "${workspace}"`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha na conexão ClickUp");
+    } finally {
+      setTestingClickup(false);
+    }
   }
 
   async function saveProjectContract() {
@@ -451,6 +510,10 @@ export default function SettingsPage() {
           <TabsTrigger value="preferences" className="gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
             <Globe className="h-4 w-4" />
             Preferencias
+          </TabsTrigger>
+          <TabsTrigger value="integracoes" className="gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+            <Plug className="h-4 w-4" />
+            Integrações
           </TabsTrigger>
         </TabsList>
 
@@ -801,6 +864,101 @@ export default function SettingsPage() {
           </section>
 
           <NotificationPreferencesCard />
+        </TabsContent>
+
+        <TabsContent value="integracoes" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
+          <section className="rounded-2xl border border-border bg-card/95 p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7B68EE]/15">
+                  <svg viewBox="0 0 32 32" className="h-5 w-5" fill="none">
+                    <circle cx="16" cy="16" r="16" fill="#7B68EE" />
+                    <path d="M16 8a8 8 0 1 0 0 16A8 8 0 0 0 16 8zm0 3a5 5 0 1 1 0 10A5 5 0 0 1 16 11z" fill="white" opacity=".3"/>
+                    <circle cx="16" cy="16" r="3" fill="white" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">ClickUp</p>
+                  <p className="text-sm text-muted-foreground">
+                    {profile?.clickup_token
+                      ? <span className="text-green-500 font-medium">Conectado ✓</span>
+                      : "Não configurado"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                asChild
+                variant={profile?.clickup_token ? "outline" : "default"}
+                size="sm"
+                className="shrink-0"
+              >
+                <a href="/api/clickup/oauth">
+                  <Plug className="mr-2 h-4 w-4" />
+                  {profile?.clickup_token ? "Reconectar" : "Conectar com ClickUp"}
+                </a>
+              </Button>
+            </div>
+
+            {clickupOAuthStatus === "success" && (
+              <div className="mt-4 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-600">
+                ClickUp conectado com sucesso! Agora configure o View ID abaixo.
+              </div>
+            )}
+
+            <div className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">View ID do board</Label>
+                <Input
+                  placeholder="Ex: 2ky4e1hv-7373"
+                  value={clickupViewId}
+                  onChange={(e) => setClickupViewId(e.target.value)}
+                  className="h-11 rounded-2xl border-border bg-background/60 font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Extraia da URL do board:{" "}
+                  <span className="font-medium text-foreground">app.clickup.com/…/v/b/<u>VIEW-ID</u></span>
+                </p>
+              </div>
+
+              <details className="rounded-xl border border-border/50 bg-background/20">
+                <summary className="cursor-pointer px-4 py-3 text-xs text-muted-foreground hover:text-foreground">
+                  Configuração manual (Personal API Token)
+                </summary>
+                <div className="space-y-3 px-4 pb-4 pt-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Personal API Token</Label>
+                    <Input
+                      type="password"
+                      placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      value={clickupToken}
+                      onChange={(e) => setClickupToken(e.target.value)}
+                      className="h-11 rounded-2xl border-border bg-background/60 font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Encontre em: <span className="font-medium text-foreground">ClickUp → Settings → Apps → API Token</span>
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={testClickupConnection}
+                    disabled={testingClickup || !clickupToken.trim()}
+                  >
+                    {testingClickup && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Testar conexão
+                  </Button>
+                </div>
+              </details>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button onClick={saveClickupSettings} disabled={savingClickup}>
+                  {savingClickup && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Save className="mr-2 h-4 w-4" />
+                  Salvar View ID
+                </Button>
+              </div>
+            </div>
+          </section>
         </TabsContent>
       </Tabs>
 

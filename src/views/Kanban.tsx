@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil, Copy, BookOpen, Search, Activity, Clock3, AlertTriangle } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, Trash2, Pencil, Copy, BookOpen, Search, Activity, Clock3, AlertTriangle, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -32,6 +32,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { LoadingState } from "@/components/system/loading-state";
 import { PageHeader } from "@/components/system/page-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ClickUpBoard from "@/views/ClickUpBoard";
 import { getQuadrant, toTaskFields } from "@/lib/eisenhower";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -286,6 +288,7 @@ export default function KanbanPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [skills, setSkills] = useState<SkillDocument[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clickupViewId, setClickupViewId] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -327,11 +330,14 @@ export default function KanbanPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const [tasksRes, projRes, skillsRes] = await Promise.all([
+      const [tasksRes, projRes, skillsRes, profileRes] = await Promise.all([
         db.from("tasks").select("*").order("position"),
         db.from("projects").select("*").order("name"),
         db.from("skill_documents").select("*").order("title"),
+        user ? db.from("profiles").select("clickup_view_id").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
       ]);
+      const profileData = profileRes.data as { clickup_view_id?: string | null } | null;
+      setClickupViewId(profileData?.clickup_view_id ?? "");
 
       if (tasksRes.error) {
         throw new Error(tasksRes.error.message);
@@ -719,6 +725,22 @@ export default function KanbanPage() {
   }
 
   return (
+    <Tabs defaultValue="workos" className="space-y-4 md:space-y-6">
+      <TabsList className="h-auto rounded-2xl border border-border bg-card p-1">
+        <TabsTrigger value="workos" className="gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+          <LayoutGrid className="h-4 w-4" />
+          WorkOS
+        </TabsTrigger>
+        <TabsTrigger value="clickup" className="gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+          <svg viewBox="0 0 32 32" className="h-4 w-4" fill="none">
+            <circle cx="16" cy="16" r="16" fill="#7B68EE" />
+            <circle cx="16" cy="16" r="5" fill="white" />
+          </svg>
+          Astra Numèrica
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="workos">
     <div className="space-y-4 md:space-y-6">
       {loadError ? (
         <div className="rounded-2xl border border-danger/30 bg-danger-muted/40 p-4">
@@ -1246,6 +1268,12 @@ export default function KanbanPage() {
         </div>
       </DndContext>
     </div>
+      </TabsContent>
+
+      <TabsContent value="clickup" className="mt-0">
+        <ClickUpBoard viewId={clickupViewId} />
+      </TabsContent>
+    </Tabs>
   );
 }
 

@@ -202,6 +202,8 @@ export interface Profile {
   avatar_url: string | null;
   plan: string;
   timezone: string;
+  clickup_token: string | null;
+  clickup_view_id: string | null;
   created_at: string;
   updated_at: string;
 }
