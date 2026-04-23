@@ -24,7 +24,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { clickupApi } from "@/features/clickup/api";
-import type { CUMember, CUStatus, CUTask } from "@/features/clickup/types";
+import type { CUMember, CUStatus, CUTag, CUTask } from "@/features/clickup/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,10 +75,12 @@ function TaskCard({
   task,
   onClick,
   overlay = false,
+  currentUserId,
 }: {
   task: CUTask;
   onClick?: () => void;
   overlay?: boolean;
+  currentUserId?: number | null;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -94,6 +96,9 @@ function TaskCard({
   const priorityKey = task.priority?.orderindex ?? "";
   const due = formatDueDate(task.due_date);
   const overdue = task.due_date && Number(task.due_date) < Date.now();
+  const isAssignedToMe = currentUserId != null && (task.assignees ?? []).some((a) => a?.id === currentUserId);
+  const tags: CUTag[] = task.tags ?? [];
+  const subtasksCount = task.subtasks_count ?? 0;
 
   return (
     <div
@@ -102,12 +107,36 @@ function TaskCard({
       {...(overlay ? {} : { ...attributes, ...listeners })}
       onClick={onClick}
       className={cn(
-        "cursor-pointer rounded-xl border border-border bg-card/90 p-3 shadow-sm",
-        "hover:border-primary/40 hover:bg-card transition-colors",
+        "cursor-pointer rounded-xl border bg-card/90 p-3 shadow-sm transition-colors",
+        "hover:border-primary/40 hover:bg-card",
+        isAssignedToMe
+          ? "border-primary/60 ring-1 ring-primary/30"
+          : "border-border",
         overlay && "shadow-xl ring-2 ring-primary/30",
       )}
     >
+      {isAssignedToMe && (
+        <div className="mb-1.5 flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">Sua tarefa</span>
+        </div>
+      )}
+
       <p className="text-sm font-medium leading-snug text-foreground">{task.name}</p>
+
+      {tags.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {tags.map((tag) => (
+            <span
+              key={tag.name}
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+              style={{ backgroundColor: tag.tag_bg + "33", color: tag.tag_fg, border: `1px solid ${tag.tag_bg}66` }}
+            >
+              {tag.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {priorityKey && (
@@ -120,6 +149,9 @@ function TaskCard({
             {due}
           </span>
         )}
+        {subtasksCount > 0 && (
+          <span className="text-xs text-muted-foreground">☰ {subtasksCount}</span>
+        )}
       </div>
 
       {(task.assignees ?? []).length > 0 && (
@@ -127,7 +159,10 @@ function TaskCard({
           {(task.assignees ?? []).slice(0, 3).filter((a) => a?.id != null).map((a) => (
             <div
               key={a.id}
-              className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
+              className={cn(
+                "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white",
+                a.id === currentUserId && "ring-2 ring-primary ring-offset-1 ring-offset-card",
+              )}
               style={{ backgroundColor: a.color || "#7B68EE" }}
               title={a.username}
             >
@@ -146,10 +181,12 @@ function Column({
   status,
   tasks,
   onTaskClick,
+  currentUserId,
 }: {
   status: CUStatus;
   tasks: CUTask[];
   onTaskClick: (task: CUTask) => void;
+  currentUserId?: number | null;
 }) {
   const ids = tasks.map((t) => t.id);
 
@@ -172,7 +209,7 @@ function Column({
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} />
+            <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} currentUserId={currentUserId} />
           ))}
         </div>
       </SortableContext>
@@ -380,6 +417,7 @@ export default function ClickUpBoard({ viewId }: { viewId: string | null | undef
   const [statuses, setStatuses] = useState<CUStatus[]>([]);
   const [members, setMembers] = useState<CUMember[]>([]);
   const [listId, setListId] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
@@ -407,10 +445,12 @@ export default function ClickUpBoard({ viewId }: { viewId: string | null | undef
         resolvedViewId = boardView.id;
       }
 
-      const [viewRes, tasksRes] = await Promise.all([
+      const [viewRes, tasksRes, userRes] = await Promise.all([
         clickupApi.getView(resolvedViewId),
         clickupApi.getViewTasks(resolvedViewId),
+        clickupApi.getUser().catch(() => null),
       ]);
+      if (userRes?.user?.id) setCurrentUserId(userRes.user.id);
 
       const view = viewRes?.view;
       if (!view) throw new Error("View não encontrada ou sem permissão de acesso");
@@ -632,11 +672,12 @@ export default function ClickUpBoard({ viewId }: { viewId: string | null | undef
               status={status}
               tasks={tasksByStatus[status.status] ?? []}
               onTaskClick={setDetailTask}
+              currentUserId={currentUserId}
             />
           ))}
         </div>
         <DragOverlay>
-          {activeTask && <TaskCard task={activeTask} overlay />}
+          {activeTask && <TaskCard task={activeTask} overlay currentUserId={currentUserId} />}
         </DragOverlay>
       </DndContext>
 

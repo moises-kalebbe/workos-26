@@ -44,6 +44,9 @@ export const clickupApi = {
   getList: (listId: string) =>
     cuFetch<CUListResponse>(`list/${listId}`),
 
+  getUser: () =>
+    cuFetch<{ user: { id: number; username: string; email: string; color: string; profilePicture: string | null } }>("user"),
+
   getSpaceViews: (spaceId: string) =>
     cuFetch<CUSpaceViewsResponse>(`space/${spaceId}/view`),
 

@@ -20,6 +20,12 @@ export interface CUMember {
   color: string;
 }
 
+export interface CUTag {
+  name: string;
+  tag_fg: string;
+  tag_bg: string;
+}
+
 export interface CUTask {
   id: string;
   name: string;
@@ -28,6 +34,8 @@ export interface CUTask {
   priority: CUPriority | null;
   due_date: string | null;
   assignees: CUMember[];
+  tags: CUTag[];
+  subtasks_count: number;
   list: { id: string; name: string };
   url: string;
   date_created: string;
