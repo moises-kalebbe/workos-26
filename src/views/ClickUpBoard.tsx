@@ -417,10 +417,24 @@ export default function ClickUpBoard({ viewId }: { viewId: string | null | undef
       const resolvedListId = view.parent?.id ?? "";
       setListId(resolvedListId);
 
-      const rawStatuses: CUStatus[] = (view.list?.statuses ?? []).sort(
-        (a, b) => (a.orderindex ?? 0) - (b.orderindex ?? 0),
-      );
-      setStatuses(rawStatuses.filter((s) => s?.status != null));
+      // Statuses come from the list, not the view
+      let rawStatuses: CUStatus[] = view.list?.statuses ?? [];
+      if (rawStatuses.length === 0 && resolvedListId) {
+        try {
+          const listRes = await clickupApi.getList(resolvedListId);
+          rawStatuses = listRes?.statuses ?? [];
+        } catch {
+          // fallback: derive statuses from tasks
+        }
+      }
+      // Fallback: derive unique statuses from tasks
+      if (rawStatuses.length === 0) {
+        const seen = new Set<string>();
+        rawStatuses = (tasksRes?.tasks ?? [])
+          .filter((t) => t?.status?.status && !seen.has(t.status.status) && seen.add(t.status.status))
+          .map((t) => t.status);
+      }
+      setStatuses(rawStatuses.filter((s) => s?.status != null).sort((a, b) => (a.orderindex ?? 0) - (b.orderindex ?? 0)));
       setTasks((tasksRes?.tasks ?? []).filter((t): t is CUTask => t?.id != null));
 
       if (resolvedListId) {
