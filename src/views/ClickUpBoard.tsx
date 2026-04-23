@@ -333,7 +333,7 @@ function CreateTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader><DialogTitle>Nova tarefa no ClickUp</DialogTitle></DialogHeader>
         <div className="flex flex-col gap-4 pt-1">
           <div className="flex flex-col gap-1.5">
@@ -375,7 +375,7 @@ function CreateTaskDialog({
 
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
-export default function ClickUpBoard({ viewId }: { viewId: string }) {
+export default function ClickUpBoard({ viewId }: { viewId: string | null | undefined }) {
   const [tasks, setTasks] = useState<CUTask[]>([]);
   const [statuses, setStatuses] = useState<CUStatus[]>([]);
   const [members, setMembers] = useState<CUMember[]>([]);
@@ -387,12 +387,12 @@ export default function ClickUpBoard({ viewId }: { viewId: string }) {
   const [activeTask, setActiveTask] = useState<CUTask | null>(null);
   const [detailTask, setDetailTask] = useState<CUTask | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [filterAssignee, setFilterAssignee] = useState("");
+  const [filterAssignee, setFilterAssignee] = useState("__all__");
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const loadBoard = useCallback(async () => {
-    if (!viewId) return;
+    if (!viewId) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     setNotConfigured(false);
@@ -440,7 +440,7 @@ export default function ClickUpBoard({ viewId }: { viewId: string }) {
     for (const t of tasks) {
       const key = t.status.status;
       if (!map[key]) map[key] = [];
-      const assigneeMatch = !filterAssignee || t.assignees.some((a) => String(a.id) === filterAssignee);
+      const assigneeMatch = filterAssignee === "__all__" || t.assignees.some((a) => String(a.id) === filterAssignee);
       if (assigneeMatch) map[key].push(t);
     }
     return map;
@@ -514,6 +514,24 @@ export default function ClickUpBoard({ viewId }: { viewId: string }) {
     );
   }
 
+  if (!viewId) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <AlertCircle className="h-10 w-10 text-muted-foreground opacity-40" />
+        <p className="font-semibold text-foreground">View ID não configurado</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Configure o View ID do board em Settings → Integrações para carregar o Astra Numèrica.
+        </p>
+        <Link href="/settings?tab=integracoes">
+          <Button variant="outline" size="sm">
+            <Settings className="mr-2 h-4 w-4" />
+            Abrir configurações
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   if (notConfigured) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
@@ -556,7 +574,7 @@ export default function ClickUpBoard({ viewId }: { viewId: string }) {
               <SelectValue placeholder="Todos os membros" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os membros</SelectItem>
+              <SelectItem value="__all__">Todos os membros</SelectItem>
               {members.map((m) => (
                 <SelectItem key={m.id} value={String(m.id)}>
                   {m.username}

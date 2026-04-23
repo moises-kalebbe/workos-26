@@ -107,8 +107,8 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [filterType, setFilterType] = useState("");
-  const [filterMonth, setFilterMonth] = useState("");
+  const [filterType, setFilterType] = useState("__all__");
+  const [filterMonth, setFilterMonth] = useState("__all__");
 
   const [deleteFileTarget, setDeleteFileTarget] = useState<ClientFile | null>(null);
   const [deleteClientOpen, setDeleteClientOpen] = useState(false);
@@ -305,8 +305,8 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
 
   const filteredFiles = useMemo(() => {
     return files.filter((f) => {
-      const matchType = !filterType || f.service_type === filterType;
-      const matchMonth = !filterMonth || f.service_date.startsWith(filterMonth);
+      const matchType = filterType === "__all__" || f.service_type === filterType;
+      const matchMonth = filterMonth === "__all__" || f.service_date.startsWith(filterMonth);
       return matchType && matchMonth;
     });
   }, [files, filterType, filterMonth]);
@@ -387,7 +387,7 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
                 <SelectValue placeholder="Todos os meses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os meses</SelectItem>
+                <SelectItem value="__all__">Todos os meses</SelectItem>
                 {availableMonths.map((m) => (
                   <SelectItem key={m} value={m}>
                     {formatDate(m + "-01")}
@@ -401,18 +401,18 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
                 <SelectValue placeholder="Todos os tipos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os tipos</SelectItem>
+                <SelectItem value="__all__">Todos os tipos</SelectItem>
                 {SERVICE_TYPES.map((t) => (
                   <SelectItem key={t} value={t}>{t}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {(filterMonth || filterType) && (
+            {(filterMonth !== "__all__" || filterType !== "__all__") && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => { setFilterMonth(""); setFilterType(""); }}
+                onClick={() => { setFilterMonth("__all__"); setFilterType("__all__"); }}
               >
                 Limpar filtros
               </Button>
@@ -423,9 +423,9 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
               <UploadCloud className="h-10 w-10 opacity-40" />
               <p className="text-sm">
-                {filterMonth || filterType ? "Nenhum arquivo com esses filtros" : "Nenhum arquivo enviado ainda"}
+                {filterMonth !== "__all__" || filterType !== "__all__" ? "Nenhum arquivo com esses filtros" : "Nenhum arquivo enviado ainda"}
               </p>
-              {!filterMonth && !filterType && (
+              {filterMonth === "__all__" && filterType === "__all__" && (
                 <Button variant="outline" size="sm" onClick={() => setUploadDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Enviar primeiro arquivo
@@ -484,7 +484,7 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
                 <SelectValue placeholder="Todos os meses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os meses</SelectItem>
+                <SelectItem value="__all__">Todos os meses</SelectItem>
                 {availableMonths.map((m) => (
                   <SelectItem key={m} value={m}>
                     {formatDate(m + "-01")}
@@ -492,8 +492,8 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
                 ))}
               </SelectContent>
             </Select>
-            {filterMonth && (
-              <Button variant="ghost" size="sm" onClick={() => setFilterMonth("")}>
+            {filterMonth !== "__all__" && (
+              <Button variant="ghost" size="sm" onClick={() => setFilterMonth("__all__")}>
                 Ver tudo
               </Button>
             )}
