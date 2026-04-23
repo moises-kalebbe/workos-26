@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ChevronDown,
+  ChevronRight,
   Download,
   FileIcon,
   FolderOpen,
@@ -91,6 +93,55 @@ const EMPTY_UPLOAD: UploadForm = {
   serviceType: "",
   description: "",
 };
+
+function FolderFileList({
+  groups,
+  ungrouped,
+  onDownload,
+  onDelete,
+}: {
+  groups: [string, ClientFile[]][];
+  ungrouped: ClientFile[];
+  onDownload: (f: ClientFile) => void;
+  onDelete: (f: ClientFile) => void;
+}) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggle = (name: string) => setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
+
+  return (
+    <div className="flex flex-col gap-3">
+      {groups.map(([folderName, groupFiles]) => {
+        const isCollapsed = collapsed[folderName] ?? false;
+        return (
+          <div key={folderName}>
+            <button
+              type="button"
+              onClick={() => toggle(folderName)}
+              className="mb-1.5 flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left hover:bg-muted/40 transition-colors"
+            >
+              {isCollapsed
+                ? <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+              <FolderOpen className="h-4 w-4 shrink-0 text-primary/70" />
+              <span className="text-sm font-medium text-foreground/80">{folderName}</span>
+              <span className="text-xs text-muted-foreground">({groupFiles.length})</span>
+            </button>
+            {!isCollapsed && (
+              <div className="flex flex-col gap-1.5 border-l-2 border-primary/15 pl-3">
+                {groupFiles.map((file) => (
+                  <FileRow key={file.id} file={file} onDownload={onDownload} onDelete={onDelete} showDescription={false} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {ungrouped.map((file) => (
+        <FileRow key={file.id} file={file} onDownload={onDownload} onDelete={onDelete} showDescription={true} />
+      ))}
+    </div>
+  );
+}
 
 function FileRow({
   file,
@@ -542,25 +593,12 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
               )}
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              {fileGroups.entries.map(([folderName, groupFiles]) => (
-                <div key={folderName}>
-                  <div className="mb-1.5 flex items-center gap-2 px-1">
-                    <FolderOpen className="h-4 w-4 shrink-0 text-primary/70" />
-                    <span className="text-sm font-medium text-foreground/80">{folderName}</span>
-                    <span className="text-xs text-muted-foreground">({groupFiles.length})</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5 border-l-2 border-primary/15 pl-3">
-                    {groupFiles.map((file) => (
-                      <FileRow key={file.id} file={file} onDownload={handleDownload} onDelete={setDeleteFileTarget} showDescription={false} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-              {fileGroups.ungrouped.map((file) => (
-                <FileRow key={file.id} file={file} onDownload={handleDownload} onDelete={setDeleteFileTarget} showDescription={true} />
-              ))}
-            </div>
+            <FolderFileList
+              groups={fileGroups.entries}
+              ungrouped={fileGroups.ungrouped}
+              onDownload={handleDownload}
+              onDelete={setDeleteFileTarget}
+            />
           )}
         </TabsContent>
 
