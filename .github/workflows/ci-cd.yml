@@ -150,13 +150,23 @@ jobs:
           write_ssh_key() {
             local raw="$1"
             local target="$2"
+            local normalized="${raw}"
 
-            if grep -q '^-----BEGIN ' <<< "${raw}"; then
-              printf '%b' "${raw}" | tr -d '\r' > "${target}"
+            normalized="${normalized#"${normalized%%[![:space:]]*}"}"
+            normalized="${normalized%"${normalized##*[![:space:]]}"}"
+            if [[ "${normalized}" == \"*\" && "${normalized}" == *\" ]]; then
+              normalized="${normalized:1:${#normalized}-2}"
+            fi
+            if [[ "${normalized}" == \'*\' && "${normalized}" == *\' ]]; then
+              normalized="${normalized:1:${#normalized}-2}"
+            fi
+
+            if grep -q '^-----BEGIN ' <<< "${normalized}"; then
+              printf '%b' "${normalized}" | tr -d '\r' > "${target}"
               return
             fi
 
-            printf '%s' "${raw}" | tr -d '\r\n ' | base64 --decode > "${target}"
+            printf '%s' "${normalized}" | tr -d '\r\n ' | base64 --decode > "${target}"
           }
 
           if ! write_ssh_key "${VPS_SSH_KEY}" ~/.ssh/id_ed25519 2>/dev/null; then
