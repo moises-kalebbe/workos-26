@@ -105,7 +105,10 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [upload, setUpload] = useState<UploadForm>(EMPTY_UPLOAD);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [folderFiles, setFolderFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const [filterType, setFilterType] = useState("__all__");
   const [filterMonth, setFilterMonth] = useState("__all__");
@@ -197,13 +200,12 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (file.size > FILE_SIZE_LIMIT) {
       toast.error("Arquivo excede o limite de 10MB");
       e.target.value = "";
       return;
     }
-
+    setFolderFiles([]);
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
@@ -219,23 +221,79 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
     reader.readAsDataURL(file);
   }
 
+  function handleFolderSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const all = Array.from(e.target.files ?? []);
+    const valid = all.filter((f) => f.size <= FILE_SIZE_LIMIT);
+    const oversized = all.length - valid.length;
+    if (oversized > 0) toast.warning(`${oversized} arquivo(s) ignorados por exceder 10MB`);
+    if (valid.length === 0) return;
+    setFolderFiles(valid);
+    setUpload((prev) => ({ ...prev, fileName: "", fileData: "", fileMime: "", fileSize: 0 }));
+  }
+
+  function readFileAsBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target?.result as string;
+        resolve(result.split(",")[1] ?? "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   async function handleUpload() {
-    if (!upload.fileData) {
-      toast.error("Selecione um arquivo");
-      return;
-    }
-    if (!upload.serviceType) {
-      toast.error("Selecione o tipo de serviço");
-      return;
-    }
-    if (!upload.serviceMonth) {
-      toast.error("Informe o mês do serviço");
+    if (!upload.serviceType) { toast.error("Selecione o tipo de serviço"); return; }
+    if (!upload.serviceMonth) { toast.error("Informe o mês do serviço"); return; }
+
+    const serviceDate = `${upload.serviceMonth}-01`;
+
+    // Pasta: upload sequencial
+    if (folderFiles.length > 0) {
+      if (!upload.serviceType) { toast.error("Selecione o tipo de serviço"); return; }
+      setUploading(true);
+      setUploadProgress({ done: 0, total: folderFiles.length });
+      let errors = 0;
+      for (let i = 0; i < folderFiles.length; i++) {
+        const file = folderFiles[i];
+        try {
+          const base64 = await readFileAsBase64(file);
+          const res = await authorizedFetch("/api/clientes/upload", {
+            method: "POST",
+            body: JSON.stringify({
+              client_id: clientId,
+              file_name: file.name,
+              file_mime: file.type || "application/octet-stream",
+              file_size: file.size,
+              file_data: base64,
+              service_date: serviceDate,
+              service_type: upload.serviceType,
+              description: upload.description.trim() || null,
+            }),
+          });
+          if (!res.ok) errors++;
+        } catch {
+          errors++;
+        }
+        setUploadProgress({ done: i + 1, total: folderFiles.length });
+      }
+      setUploading(false);
+      setUploadProgress(null);
+      if (errors > 0) toast.warning(`${errors} arquivo(s) falharam ao enviar`);
+      else toast.success(`${folderFiles.length} arquivo(s) enviados com sucesso`);
+      setUploadDialogOpen(false);
+      setFolderFiles([]);
+      setUpload(EMPTY_UPLOAD);
+      if (folderInputRef.current) folderInputRef.current.value = "";
+      await loadData();
       return;
     }
 
+    // Arquivo único
+    if (!upload.fileData) { toast.error("Selecione um arquivo"); return; }
     setUploading(true);
     try {
-      const serviceDate = `${upload.serviceMonth}-01`;
       const res = await authorizedFetch("/api/clientes/upload", {
         method: "POST",
         body: JSON.stringify({
@@ -249,10 +307,8 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
           description: upload.description.trim() || null,
         }),
       });
-
       const json = (await res.json()) as { data?: { id: string }; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Erro ao enviar");
-
       toast.success("Arquivo enviado com sucesso");
       setUploadDialogOpen(false);
       setUpload(EMPTY_UPLOAD);
@@ -575,23 +631,30 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
         setUploadDialogOpen(open);
         if (!open) {
           setUpload(EMPTY_UPLOAD);
+          setFolderFiles([]);
+          setUploadProgress(null);
           if (fileInputRef.current) fileInputRef.current.value = "";
+          if (folderInputRef.current) folderInputRef.current.value = "";
         }
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Enviar arquivo</DialogTitle>
+            <DialogTitle>Enviar arquivo{folderFiles.length > 1 ? "s" : ""}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 pt-2">
             <div className="flex flex-col gap-1.5">
-              <Label>Arquivo *</Label>
+              <Label>Origem *</Label>
+              <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
               <input
                 type="file"
-                ref={fileInputRef}
+                ref={folderInputRef}
                 className="hidden"
-                onChange={handleFileSelect}
+                // @ts-expect-error webkitdirectory não está no tipo padrão
+                webkitdirectory=""
+                multiple
+                onChange={handleFolderSelect}
               />
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -599,24 +662,55 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
                   className="flex-1"
                 >
                   <UploadCloud className="mr-2 h-4 w-4" />
-                  {upload.fileName ? "Trocar arquivo" : "Selecionar arquivo"}
+                  Arquivo
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => folderInputRef.current?.click()}
+                  className="flex-1"
+                >
+                  <UploadCloud className="mr-2 h-4 w-4" />
+                  Pasta
                 </Button>
               </div>
-              {upload.fileName && (
+
+              {folderFiles.length > 0 ? (
+                <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
+                  <p className="font-medium">{folderFiles.length} arquivo(s) selecionado(s)</p>
+                  <div className="mt-1 max-h-24 overflow-y-auto space-y-0.5">
+                    {folderFiles.slice(0, 20).map((f) => (
+                      <p key={f.name} className="truncate text-xs text-muted-foreground">{f.name}</p>
+                    ))}
+                    {folderFiles.length > 20 && (
+                      <p className="text-xs text-muted-foreground">…e mais {folderFiles.length - 20}</p>
+                    )}
+                  </div>
+                </div>
+              ) : upload.fileName ? (
                 <p className={cn("truncate text-sm text-muted-foreground")}>
                   {upload.fileName} · {formatBytes(upload.fileSize)}
                 </p>
+              ) : null}
+
+              {uploadProgress && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Enviando {uploadProgress.done}/{uploadProgress.total}…
+                </div>
               )}
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label>Nome do arquivo</Label>
-              <Input
-                placeholder="Nome do arquivo"
-                value={upload.fileName}
-                onChange={(e) => setUpload((u) => ({ ...u, fileName: e.target.value }))}
-              />
-            </div>
+            {folderFiles.length === 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Nome do arquivo</Label>
+                <Input
+                  placeholder="Nome do arquivo"
+                  value={upload.fileName}
+                  onChange={(e) => setUpload((u) => ({ ...u, fileName: e.target.value }))}
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
@@ -659,9 +753,9 @@ export default function ClienteDetalhePage({ clientId }: { clientId: string }) {
               <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={uploading}>
                 Cancelar
               </Button>
-              <Button onClick={handleUpload} disabled={uploading || !upload.fileData}>
+              <Button onClick={handleUpload} disabled={uploading || (folderFiles.length === 0 && !upload.fileData)}>
                 {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enviar arquivo
+                {folderFiles.length > 1 ? `Enviar ${folderFiles.length} arquivos` : "Enviar arquivo"}
               </Button>
             </div>
           </div>
