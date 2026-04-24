@@ -1,8 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Loader2, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { format, subMonths } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  ChevronRight,
+  FileUp,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  Trophy,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/dbClient";
 import { PageHeader } from "@/components/system/page-header";
@@ -27,12 +39,24 @@ type ClientForm = {
   notes: string;
 };
 
+type ClientFileMeta = {
+  id: string;
+  client_id: string;
+  file_name: string;
+  file_size: number;
+  service_date: string;
+  service_type: string;
+  created_at: string;
+};
+
 const EMPTY_FORM: ClientForm = { name: "", email: "", phone: "", notes: "" };
 
 export default function ClientesPage() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allFiles, setAllFiles] = useState<ClientFileMeta[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [form, setForm] = useState<ClientForm>(EMPTY_FORM);
@@ -57,9 +81,64 @@ export default function ClientesPage() {
     }
   }, []);
 
+  const loadFiles = useCallback(async () => {
+    setLoadingFiles(true);
+    try {
+      const { data, error } = await db
+        .from("client_files")
+        .select("id,client_id,file_name,file_size,service_date,service_type,created_at")
+        .order("service_date", { ascending: false });
+      if (error) throw new Error(error.message);
+      setAllFiles((data as unknown as ClientFileMeta[]) ?? []);
+    } catch (err) {
+      console.error("Erro ao carregar arquivos:", err);
+    } finally {
+      setLoadingFiles(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadClients();
-  }, [loadClients]);
+    void loadFiles();
+  }, [loadClients, loadFiles]);
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const currentMonthStr = format(now, "yyyy-MM");
+    const lastMonthStr = format(subMonths(now, 1), "yyyy-MM");
+    const currentMonthLabel = format(now, "MMMM/yyyy", { locale: ptBR });
+    const lastMonthLabel = format(subMonths(now, 1), "MMMM", { locale: ptBR });
+
+    const thisMonthFiles = allFiles.filter((f) => f.service_date.startsWith(currentMonthStr));
+    const lastMonthFiles = allFiles.filter((f) => f.service_date.startsWith(lastMonthStr));
+
+    const activeClientsThisMonth = new Set(thisMonthFiles.map((f) => f.client_id)).size;
+
+    const countByClientId = thisMonthFiles.reduce<Record<string, number>>((acc, f) => {
+      acc[f.client_id] = (acc[f.client_id] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    const topClientId = Object.entries(countByClientId).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    const topClient = topClientId ? clients.find((c) => c.id === topClientId) : null;
+    const topClientCount = topClientId ? (countByClientId[topClientId] ?? 0) : 0;
+
+    const trend =
+      lastMonthFiles.length === 0
+        ? null
+        : Math.round(((thisMonthFiles.length - lastMonthFiles.length) / lastMonthFiles.length) * 100);
+
+    return {
+      totalClients: clients.length,
+      thisMonthCount: thisMonthFiles.length,
+      activeClientsThisMonth,
+      topClient,
+      topClientCount,
+      trend,
+      currentMonthLabel,
+      lastMonthLabel,
+    };
+  }, [allFiles, clients]);
 
   function openCreate() {
     setEditingClient(null);
@@ -130,6 +209,22 @@ export default function ClientesPage() {
     c.name.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const insightText = (() => {
+    if (loadingFiles) return null;
+    const { thisMonthCount, activeClientsThisMonth, currentMonthLabel, trend, lastMonthLabel } = stats;
+
+    if (thisMonthCount === 0) {
+      return `Nenhum arquivo entregue em ${currentMonthLabel} ainda. Hora de registrar os serviços do mês.`;
+    }
+
+    const base = `Em ${currentMonthLabel} você entregou ${thisMonthCount} ${thisMonthCount === 1 ? "arquivo" : "arquivos"} para ${activeClientsThisMonth} ${activeClientsThisMonth === 1 ? "cliente" : "clientes"}.`;
+
+    if (trend === null) return base;
+    if (trend > 0) return `${base} ↑ ${trend}% a mais que ${lastMonthLabel}.`;
+    if (trend < 0) return `${base} ↓ ${Math.abs(trend)}% a menos que ${lastMonthLabel}.`;
+    return `${base} Mesmo volume que ${lastMonthLabel}.`;
+  })();
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <PageHeader
@@ -143,6 +238,86 @@ export default function ClientesPage() {
         }
       />
 
+      {/* Dashboard */}
+      {loadingFiles ? (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-xl bg-muted/40" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {/* Total clientes */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Total</p>
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{stats.totalClients}</p>
+            <p className="text-xs text-muted-foreground">clientes cadastrados</p>
+          </div>
+
+          {/* Arquivos este mês */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div className="flex items-center gap-2">
+              <FileUp className="h-4 w-4 text-primary" />
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Este mês</p>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className="text-2xl font-semibold text-foreground">{stats.thisMonthCount}</p>
+              {stats.trend !== null && (
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    stats.trend > 0 ? "text-success-foreground" : stats.trend < 0 ? "text-warning" : "text-muted-foreground",
+                  )}
+                >
+                  {stats.trend > 0 ? `↑ ${stats.trend}%` : stats.trend < 0 ? `↓ ${Math.abs(stats.trend)}%` : "= igual"}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">arquivos entregues</p>
+          </div>
+
+          {/* Clientes ativos */}
+          <div className="rounded-xl border border-info/20 bg-info-muted p-4">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-info" />
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Ativos</p>
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{stats.activeClientsThisMonth}</p>
+            <p className="text-xs text-muted-foreground">clientes com entrega no mês</p>
+          </div>
+
+          {/* Top cliente */}
+          <div className="rounded-xl border border-warning/20 bg-warning-muted p-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-warning" />
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Top cliente</p>
+            </div>
+            {stats.topClient ? (
+              <>
+                <p className="mt-2 truncate text-lg font-semibold text-foreground">{stats.topClient.name}</p>
+                <p className="text-xs text-muted-foreground">{stats.topClientCount} {stats.topClientCount === 1 ? "arquivo" : "arquivos"} este mês</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-2xl font-semibold text-foreground">—</p>
+                <p className="text-xs text-muted-foreground">sem entregas este mês</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Insight sentence */}
+      {insightText && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+          {insightText}
+        </div>
+      )}
+
+      {/* Search */}
       <div className="max-w-xs">
         <Input
           placeholder="Buscar cliente..."
