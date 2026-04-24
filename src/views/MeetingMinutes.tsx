@@ -3,9 +3,29 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, CheckCircle2, ClipboardList, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Pencil,
+  Plus,
+  RefreshCw,
+  SlidersHorizontal,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/system/page-header";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +45,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import {
   applyMeetingMinutesStatus,
@@ -89,6 +115,12 @@ function getStatusBadgeClass(status: MeetingMinutesStatus) {
   return "border-warning/30 bg-warning-muted text-warning-foreground";
 }
 
+function getStatusBorderClass(status: MeetingMinutesStatus) {
+  if (status === "resolved") return "border-l-success";
+  if (status === "in_progress") return "border-l-info";
+  return "border-l-warning";
+}
+
 export default function MeetingMinutesPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -115,6 +147,9 @@ export default function MeetingMinutesPage() {
   const [editingDetail, setEditingDetail] = useState("");
   const [editingStatus, setEditingStatus] = useState<MeetingMinutesStatus>("pending");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<MeetingMinutesItem | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -212,12 +247,23 @@ export default function MeetingMinutesPage() {
       ? newMeetingId
       : ALL_MEETINGS_VALUE;
 
+  const activeFilterCount =
+    (search.trim() ? 1 : 0) +
+    (statusFilter !== "all" ? 1 : 0) +
+    (meetingFilterId ? 1 : 0);
+
   const resetCreateForm = () => {
     setNewTitle("");
     setNewDetail("");
   };
 
-  const createItem = async () => {
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setMeetingFilterId(null);
+  };
+
+  const createItem = async (onSuccess?: () => void) => {
     if (!newMeetingId) {
       toast.error("Selecione uma reunião.");
       return;
@@ -269,6 +315,7 @@ export default function MeetingMinutesPage() {
     );
     resetCreateForm();
     toast.success("Item da ata criado.");
+    onSuccess?.();
   };
 
   const updateItemStatus = async (
@@ -312,9 +359,10 @@ export default function MeetingMinutesPage() {
     );
   };
 
-  const deleteItem = async (item: MeetingMinutesItem) => {
-    const confirmed = window.confirm("Excluir este item da ata? Esta ação não pode ser desfeita.");
-    if (!confirmed) return;
+  const confirmDelete = async () => {
+    if (!deletingItem) return;
+    const item = deletingItem;
+    setDeletingItem(null);
 
     setMutatingItemId(item.id);
     const { error } = await db
@@ -437,6 +485,66 @@ export default function MeetingMinutesPage() {
     toast.success("Item atualizado.");
   };
 
+  const createFormContent = (onSuccess?: () => void) => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Reunião</Label>
+        <Select
+          value={createMeetingValue}
+          onValueChange={(value) => setNewMeetingId(value === ALL_MEETINGS_VALUE ? "" : value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione uma reunião" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_MEETINGS_VALUE}>Selecione uma reunião</SelectItem>
+            {meetingOptions.map((meeting) => (
+              <SelectItem key={meeting.id} value={meeting.id}>
+                {formatMeetingOptionLabel(meeting)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Título</Label>
+        <Input
+          value={newTitle}
+          onChange={(event) => setNewTitle(event.target.value)}
+          placeholder="Ex.: enviar proposta revisada"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Detalhe</Label>
+        <Textarea
+          value={newDetail}
+          onChange={(event) => setNewDetail(event.target.value)}
+          placeholder="Contexto, dependências ou combinados da reunião"
+          rows={5}
+        />
+      </div>
+
+      <Button
+        className="w-full gap-2"
+        disabled={creating || meetingOptions.length === 0}
+        onClick={() => {
+          void createItem(onSuccess);
+        }}
+      >
+        <ClipboardList className="h-4 w-4" />
+        {creating ? "Criando..." : "Adicionar item"}
+      </Button>
+
+      {meetingOptions.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          Nenhuma reunião disponível para vincular no momento.
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4 md:space-y-6">
       <PageHeader
@@ -457,27 +565,37 @@ export default function MeetingMinutesPage() {
               }}
             >
               <RefreshCw className={cn("h-4 w-4", meetingsLoading && "animate-spin")} />
-              Atualizar reuniões
+              <span className="hidden sm:inline">Atualizar reuniões</span>
             </Button>
           </>
         )}
       />
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-warning/20 bg-warning-muted p-4">
-          <p className="text-xs uppercase tracking-loose text-muted-foreground">Pendentes</p>
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-2 md:gap-3">
+        <div className="rounded-xl border border-warning/20 bg-warning-muted p-3 md:p-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-warning" />
+            <p className="text-xs uppercase tracking-loose text-muted-foreground">Pendentes</p>
+          </div>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.pending}</p>
-          <p className="text-xs text-muted-foreground">Itens ainda sem execução iniciada.</p>
+          <p className="hidden text-xs text-muted-foreground sm:block">Itens ainda sem execução iniciada.</p>
         </div>
-        <div className="rounded-xl border border-info/20 bg-info-muted p-4">
-          <p className="text-xs uppercase tracking-loose text-muted-foreground">Em andamento</p>
+        <div className="rounded-xl border border-info/20 bg-info-muted p-3 md:p-4">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 text-info" />
+            <p className="text-xs uppercase tracking-loose text-muted-foreground">Em andamento</p>
+          </div>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.in_progress}</p>
-          <p className="text-xs text-muted-foreground">Pendências em acompanhamento ativo.</p>
+          <p className="hidden text-xs text-muted-foreground sm:block">Pendências em acompanhamento ativo.</p>
         </div>
-        <div className="rounded-xl border border-success/20 bg-success-muted p-4">
-          <p className="text-xs uppercase tracking-loose text-muted-foreground">Resolvidos</p>
+        <div className="rounded-xl border border-success/20 bg-success-muted p-3 md:p-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <p className="text-xs uppercase tracking-loose text-muted-foreground">Resolvidos</p>
+          </div>
           <p className="mt-2 text-2xl font-semibold text-foreground">{summary.resolved}</p>
-          <p className="text-xs text-muted-foreground">Itens concluidos e marcados em check.</p>
+          <p className="hidden text-xs text-muted-foreground sm:block">Itens concluidos e marcados em check.</p>
         </div>
       </div>
 
@@ -488,7 +606,8 @@ export default function MeetingMinutesPage() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
+        {/* Sidebar form — desktop only */}
+        <section className="hidden space-y-4 rounded-2xl border border-border bg-card p-5 xl:block">
           <div>
             <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Novo item</p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Checklist da reunião</h2>
@@ -496,87 +615,54 @@ export default function MeetingMinutesPage() {
               Vincule cada item a uma reunião para manter contexto e histórico visível.
             </p>
           </div>
-
-          <div className="space-y-2">
-            <Label>Reunião</Label>
-            <Select
-              value={createMeetingValue}
-              onValueChange={(value) => setNewMeetingId(value === ALL_MEETINGS_VALUE ? "" : value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma reunião" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_MEETINGS_VALUE}>Selecione uma reunião</SelectItem>
-                {meetingOptions.map((meeting) => (
-                  <SelectItem key={meeting.id} value={meeting.id}>
-                    {formatMeetingOptionLabel(meeting)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Título</Label>
-            <Input
-              value={newTitle}
-              onChange={(event) => setNewTitle(event.target.value)}
-              placeholder="Ex.: enviar proposta revisada"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Detalhe</Label>
-            <Textarea
-              value={newDetail}
-              onChange={(event) => setNewDetail(event.target.value)}
-              placeholder="Contexto, dependências ou combinados da reunião"
-              rows={5}
-            />
-          </div>
-
-          <Button
-            className="w-full gap-2"
-            disabled={creating || meetingOptions.length === 0}
-            onClick={() => {
-              void createItem();
-            }}
-          >
-            <ClipboardList className="h-4 w-4" />
-            {creating ? "Criando..." : "Adicionar item"}
-          </Button>
-
-          {meetingOptions.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              Nenhuma reunião disponível para vincular no momento.
-            </p>
-          )}
+          {createFormContent()}
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        {/* Items list */}
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-eyebrow font-semibold uppercase tracking-eyebrow text-primary">Visão consolidada</p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Itens das atas</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 hidden text-sm text-muted-foreground sm:block">
                 Filtre por reunião, texto ou status e marque rapidamente o que já foi concluido.
               </p>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setSearch("");
-                setStatusFilter("all");
-                setMeetingFilterId(null);
-              }}
+              className="shrink-0"
+              onClick={clearFilters}
             >
               Limpar filtros
             </Button>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_260px]">
+          {/* Mobile filter toggle */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => setFiltersOpen((v) => !v)}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtros
+              {activeFilterCount > 0 && (
+                <Badge className="ml-0.5 h-4 min-w-4 rounded-full px-1 text-[10px]">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
+
+          {/* Filter inputs */}
+          <div
+            className={cn(
+              "grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_260px]",
+              !filtersOpen && "hidden sm:grid",
+            )}
+          >
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -643,160 +729,187 @@ export default function MeetingMinutesPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {filteredItems.map((item) => (
-                (() => {
-                  const checklistEntries = item.checklist_json.length
-                    ? item.checklist_json
-                    : parseChecklistFromText(item.detail || "");
-                  const showPlainDetail = Boolean(item.detail) && checklistEntries.length === 0;
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+              {filteredItems.map((item) => {
+                const checklistEntries = item.checklist_json.length
+                  ? item.checklist_json
+                  : parseChecklistFromText(item.detail || "");
+                const showPlainDetail = Boolean(item.detail) && checklistEntries.length === 0;
+                const isMutating = mutatingItemId === item.id;
 
-                  return (
-                <article
-                  key={item.id}
-                  className={cn(
-                    "rounded-xl border border-border bg-background/25 p-4 transition-colors",
-                    item.status === "resolved" && "border-success/20 bg-success-muted",
-                  )}
-                >
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={item.status === "resolved"}
-                          disabled={mutatingItemId === item.id}
-                          onCheckedChange={(checked) => {
-                            void updateItemStatus(item, checked ? "resolved" : "pending");
-                          }}
-                          className="mt-1"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p
-                              className={cn(
-                                "text-sm font-semibold text-foreground",
-                                item.status === "resolved" && "line-through opacity-80",
-                              )}
-                            >
-                              {item.title}
-                            </p>
-                            <Badge className={cn("border", getStatusBadgeClass(item.status))}>
-                              {MEETING_MINUTES_STATUS_LABEL[item.status]}
-                            </Badge>
-                            {item.status === "resolved" && (
-                              <Badge variant="outline" className="border-success/30 text-success-foreground">
-                                <CheckCircle2 className="mr-1 h-3 w-3" />
-                                Check
-                              </Badge>
+                return (
+                  <article
+                    key={item.id}
+                    className={cn(
+                      "flex flex-col rounded-xl border border-border bg-background/25 border-l-4 p-3 transition-colors md:p-4",
+                      getStatusBorderClass(item.status),
+                    )}
+                  >
+                    {/* Header row */}
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={item.status === "resolved"}
+                        disabled={isMutating}
+                        onCheckedChange={(checked) => {
+                          void updateItemStatus(item, checked ? "resolved" : "pending");
+                        }}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p
+                            className={cn(
+                              "text-sm font-semibold text-foreground",
+                              item.status === "resolved" && "line-through opacity-70",
                             )}
-                          </div>
-
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {item.meeting_summary} - {formatMeetingSnapshot(item.meeting_start_at)}
+                          >
+                            {item.title}
                           </p>
+                          <Badge className={cn("border", getStatusBadgeClass(item.status))}>
+                            {MEETING_MINUTES_STATUS_LABEL[item.status]}
+                          </Badge>
+                        </div>
 
-                          {showPlainDetail && item.detail && (
-                            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                              {item.detail}
-                            </p>
-                          )}
-
-                          {checklistEntries.length > 0 && (
-                            <div className="mt-3 space-y-2 rounded-lg border border-border/60 bg-background/40 p-3">
-                              <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
-                                Checklist da reunião
-                              </p>
-                              <div className="space-y-1.5">
-                                {checklistEntries.map((entry) => (
-                                  <label
-                                    key={entry.id}
-                                    className="flex items-start gap-2 text-sm text-foreground"
-                                  >
-                                    <Checkbox
-                                      checked={entry.completed}
-                                      disabled={mutatingItemId === item.id}
-                                      onCheckedChange={(checked) => {
-                                        void toggleChecklistEntry(
-                                          item,
-                                          checklistEntries,
-                                          entry.id,
-                                          Boolean(checked),
-                                        );
-                                      }}
-                                      className="mt-0.5"
-                                    />
-                                    <span className={cn("whitespace-pre-wrap break-words", entry.completed && "line-through text-muted-foreground")}>
-                                      {entry.title}
-                                    </span>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                            <Link
-                              href="/agenda"
-                              className="inline-flex items-center rounded-md border border-border px-2 py-1 hover:text-foreground"
-                            >
-                              Abrir agenda
-                            </Link>
-                            <Link
-                              href={`/atas?meeting=${encodeURIComponent(item.meeting_event_id)}`}
-                              className="inline-flex items-center rounded-md border border-border px-2 py-1 hover:text-foreground"
-                            >
-                              Filtrar esta reunião
-                            </Link>
-                          </div>
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <CalendarDays className="h-3 w-3 shrink-0" />
+                          <span className="truncate">
+                            {item.meeting_summary} · {formatMeetingSnapshot(item.meeting_start_at)}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 lg:pl-4">
-                      {item.status !== "in_progress" && item.status !== "resolved" && (
+                    {/* Detail / Checklist */}
+                    {showPlainDetail && item.detail && (
+                      <p className="mt-3 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                        {item.detail}
+                      </p>
+                    )}
+
+                    {checklistEntries.length > 0 && (
+                      <div className="mt-3 space-y-2 rounded-lg border border-border/60 bg-background/40 p-3">
+                        <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
+                          Checklist da reunião
+                        </p>
+                        <div className="space-y-1.5">
+                          {checklistEntries.map((entry) => (
+                            <label
+                              key={entry.id}
+                              className="flex items-start gap-2 text-sm text-foreground"
+                            >
+                              <Checkbox
+                                checked={entry.completed}
+                                disabled={isMutating}
+                                onCheckedChange={(checked) => {
+                                  void toggleChecklistEntry(
+                                    item,
+                                    checklistEntries,
+                                    entry.id,
+                                    Boolean(checked),
+                                  );
+                                }}
+                                className="mt-0.5 shrink-0"
+                              />
+                              <span
+                                className={cn(
+                                  "whitespace-pre-wrap break-words",
+                                  entry.completed && "line-through text-muted-foreground",
+                                )}
+                              >
+                                {entry.title}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Footer row: links + actions */}
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+                        <Link
+                          href="/agenda"
+                          className="inline-flex items-center rounded-md border border-border px-2 py-1 hover:text-foreground"
+                        >
+                          Agenda
+                        </Link>
+                        <Link
+                          href={`/atas?meeting=${encodeURIComponent(item.meeting_event_id)}`}
+                          className="inline-flex items-center rounded-md border border-border px-2 py-1 hover:text-foreground"
+                        >
+                          Filtrar reunião
+                        </Link>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-1">
+                        {item.status !== "in_progress" && item.status !== "resolved" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isMutating}
+                            title="Marcar em andamento"
+                            onClick={() => {
+                              void updateItemStatus(item, "in_progress");
+                            }}
+                            className="h-7 w-7 p-0 sm:h-8 sm:w-auto sm:px-3"
+                          >
+                            <Clock className="h-3.5 w-3.5" />
+                            <span className="ml-1.5 hidden sm:inline">Em andamento</span>
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={mutatingItemId === item.id}
-                          onClick={() => {
-                            void updateItemStatus(item, "in_progress");
-                          }}
+                          title="Editar"
+                          onClick={() => openEditDialog(item)}
+                          disabled={isMutating}
+                          className="h-7 w-7 p-0 sm:h-8 sm:w-auto sm:px-3"
                         >
-                          Em andamento
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span className="ml-1.5 hidden sm:inline">Editar</span>
                         </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openEditDialog(item)}
-                        disabled={mutatingItemId === item.id}
-                      >
-                        <Pencil className="mr-1 h-3.5 w-3.5" />
-                        Editar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => {
-                          void deleteItem(item);
-                        }}
-                        disabled={mutatingItemId === item.id}
-                      >
-                        <Trash2 className="mr-1 h-3.5 w-3.5" />
-                        Excluir
-                      </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          title="Excluir"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive sm:h-8 sm:w-auto sm:px-3"
+                          onClick={() => setDeletingItem(item)}
+                          disabled={isMutating}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="ml-1.5 hidden sm:inline">Excluir</span>
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </article>
-                  );
-                })()
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
       </div>
 
+      {/* FAB — mobile only */}
+      <button
+        type="button"
+        onClick={() => setSheetOpen(true)}
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 xl:hidden"
+        aria-label="Novo item de ata"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* Sheet — create form on mobile */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto rounded-t-2xl">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Novo item de ata</SheetTitle>
+          </SheetHeader>
+          {createFormContent(() => setSheetOpen(false))}
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit dialog */}
       <Dialog open={editingItemId !== null} onOpenChange={(open) => !open && closeEditDialog()}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -857,6 +970,30 @@ export default function MeetingMinutesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deletingItem !== null} onOpenChange={(open) => !open && setDeletingItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir item da ata?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingItem?.title && (
+                <span className="font-medium text-foreground">"{deletingItem.title}"</span>
+              )}{" "}
+              será removido permanentemente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void confirmDelete()}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
