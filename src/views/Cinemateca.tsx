@@ -312,6 +312,7 @@ export default function CinematecaPage() {
 
   async function upsertFromSeed(seed: CinematecaSeedMovie, status: CinematecaStatus) {
     if (!user) return null;
+    const cachedPoster = resolvedPosters[`seed-${seed.seed_id}`] ?? null;
     const payload = {
       user_id: user.id,
       seed_id: seed.seed_id,
@@ -322,6 +323,7 @@ export default function CinematecaPage() {
       synopsis: seed.synopsis,
       status,
       watched_at: status === "watched" ? new Date().toISOString() : null,
+      ...(cachedPoster ? { poster_url: cachedPoster } : {}),
     };
     const { data, error } = await db
       .from("cinemateca_movies")
@@ -652,6 +654,10 @@ function PosterCard({
               </div>
             </div>
           </div>
+        )}
+
+        {status === "watched" && (
+          <div className="absolute inset-0 bg-black/50" />
         )}
 
         {status ? (
