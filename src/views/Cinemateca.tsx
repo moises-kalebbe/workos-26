@@ -205,15 +205,43 @@ export default function CinematecaPage() {
     for (const item of allItems) {
       const key = getPosterCacheKey(item);
       const entry = cache[key];
-      if (entry?.url) hydrated[key] = entry.url;
+      if (entry?.url) {
+        hydrated[key] = entry.url;
+      } else if (item.kind === "owned" && item.movie.seed_id != null) {
+        // Owned movie may have been cached previously as a seed — reuse that entry
+        const seedKey = `seed-${item.movie.seed_id}`;
+        const seedEntry = cache[seedKey];
+        if (seedEntry?.url) hydrated[key] = seedEntry.url;
+      }
     }
     setResolvedPosters((prev) => ({ ...hydrated, ...prev }));
+
+    // Persist hydrated posters to DB for owned movies that were resolved via seed cache
+    if (user) {
+      for (const item of allItems) {
+        if (item.kind !== "owned" || item.movie.poster_url) continue;
+        const key = getPosterCacheKey(item);
+        const url = hydrated[key];
+        if (!url) continue;
+        const id = item.movie.id;
+        void db.from("cinemateca_movies").update({ poster_url: url }).eq("id", id);
+        setMovies((prev) => prev.map((m) => (m.id === id ? { ...m, poster_url: url } : m)));
+      }
+    }
 
     const pending: CatalogItem[] = [];
     for (const item of allItems) {
       const key = getPosterCacheKey(item);
       if (item.kind === "owned" && item.movie.poster_url) continue;
       if (hydrated[key]) continue;
+      // Also skip if the seed cache already covered this item
+      if (item.kind === "owned" && item.movie.seed_id != null) {
+        const seedKey = `seed-${item.movie.seed_id}`;
+        if (cache[seedKey]?.url) continue;
+        // Respect negative cache on the seed key too
+        const seedEntry = cache[seedKey];
+        if (seedEntry && seedEntry.url === null && now - seedEntry.at < POSTER_NEGATIVE_TTL_MS) continue;
+      }
       const entry = cache[key];
       if (entry && entry.url === null && now - entry.at < POSTER_NEGATIVE_TTL_MS) continue;
       if (posterFetchStarted.current.has(key)) continue;
