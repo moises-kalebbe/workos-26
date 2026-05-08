@@ -4,6 +4,15 @@ import { requireAuth } from "@/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+async function mpGet(path: string, token: string) {
+  const res = await fetch(`https://api.mercadopago.com${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    next: { revalidate: 0 },
+  });
+  const body = await res.json().catch(() => null);
+  return { status: res.status, body };
+}
+
 export async function GET(request: Request) {
   try {
     await requireAuth(request);
@@ -16,11 +25,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "MERCADOPAGO_ACCESS_TOKEN não configurado" }, { status: 503 });
   }
 
-  const res = await fetch("https://api.mercadopago.com/v1/money-boxes", {
-    headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 0 },
-  });
+  const [balance, movements, payments, savings, wallet] = await Promise.all([
+    mpGet("/v1/account/balance", token),
+    mpGet("/v1/account/movements/search?limit=5", token),
+    mpGet("/v1/payments/search?limit=2&sort=date_created&criteria=desc", token),
+    mpGet("/v1/account/savings", token),
+    mpGet("/v1/wallet", token),
+  ]);
 
-  const raw = await res.json();
-  return NextResponse.json({ status: res.status, raw });
+  return NextResponse.json({ balance, movements, payments, savings, wallet });
 }
