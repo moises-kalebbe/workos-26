@@ -100,6 +100,9 @@ export default function SettingsPage() {
   const [testingClickup, setTestingClickup] = useState(false);
   const [clickupOAuthStatus, setClickupOAuthStatus] = useState<"idle" | "success" | "error">("idle");
 
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
+
   const [editProjectDialog, setEditProjectDialog] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editName, setEditName] = useState("");
@@ -139,6 +142,7 @@ export default function SettingsPage() {
       setAvatarUrl(nextProfile.avatar_url || "");
       setClickupToken(nextProfile.clickup_token || "");
       setClickupViewId(nextProfile.clickup_view_id || "");
+      setWhatsappNumber(nextProfile.whatsapp_number || "");
     }
 
     setProjects((projRes.data || []) as Project[]);
@@ -322,6 +326,25 @@ export default function SettingsPage() {
       toast.error("Erro ao salvar configurações ClickUp");
     } finally {
       setSavingClickup(false);
+    }
+  }
+
+  async function saveWhatsappNumber() {
+    if (!user) return;
+    setSavingWhatsapp(true);
+    try {
+      const normalized = whatsappNumber.trim().replace(/\D/g, "");
+      const { error } = await db.from("profiles").update({
+        whatsapp_number: normalized || null,
+      }).eq("id", user.id);
+      if (error) throw new Error(error.message);
+      toast.success(normalized ? "Número do WhatsApp salvo" : "Número removido");
+      setWhatsappNumber(normalized);
+      await loadData();
+    } catch {
+      toast.error("Erro ao salvar número do WhatsApp");
+    } finally {
+      setSavingWhatsapp(false);
     }
   }
 
@@ -969,6 +992,57 @@ export default function SettingsPage() {
                   Salvar View ID
                 </Button>
               </div>
+            </div>
+          </section>
+          <section className="rounded-2xl border border-border bg-card/95 p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#25D366]/15">
+                <svg viewBox="0 0 32 32" className="h-5 w-5" fill="none">
+                  <circle cx="16" cy="16" r="16" fill="#25D366" />
+                  <path d="M22.5 9.5A8.96 8.96 0 0 0 16 7C11.03 7 7 11.03 7 16c0 1.58.41 3.1 1.19 4.45L7 25l4.7-1.23A8.96 8.96 0 0 0 16 25c4.97 0 9-4.03 9-9 0-2.4-.94-4.67-2.5-6.5zM16 23.5a7.46 7.46 0 0 1-3.8-1.03l-.27-.16-2.79.73.74-2.72-.18-.28A7.47 7.47 0 0 1 8.5 16c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5-3.36 7.5-7.5 7.5zm4.1-5.6c-.22-.11-1.32-.65-1.52-.72-.2-.07-.35-.11-.5.11-.15.22-.58.72-.71.87-.13.15-.26.17-.48.06-.22-.11-.94-.35-1.79-1.1-.66-.59-1.1-1.32-1.23-1.54-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.06-.11-.5-1.2-.68-1.65-.18-.43-.36-.37-.5-.38h-.43c-.15 0-.39.06-.6.28-.2.22-.78.76-.78 1.85s.8 2.15.91 2.3c.11.15 1.57 2.4 3.81 3.36.53.23.95.37 1.27.47.53.17 1.02.14 1.4.09.43-.06 1.32-.54 1.5-1.06.19-.52.19-.97.13-1.06-.06-.09-.2-.15-.43-.26z" fill="white" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">WhatsApp Bot</p>
+                <p className="text-sm text-muted-foreground">
+                  {profile?.whatsapp_number
+                    ? <span className="text-green-500 font-medium">Número registrado ✓</span>
+                    : "Não configurado"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Número do WhatsApp (formato internacional)</Label>
+                <Input
+                  placeholder="5511999999999"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  className="h-11 rounded-2xl border-border bg-background/60 font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Apenas dígitos com DDI. Ex: <span className="font-medium text-foreground">5511999999999</span>
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border/70 bg-background/35 p-4 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground mb-2">Comandos disponíveis:</p>
+                <div className="grid gap-1 font-mono text-xs">
+                  <span>/meet [título] — Cria reunião com Meet</span>
+                  <span>/task [título] — Cria tarefa no kanban</span>
+                  <span>/grana — Resumo financeiro do mês</span>
+                  <span>/timer start [projeto] — Inicia timer</span>
+                  <span>/timer stop — Para o timer</span>
+                  <span>/lembrete [título] — Cria evento amanhã às 10h</span>
+                </div>
+              </div>
+
+              <Button onClick={saveWhatsappNumber} disabled={savingWhatsapp}>
+                {savingWhatsapp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Save className="mr-2 h-4 w-4" />
+                Salvar número
+              </Button>
             </div>
           </section>
         </TabsContent>

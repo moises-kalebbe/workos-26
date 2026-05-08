@@ -35,6 +35,12 @@ services:
 
       # Mercado Pago
       MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN}
+
+      # WhatsApp Bot (Evolution API)
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-https://evo.moiseskalebbe.cloud}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      EVOLUTION_INSTANCE_NAME: ${EVOLUTION_INSTANCE_NAME:-MoiKalebbe}
+      EVOLUTION_WEBHOOK_TOKEN: ${EVOLUTION_WEBHOOK_TOKEN}
     networks:
       - workos-network
       - MoiKalebbe

@@ -1,0 +1,269 @@
+import { sql, ensureDatabaseConnection } from "@/lib/db";
+import { getValidAccessToken, googleJson } from "@/lib/googleCalendar";
+
+export type ParsedCommand = {
+  command: string;
+  args: string[];
+};
+
+export function parseCommand(text: string): ParsedCommand | null {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("/")) return null;
+
+  const parts = trimmed.slice(1).split(/\s+/);
+  const command = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  return { command, args };
+}
+
+async function handleMeet(userId: string, args: string[]): Promise<string> {
+  const title = args.length > 0 ? args.join(" ") : "Reunião";
+
+  const tokenResult = await getValidAccessToken(userId);
+  if ("error" in tokenResult) {
+    return "Google Calendar não conectado. Conecte em Configurações > Integrações.";
+  }
+
+  const tz = "America/Sao_Paulo";
+  const now = new Date();
+  const start = new Date(now);
+  start.setMinutes(0, 0, 0);
+  start.setHours(start.getHours() + 1);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+  const eventBody = {
+    summary: title,
+    start: { dateTime: start.toISOString(), timeZone: tz },
+    end: { dateTime: end.toISOString(), timeZone: tz },
+    conferenceData: {
+      createRequest: {
+        requestId: crypto.randomUUID(),
+        conferenceSolutionKey: { type: "hangoutsMeet" },
+      },
+    },
+  };
+
+  const res = await googleJson(
+    tokenResult.accessToken,
+    "https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=none",
+    { method: "POST", body: JSON.stringify(eventBody) },
+  );
+
+  if (!res.ok || !res.data) {
+    return `Erro ao criar reunião: ${res.text || "falha desconhecida"}`;
+  }
+
+  const meetLink = (res.data as Record<string, unknown>).hangoutLink as string | undefined;
+  const htmlLink = (res.data as Record<string, unknown>).htmlLink as string | undefined;
+
+  if (meetLink) {
+    return `✅ *${title}*\n📅 ${start.toLocaleTimeString("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" })} às ${end.toLocaleTimeString("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" })}\n🔗 ${meetLink}`;
+  }
+
+  return `✅ Evento criado: ${htmlLink || "sem link"}`;
+}
+
+async function handleTask(userId: string, args: string[]): Promise<string> {
+  if (args.length === 0) return "Use: /task [título da tarefa]";
+
+  const title = args.join(" ");
+  await ensureDatabaseConnection();
+
+  const maxPosRows = await sql<{ max: number | null }[]>`
+    SELECT MAX(position) as max FROM tasks WHERE user_id = ${userId} AND column_index = 0
+  `;
+  const maxPos = maxPosRows[0]?.max ?? 0;
+
+  await sql`
+    INSERT INTO tasks (user_id, title, column_index, position)
+    VALUES (${userId}, ${title}, 0, ${(maxPos ?? 0) + 1000})
+  `;
+
+  return `✅ Tarefa criada: *${title}*`;
+}
+
+async function handleGrana(userId: string): Promise<string> {
+  await ensureDatabaseConnection();
+
+  const since = new Date();
+  since.setDate(1);
+  const sinceStr = since.toISOString().slice(0, 10);
+
+  const rows = await sql<{ type: string; amount: number; status: string }[]>`
+    SELECT type, amount, status
+    FROM financial_entries
+    WHERE user_id = ${userId} AND due_date >= ${sinceStr}
+  `;
+
+  const income = rows.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
+  const expense = rows.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+  const pending = rows.filter((r) => r.status === "pending");
+  const overdue = rows.filter((r) => r.status === "overdue");
+
+  const fmt = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  return [
+    `💰 *Financeiro (mês atual)*`,
+    `📈 Receitas: ${fmt(income)}`,
+    `📉 Despesas: ${fmt(expense)}`,
+    `💵 Lucro: ${fmt(income - expense)}`,
+    pending.length > 0 ? `⏳ Pendentes: ${pending.length} (${fmt(pending.reduce((s, r) => s + r.amount, 0))})` : "",
+    overdue.length > 0 ? `🚨 Vencidos: ${overdue.length} (${fmt(overdue.reduce((s, r) => s + r.amount, 0))})` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function handleTimer(userId: string, args: string[]): Promise<string> {
+  await ensureDatabaseConnection();
+
+  const sub = args[0]?.toLowerCase();
+
+  if (sub === "stop" || sub === "parar") {
+    const openRows = await sql<{ id: string; started_at: string; project_name: string | null }[]>`
+      SELECT ts.id, ts.started_at, p.name as project_name
+      FROM time_sessions ts
+      LEFT JOIN projects p ON ts.project_id = p.id
+      WHERE ts.user_id = ${userId} AND ts.ended_at IS NULL
+      ORDER BY ts.started_at DESC
+      LIMIT 1
+    `;
+
+    if (openRows.length === 0) return "Nenhuma sessão ativa para parar.";
+
+    const session = openRows[0];
+    const now = new Date();
+    const started = new Date(session.started_at);
+    const durationSeconds = Math.floor((now.getTime() - started.getTime()) / 1000);
+
+    await sql`
+      UPDATE time_sessions
+      SET ended_at = NOW(), duration_seconds = ${durationSeconds}
+      WHERE id = ${session.id}
+    `;
+
+    const minutes = Math.floor(durationSeconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    const durationStr = hours > 0 ? `${hours}h${remainingMinutes}min` : `${minutes}min`;
+
+    return `⏹ Timer parado${session.project_name ? ` (${session.project_name})` : ""}.\n⏱ Duração: ${durationStr}`;
+  }
+
+  if (sub === "start" || sub === "iniciar" || !sub) {
+    const projectNamePart = (sub === "start" || sub === "iniciar") ? args.slice(1).join(" ").trim() : args.join(" ").trim();
+    const projectName = projectNamePart || null;
+
+    let projectId: string | null = null;
+    if (projectName) {
+      const projRows = await sql<{ id: string; name: string }[]>`
+        SELECT id, name FROM projects
+        WHERE user_id = ${userId} AND LOWER(name) LIKE ${"%" + projectName.toLowerCase() + "%"}
+        LIMIT 1
+      `;
+      projectId = projRows[0]?.id ?? null;
+
+      if (!projectId) {
+        return `Projeto "${projectName}" não encontrado. Use /timer start ou /timer start [parte do nome].`;
+      }
+    }
+
+    const openCount = await sql<{ count: number }[]>`
+      SELECT COUNT(*)::int as count FROM time_sessions
+      WHERE user_id = ${userId} AND ended_at IS NULL
+    `;
+
+    if ((openCount[0]?.count ?? 0) > 0) {
+      return "Já existe uma sessão ativa. Use /timer stop primeiro.";
+    }
+
+    if (projectId) {
+      await sql`
+        INSERT INTO time_sessions (user_id, project_id, started_at)
+        VALUES (${userId}, ${projectId}, NOW())
+      `;
+      const projRows = await sql<{ name: string }[]>`SELECT name FROM projects WHERE id = ${projectId}`;
+      return `▶️ Timer iniciado para *${projRows[0]?.name ?? projectName}*`;
+    } else {
+      await sql`
+        INSERT INTO time_sessions (user_id, started_at)
+        VALUES (${userId}, NOW())
+      `;
+      return "▶️ Timer iniciado (sem projeto vinculado)";
+    }
+  }
+
+  return "Use: /timer start [projeto] ou /timer stop";
+}
+
+async function handleLembrete(userId: string, args: string[]): Promise<string> {
+  if (args.length === 0) return "Use: /lembrete [título] (amanhã às 10h, por padrão)";
+
+  const title = args.join(" ");
+
+  const tokenResult = await getValidAccessToken(userId);
+  if ("error" in tokenResult) {
+    return "Google Calendar não conectado. Conecte em Configurações > Integrações.";
+  }
+
+  const tz = "America/Sao_Paulo";
+  const start = new Date();
+  start.setDate(start.getDate() + 1);
+  start.setHours(10, 0, 0, 0);
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+
+  const eventBody = {
+    summary: title,
+    start: { dateTime: start.toISOString(), timeZone: tz },
+    end: { dateTime: end.toISOString(), timeZone: tz },
+  };
+
+  const res = await googleJson(
+    tokenResult.accessToken,
+    "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
+    { method: "POST", body: JSON.stringify(eventBody) },
+  );
+
+  if (!res.ok) {
+    return `Erro ao criar lembrete: ${res.text || "falha desconhecida"}`;
+  }
+
+  const dateStr = start.toLocaleDateString("pt-BR", { timeZone: tz, weekday: "short", day: "2-digit", month: "short" });
+  return `✅ Lembrete criado: *${title}*\n📅 ${dateStr} às 10:00`;
+}
+
+const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
+
+/meet [título] — Cria reunião com link do Meet
+/task [título] — Cria tarefa no kanban
+/grana — Resumo financeiro do mês
+/timer start [projeto] — Inicia o timer
+/timer stop — Para o timer atual
+/lembrete [título] — Cria lembrete para amanhã às 10h`;
+
+export async function runCommand(
+  userId: string,
+  parsed: ParsedCommand,
+): Promise<string> {
+  const { command, args } = parsed;
+
+  switch (command) {
+    case "meet":
+      return handleMeet(userId, args);
+    case "task":
+      return handleTask(userId, args);
+    case "grana":
+      return handleGrana(userId);
+    case "timer":
+      return handleTimer(userId, args);
+    case "lembrete":
+      return handleLembrete(userId, args);
+    case "help":
+    case "ajuda":
+      return HELP_TEXT;
+    default:
+      return `Comando /${command} não reconhecido.\n\n${HELP_TEXT}`;
+  }
+}

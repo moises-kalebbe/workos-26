@@ -204,6 +204,7 @@ export interface Profile {
   timezone: string;
   clickup_token: string | null;
   clickup_view_id: string | null;
+  whatsapp_number: string | null;
   created_at: string;
   updated_at: string;
 }
