@@ -17,19 +17,64 @@ export function parseCommand(text: string): ParsedCommand | null {
   return { command, args };
 }
 
-async function handleMeet(userId: string, args: string[]): Promise<string> {
-  const title = args.length > 0 ? args.join(" ") : "Reunião";
+function parseMeetTime(args: string[]): { title: string; start: Date } {
+  const tz = "America/Sao_Paulo";
+  const full = args.join(" ").trim();
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
 
+  if (args.length === 0 || /^agora$/i.test(full)) {
+    return { title: "Reunião", start: new Date() };
+  }
+
+  const timeRegex = /\bà?s?\s*(\d{1,2})(?:[h:](\d{2}))?h?\b/i;
+  const tomorrowRegex = /\bamanhã\b/i;
+  const nowRegex = /\bagora\b/i;
+
+  const timeMatch = full.match(timeRegex);
+  const isTomorrow = tomorrowRegex.test(full);
+  const isNow = nowRegex.test(full);
+
+  const title =
+    full
+      .replace(timeRegex, "")
+      .replace(tomorrowRegex, "")
+      .replace(nowRegex, "")
+      .replace(/\s+/g, " ")
+      .trim() || "Reunião";
+
+  if (isNow) {
+    return { title, start: new Date() };
+  }
+
+  const start = new Date();
+  if (timeMatch) {
+    const h = parseInt(timeMatch[1]);
+    const m = parseInt(timeMatch[2] ?? "0");
+    start.setHours(h, m, 0, 0);
+    if (isTomorrow) {
+      start.setDate(start.getDate() + 1);
+    } else {
+      const nowLocal = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+      if (start <= nowLocal) start.setDate(start.getDate() + 1);
+    }
+  } else {
+    // sem horário → próxima hora cheia
+    start.setMinutes(0, 0, 0);
+    start.setHours(start.getHours() + 1);
+    if (isTomorrow) start.setDate(start.getDate() + 1);
+  }
+
+  return { title, start };
+}
+
+async function handleMeet(userId: string, args: string[]): Promise<string> {
   const tokenResult = await getValidAccessToken(userId);
   if ("error" in tokenResult) {
     return "Google Calendar não conectado. Conecte em Configurações > Integrações.";
   }
 
   const tz = "America/Sao_Paulo";
-  const now = new Date();
-  const start = new Date(now);
-  start.setMinutes(0, 0, 0);
-  start.setHours(start.getHours() + 1);
+  const { title, start } = parseMeetTime(args);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
 
   const eventBody = {
@@ -57,8 +102,12 @@ async function handleMeet(userId: string, args: string[]): Promise<string> {
   const meetLink = (res.data as Record<string, unknown>).hangoutLink as string | undefined;
   const htmlLink = (res.data as Record<string, unknown>).htmlLink as string | undefined;
 
+  const timeStr = start.toLocaleTimeString("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" });
+  const endStr = end.toLocaleTimeString("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" });
+  const dateStr = start.toLocaleDateString("pt-BR", { timeZone: tz, weekday: "short", day: "2-digit", month: "short" });
+
   if (meetLink) {
-    return `✅ *${title}*\n📅 ${start.toLocaleTimeString("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" })} às ${end.toLocaleTimeString("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" })}\n🔗 ${meetLink}`;
+    return `✅ *${title}*\n📅 ${dateStr} • ${timeStr}–${endStr}\n🔗 ${meetLink}`;
   }
 
   return `✅ Evento criado: ${htmlLink || "sem link"}`;
@@ -236,7 +285,10 @@ async function handleLembrete(userId: string, args: string[]): Promise<string> {
 
 const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
 
-/meet [título] — Cria reunião com link do Meet
+/meet [título] — Reunião na próxima hora cheia
+/meet [título] agora — Reunião instantânea
+/meet [título] às 15h30 — Reunião no horário
+/meet [título] amanhã às 10h — Reunião amanhã
 /task [título] — Cria tarefa no kanban
 /grana — Resumo financeiro do mês
 /timer start [projeto] — Inicia o timer
