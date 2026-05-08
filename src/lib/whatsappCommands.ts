@@ -214,7 +214,7 @@ async function handleGrana(userId: string): Promise<string> {
       if (moneyBoxes.length > 0) {
         lines.push(`🐷 *Cofrinhos:*`);
         for (const box of moneyBoxes) {
-          lines.push(`  • ${box.name}: ${fmt(Number(box.total_amount ?? 0))}`);
+          lines.push(`  • ${box.name}: ${fmt(Number(box.current_amount ?? 0))}`);
         }
       } else {
         // Fallback via pagamentos
