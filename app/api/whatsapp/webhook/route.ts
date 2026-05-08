@@ -38,6 +38,14 @@ async function findUserByPhone(phone: string): Promise<string | null> {
   return rows[0]?.id ?? null;
 }
 
+async function findOwnerUser(): Promise<string | null> {
+  await ensureDatabaseConnection();
+  const rows = await sql<{ id: string }[]>`
+    SELECT id FROM profiles WHERE whatsapp_number IS NOT NULL LIMIT 1
+  `;
+  return rows[0]?.id ?? null;
+}
+
 export async function POST(request: Request) {
   const webhookToken = process.env.EVOLUTION_WEBHOOK_TOKEN;
   if (webhookToken) {
@@ -83,14 +91,17 @@ export async function POST(request: Request) {
   const fromMe = body.data?.key?.fromMe ?? false;
   const conversationPhone = extractPhone(remoteJid);
 
-  // Quando fromMe=true o remetente é o dono da instância — autentica pelo número do dono
-  // Quando fromMe=false alguém enviou ao bot — autentica pelo número do remetente
-  const ownerNumber = process.env.EVOLUTION_OWNER_NUMBER;
-  const authPhone = fromMe && ownerNumber ? ownerNumber : conversationPhone;
-
   let userId: string | null;
   try {
-    userId = await findUserByPhone(authPhone);
+    if (fromMe) {
+      // Remetente é o dono da instância — autentica pelo número registrado (env) ou busca no banco
+      const ownerNumber = process.env.EVOLUTION_OWNER_NUMBER;
+      userId = ownerNumber
+        ? await findUserByPhone(ownerNumber)
+        : await findOwnerUser();
+    } else {
+      userId = await findUserByPhone(conversationPhone);
+    }
   } catch (err) {
     console.error("[whatsapp webhook] erro ao buscar usuário:", err);
     return NextResponse.json({ ok: true });
