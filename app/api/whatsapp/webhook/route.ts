@@ -48,11 +48,22 @@ export async function POST(request: Request) {
     }
   }
 
-  let body: EvolutionMessageEvent;
+  let rawBody: Record<string, unknown>;
   try {
-    body = (await request.json()) as EvolutionMessageEvent;
+    rawBody = (await request.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // webhookBase64: true envia body.data como string base64 em vez de objeto
+  let body: EvolutionMessageEvent = rawBody as EvolutionMessageEvent;
+  if (typeof rawBody.data === "string") {
+    try {
+      const decoded = JSON.parse(Buffer.from(rawBody.data, "base64").toString("utf-8"));
+      body = { ...rawBody, data: decoded } as EvolutionMessageEvent;
+    } catch {
+      console.log("[whatsapp webhook] falha ao decodificar base64, usando raw");
+    }
   }
 
   console.log("[whatsapp webhook] evento recebido:", body.event, "| fromMe:", body.data?.key?.fromMe, "| jid:", body.data?.key?.remoteJid);
