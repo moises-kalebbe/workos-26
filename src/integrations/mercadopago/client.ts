@@ -86,8 +86,12 @@ export function extractCofrinhos(payments: MpPayment[]): MpCofrinho[] {
 
 export async function getMoneyBoxes(): Promise<MpMoneyBox[]> {
   try {
-    const data = await mpFetch<{ money_boxes?: MpMoneyBox[] }>("/v1/money-boxes");
-    return data.money_boxes ?? [];
+    const data = await mpFetch<{ money_boxes?: Record<string, unknown>[] }>("/v1/money-boxes");
+    const boxes = data.money_boxes ?? [];
+    if (boxes.length > 0) {
+      console.log("[MP money-boxes] primeiro item raw:", JSON.stringify(boxes[0]));
+    }
+    return boxes as unknown as MpMoneyBox[];
   } catch {
     return [];
   }
