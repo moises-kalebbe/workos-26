@@ -1,5 +1,6 @@
 import { sql, ensureDatabaseConnection } from "@/lib/db";
 import { getValidAccessToken, googleJson } from "@/lib/googleCalendar";
+import { getBalance, getMoneyBoxes, getRecentPayments, extractCofrinhos, isConfigured as mpConfigured } from "@/integrations/mercadopago/client";
 
 const WEATHER_CODES: Record<number, { day: string; night: string }> = {
   0: { day: "Ensolarado", night: "Céu limpo" },
@@ -183,16 +184,55 @@ async function handleGrana(userId: string): Promise<string> {
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  return [
+  const lines = [
     `💰 *Financeiro (mês atual)*`,
     `📈 Receitas: ${fmt(income)}`,
     `📉 Despesas: ${fmt(expense)}`,
     `💵 Lucro: ${fmt(income - expense)}`,
     pending.length > 0 ? `⏳ Pendentes: ${pending.length} (${fmt(pending.reduce((s, r) => s + Number(r.amount), 0))})` : "",
     overdue.length > 0 ? `🚨 Vencidos: ${overdue.length} (${fmt(overdue.reduce((s, r) => s + Number(r.amount), 0))})` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean);
+
+  // Mercado Pago
+  if (mpConfigured()) {
+    try {
+      const [balance, moneyBoxes, payments] = await Promise.all([
+        getBalance(),
+        getMoneyBoxes(),
+        getRecentPayments(100),
+      ]);
+
+      lines.push("");
+      lines.push(`🟡 *Mercado Pago*`);
+
+      if (balance) {
+        const total = Number(balance.available_balance ?? balance.total_amount ?? 0);
+        lines.push(`💳 Saldo disponível: ${fmt(total)}`);
+      }
+
+      // Cofrinhos via money-boxes API
+      if (moneyBoxes.length > 0) {
+        lines.push(`🐷 *Cofrinhos:*`);
+        for (const box of moneyBoxes) {
+          lines.push(`  • ${box.name}: ${fmt(Number(box.total_amount ?? 0))}`);
+        }
+      } else {
+        // Fallback via pagamentos
+        const cofrinhos = extractCofrinhos(payments);
+        if (cofrinhos.length > 0) {
+          lines.push(`🐷 *Cofrinhos:*`);
+          for (const c of cofrinhos) {
+            lines.push(`  • ${c.name}: ${fmt(c.amount)}`);
+          }
+        }
+      }
+    } catch (err) {
+      lines.push("");
+      lines.push(`🟡 *Mercado Pago*: erro ao buscar dados`);
+    }
+  }
+
+  return lines.join("\n");
 }
 
 async function handleTimer(userId: string, args: string[]): Promise<string> {
