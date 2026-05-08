@@ -43,7 +43,6 @@ export async function POST(request: Request) {
   if (webhookToken) {
     const incoming = request.headers.get("apikey") ?? request.headers.get("x-webhook-token");
     if (incoming !== webhookToken) {
-      console.log("[whatsapp webhook] token inválido, recebido:", incoming);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
@@ -62,11 +61,9 @@ export async function POST(request: Request) {
       const decoded = JSON.parse(Buffer.from(rawBody.data, "base64").toString("utf-8"));
       body = { ...rawBody, data: decoded } as EvolutionMessageEvent;
     } catch {
-      console.log("[whatsapp webhook] falha ao decodificar base64, usando raw");
+      // mantém rawBody se falhar decode
     }
   }
-
-  console.log("[whatsapp webhook] evento recebido:", body.event, "| fromMe:", body.data?.key?.fromMe, "| jid:", body.data?.key?.remoteJid);
 
   if (body.event !== "messages.upsert") {
     return NextResponse.json({ ok: true });
@@ -78,32 +75,28 @@ export async function POST(request: Request) {
   }
 
   const text = extractMessageText(body);
-  console.log("[whatsapp webhook] texto:", text, "| messageType:", body.data?.messageType);
   if (!text) return NextResponse.json({ ok: true });
 
   const parsed = parseCommand(text);
-  console.log("[whatsapp webhook] parsed:", parsed);
   if (!parsed) return NextResponse.json({ ok: true });
 
-  const phone = extractPhone(remoteJid);
+  const fromMe = body.data?.key?.fromMe ?? false;
+  const conversationPhone = extractPhone(remoteJid);
+
+  // Quando fromMe=true o remetente é o dono da instância — autentica pelo número do dono
+  // Quando fromMe=false alguém enviou ao bot — autentica pelo número do remetente
+  const ownerNumber = process.env.EVOLUTION_OWNER_NUMBER;
+  const authPhone = fromMe && ownerNumber ? ownerNumber : conversationPhone;
 
   let userId: string | null;
   try {
-    userId = await findUserByPhone(phone);
+    userId = await findUserByPhone(authPhone);
   } catch (err) {
     console.error("[whatsapp webhook] erro ao buscar usuário:", err);
     return NextResponse.json({ ok: true });
   }
 
-  console.log("[whatsapp webhook] phone:", phone, "| userId:", userId);
-
   if (!userId) {
-    console.log("[whatsapp webhook] número não cadastrado:", phone);
-    try {
-      await sendTextMessage(phone, "Número não cadastrado. Acesse Configurações > Integrações no WorkOS para registrar seu número.");
-    } catch (e) {
-      console.error("[whatsapp webhook] erro ao enviar msg de número não cadastrado:", e);
-    }
     return NextResponse.json({ ok: true });
   }
 
@@ -115,8 +108,9 @@ export async function POST(request: Request) {
     reply = `Erro ao executar /${parsed.command}. Tente novamente.`;
   }
 
+  // Sempre responde na conversa onde o comando foi enviado
   try {
-    await sendTextMessage(phone, reply);
+    await sendTextMessage(conversationPhone, reply);
   } catch (err) {
     console.error("[whatsapp webhook] erro ao enviar resposta:", err);
   }
