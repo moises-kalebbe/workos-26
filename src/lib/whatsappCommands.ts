@@ -145,8 +145,8 @@ async function handleGrana(userId: string): Promise<string> {
     WHERE user_id = ${userId} AND due_date >= ${sinceStr}
   `;
 
-  const income = rows.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
-  const expense = rows.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+  const income = rows.filter((r) => r.type === "income").reduce((s, r) => s + Number(r.amount), 0);
+  const expense = rows.filter((r) => r.type === "expense").reduce((s, r) => s + Number(r.amount), 0);
   const pending = rows.filter((r) => r.status === "pending");
   const overdue = rows.filter((r) => r.status === "overdue");
 
@@ -158,8 +158,8 @@ async function handleGrana(userId: string): Promise<string> {
     `📈 Receitas: ${fmt(income)}`,
     `📉 Despesas: ${fmt(expense)}`,
     `💵 Lucro: ${fmt(income - expense)}`,
-    pending.length > 0 ? `⏳ Pendentes: ${pending.length} (${fmt(pending.reduce((s, r) => s + r.amount, 0))})` : "",
-    overdue.length > 0 ? `🚨 Vencidos: ${overdue.length} (${fmt(overdue.reduce((s, r) => s + r.amount, 0))})` : "",
+    pending.length > 0 ? `⏳ Pendentes: ${pending.length} (${fmt(pending.reduce((s, r) => s + Number(r.amount), 0))})` : "",
+    overdue.length > 0 ? `🚨 Vencidos: ${overdue.length} (${fmt(overdue.reduce((s, r) => s + Number(r.amount), 0))})` : "",
   ]
     .filter(Boolean)
     .join("\n");
