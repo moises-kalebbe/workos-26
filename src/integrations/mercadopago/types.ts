@@ -48,10 +48,24 @@ export type MpPayment = {
   amounts?: {
     collector?: {
       transaction_destination?: {
+        fund_partition?: string;
         subpartition?: {
+          id: string;
           name: string;
-          amount: number;
         };
+      };
+    };
+    payer?: {
+      transaction_source?: {
+        partitions?: Array<{
+          amount: number;
+          amount_refunded: number;
+          partition: string;
+          subpartition?: {
+            id: string;
+            name: string;
+          };
+        }>;
       };
     };
   };

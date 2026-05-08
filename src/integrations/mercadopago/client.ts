@@ -73,14 +73,29 @@ export async function getRecentPayments(limit = 50): Promise<MpPayment[]> {
 
 export function extractCofrinhos(payments: MpPayment[]): MpCofrinho[] {
   const map = new Map<string, number>();
+
   for (const p of payments) {
-    const sub = p.amounts?.collector?.transaction_destination?.subpartition;
-    if (sub?.name) {
-      map.set(sub.name, (map.get(sub.name) ?? 0) + p.transaction_amount);
+    // Depósito INTO cofrinho: collector recebe no subpartition
+    const destSub = p.amounts?.collector?.transaction_destination?.subpartition;
+    if (destSub?.name) {
+      map.set(destSub.name, (map.get(destSub.name) ?? 0) + p.transaction_amount);
+    }
+
+    // Saque FROM cofrinho: payer envia do subpartition
+    const srcPartitions = p.amounts?.payer?.transaction_source?.partitions;
+    if (srcPartitions) {
+      for (const part of srcPartitions) {
+        if (part.subpartition?.name) {
+          const net = part.amount - (part.amount_refunded ?? 0);
+          map.set(part.subpartition.name, (map.get(part.subpartition.name) ?? 0) - net);
+        }
+      }
     }
   }
+
   return Array.from(map.entries())
-    .map(([name, amount]) => ({ name, amount, currency_id: "BRL" }))
+    .filter(([, amount]) => amount > 0)
+    .map(([name, amount]) => ({ name, amount: Math.round(amount * 100) / 100, currency_id: "BRL" }))
     .sort((a, b) => b.amount - a.amount);
 }
 

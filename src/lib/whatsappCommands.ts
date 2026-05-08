@@ -199,7 +199,7 @@ async function handleGrana(userId: string): Promise<string> {
       const [balance, moneyBoxes, payments] = await Promise.all([
         getBalance(),
         getMoneyBoxes(),
-        getRecentPayments(100),
+        getRecentPayments(500),
       ]);
 
       lines.push("");
@@ -481,7 +481,7 @@ async function handleMp(): Promise<string> {
     const [balance, moneyBoxes, payments] = await Promise.all([
       getBalance(),
       getMoneyBoxes(),
-      getRecentPayments(100),
+      getRecentPayments(500),
     ]);
 
     const lines: string[] = ["🟡 *Mercado Pago*"];
