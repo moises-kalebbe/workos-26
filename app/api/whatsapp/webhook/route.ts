@@ -72,10 +72,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  if (body.data?.key?.fromMe) {
-    return NextResponse.json({ ok: true });
-  }
-
   const remoteJid = body.data?.key?.remoteJid;
   if (!remoteJid || remoteJid.includes("@g.us")) {
     return NextResponse.json({ ok: true });
