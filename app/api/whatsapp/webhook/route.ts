@@ -43,6 +43,7 @@ export async function POST(request: Request) {
   if (webhookToken) {
     const incoming = request.headers.get("apikey") ?? request.headers.get("x-webhook-token");
     if (incoming !== webhookToken) {
+      console.log("[whatsapp webhook] token inválido, recebido:", incoming);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
@@ -53,6 +54,8 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  console.log("[whatsapp webhook] evento recebido:", body.event, "| fromMe:", body.data?.key?.fromMe, "| jid:", body.data?.key?.remoteJid);
 
   if (body.event !== "messages.upsert") {
     return NextResponse.json({ ok: true });
@@ -68,9 +71,11 @@ export async function POST(request: Request) {
   }
 
   const text = extractMessageText(body);
+  console.log("[whatsapp webhook] texto:", text, "| messageType:", body.data?.messageType);
   if (!text) return NextResponse.json({ ok: true });
 
   const parsed = parseCommand(text);
+  console.log("[whatsapp webhook] parsed:", parsed);
   if (!parsed) return NextResponse.json({ ok: true });
 
   const phone = extractPhone(remoteJid);
@@ -83,10 +88,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  console.log("[whatsapp webhook] phone:", phone, "| userId:", userId);
+
   if (!userId) {
+    console.log("[whatsapp webhook] número não cadastrado:", phone);
     try {
       await sendTextMessage(phone, "Número não cadastrado. Acesse Configurações > Integrações no WorkOS para registrar seu número.");
-    } catch {}
+    } catch (e) {
+      console.error("[whatsapp webhook] erro ao enviar msg de número não cadastrado:", e);
+    }
     return NextResponse.json({ ok: true });
   }
 
