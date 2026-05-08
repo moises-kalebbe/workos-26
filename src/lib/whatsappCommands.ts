@@ -346,8 +346,92 @@ async function handleClima(): Promise<string> {
   return lines.join("\n");
 }
 
+async function handleHoje(userId: string): Promise<string> {
+  const tz = "America/Sao_Paulo";
+  const sections: string[] = [];
+
+  // Clima
+  try {
+    const clima = await handleClima();
+    sections.push(clima);
+  } catch {}
+
+  // Eventos do Google Calendar hoje
+  try {
+    const tokenResult = await getValidAccessToken(userId);
+    if (!("error" in tokenResult)) {
+      const now = new Date();
+      const startOfDay = new Date(now.toLocaleDateString("en-CA", { timeZone: tz }) + "T00:00:00");
+      const endOfDay = new Date(now.toLocaleDateString("en-CA", { timeZone: tz }) + "T23:59:59");
+      const params = new URLSearchParams({
+        timeMin: startOfDay.toISOString(),
+        timeMax: endOfDay.toISOString(),
+        singleEvents: "true",
+        orderBy: "startTime",
+        maxResults: "5",
+      });
+      const res = await googleJson(
+        tokenResult.accessToken,
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+        { method: "GET" },
+      );
+      const items = ((res.data as Record<string, unknown>)?.items as Array<Record<string, unknown>>) ?? [];
+      if (items.length > 0) {
+        const eventLines = items.map((ev) => {
+          const start = ev.start as Record<string, string> | undefined;
+          const time = start?.dateTime
+            ? new Date(start.dateTime).toLocaleTimeString("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" })
+            : "dia todo";
+          return `  • ${time} — ${ev.summary ?? "Sem título"}`;
+        });
+        sections.push(`📅 *Agenda de hoje*\n${eventLines.join("\n")}`);
+      }
+    }
+  } catch {}
+
+  // Tarefas pendentes (primeiras 5 do kanban)
+  try {
+    await ensureDatabaseConnection();
+    const tasks = await sql<{ title: string }[]>`
+      SELECT title FROM tasks
+      WHERE user_id = ${userId} AND column_index = 0
+      ORDER BY position ASC LIMIT 5
+    `;
+    if (tasks.length > 0) {
+      const taskLines = tasks.map((t) => `  • ${t.title}`).join("\n");
+      sections.push(`✅ *Tarefas pendentes*\n${taskLines}`);
+    }
+  } catch {}
+
+  // Timer ativo
+  try {
+    await ensureDatabaseConnection();
+    const active = await sql<{ started_at: string; project_name: string | null }[]>`
+      SELECT ts.started_at, p.name as project_name
+      FROM time_sessions ts
+      LEFT JOIN projects p ON ts.project_id = p.id
+      WHERE ts.user_id = ${userId} AND ts.ended_at IS NULL
+      LIMIT 1
+    `;
+    if (active.length > 0) {
+      const session = active[0];
+      const elapsed = Math.floor((Date.now() - new Date(session.started_at).getTime()) / 60000);
+      const h = Math.floor(elapsed / 60);
+      const m = elapsed % 60;
+      const duration = h > 0 ? `${h}h${m}min` : `${m}min`;
+      const proj = session.project_name ? ` — ${session.project_name}` : "";
+      sections.push(`⏱ *Timer ativo${proj}*: ${duration}`);
+    }
+  } catch {}
+
+  if (sections.length === 0) return "Nada encontrado para hoje.";
+  const today = new Date().toLocaleDateString("pt-BR", { timeZone: tz, weekday: "long", day: "2-digit", month: "long" });
+  return `*${today.charAt(0).toUpperCase() + today.slice(1)}*\n\n${sections.join("\n\n")}`;
+}
+
 const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
 
+/hoje — Resumo do dia (clima, agenda, tarefas, timer)
 /clima — Temperatura e condição do tempo atual
 /meet [título] — Reunião na próxima hora cheia
 /meet [título] agora — Reunião instantânea
@@ -366,6 +450,8 @@ export async function runCommand(
   const { command, args } = parsed;
 
   switch (command) {
+    case "hoje":
+      return handleHoje(userId);
     case "clima":
       return handleClima();
     case "meet":
