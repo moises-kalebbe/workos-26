@@ -1,6 +1,36 @@
 import { sql, ensureDatabaseConnection } from "@/lib/db";
 import { getValidAccessToken, googleJson } from "@/lib/googleCalendar";
 
+const WEATHER_CODES: Record<number, { day: string; night: string }> = {
+  0: { day: "Ensolarado", night: "Céu limpo" },
+  1: { day: "Quase limpo", night: "Poucas nuvens" },
+  2: { day: "Parcialmente nublado", night: "Parcialmente nublado" },
+  3: { day: "Nublado", night: "Nublado" },
+  45: { day: "Neblina", night: "Neblina" },
+  48: { day: "Neblina intensa", night: "Neblina intensa" },
+  51: { day: "Garoa leve", night: "Garoa leve" },
+  53: { day: "Garoa", night: "Garoa" },
+  55: { day: "Garoa forte", night: "Garoa forte" },
+  61: { day: "Chuva fraca", night: "Chuva fraca" },
+  63: { day: "Chuva", night: "Chuva" },
+  65: { day: "Chuva forte", night: "Chuva forte" },
+  80: { day: "Pancadas leves", night: "Pancadas leves" },
+  81: { day: "Pancadas de chuva", night: "Pancadas de chuva" },
+  82: { day: "Pancadas fortes", night: "Pancadas fortes" },
+  95: { day: "Trovoadas", night: "Trovoadas" },
+  96: { day: "Trovoadas com granizo", night: "Trovoadas com granizo" },
+  99: { day: "Tempestade com granizo", night: "Tempestade com granizo" },
+};
+
+const WEATHER_EMOJIS: Record<number, string> = {
+  0: "☀️", 1: "🌤", 2: "⛅", 3: "☁️",
+  45: "🌫", 48: "🌫",
+  51: "🌦", 53: "🌦", 55: "🌧",
+  61: "🌧", 63: "🌧", 65: "🌧",
+  80: "🌦", 81: "🌧", 82: "⛈",
+  95: "⛈", 96: "⛈", 99: "⛈",
+};
+
 export type ParsedCommand = {
   command: string;
   args: string[];
@@ -283,8 +313,42 @@ async function handleLembrete(userId: string, args: string[]): Promise<string> {
   return `✅ Lembrete criado: *${title}*\n📅 ${dateStr} às 10:00`;
 }
 
+async function handleClima(): Promise<string> {
+  const url =
+    "https://api.open-meteo.com/v1/forecast?latitude=-22.5647&longitude=-47.4017" +
+    "&current=temperature_2m,weather_code,is_day" +
+    "&daily=temperature_2m_max,temperature_2m_min" +
+    "&timezone=America%2FSao_Paulo&forecast_days=1";
+
+  let data: Record<string, unknown>;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    data = (await res.json()) as Record<string, unknown>;
+  } catch {
+    return "Não foi possível obter o clima agora. Tente novamente.";
+  }
+
+  const current = data.current as Record<string, number> | undefined;
+  const daily = data.daily as Record<string, number[]> | undefined;
+  if (!current) return "Dados de clima indisponíveis.";
+
+  const temp = Math.round(current.temperature_2m);
+  const code = current.weather_code;
+  const isDay = current.is_day === 1;
+  const label = (WEATHER_CODES[code] ?? { day: "Clima estável", night: "Clima estável" })[isDay ? "day" : "night"];
+  const emoji = WEATHER_EMOJIS[code] ?? "🌡";
+  const max = daily ? Math.round(daily.temperature_2m_max[0]) : null;
+  const min = daily ? Math.round(daily.temperature_2m_min[0]) : null;
+
+  const lines = [`${emoji} *Limeira, SP*`, `🌡 ${temp}°C — ${label}`];
+  if (min !== null && max !== null) lines.push(`📊 Mín ${min}° / Máx ${max}°`);
+  return lines.join("\n");
+}
+
 const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
 
+/clima — Temperatura e condição do tempo atual
 /meet [título] — Reunião na próxima hora cheia
 /meet [título] agora — Reunião instantânea
 /meet [título] às 15h30 — Reunião no horário
@@ -302,6 +366,8 @@ export async function runCommand(
   const { command, args } = parsed;
 
   switch (command) {
+    case "clima":
+      return handleClima();
     case "meet":
       return handleMeet(userId, args);
     case "task":
