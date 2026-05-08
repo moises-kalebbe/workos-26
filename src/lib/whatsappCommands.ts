@@ -469,6 +469,54 @@ async function handleHoje(userId: string): Promise<string> {
   return `*${today.charAt(0).toUpperCase() + today.slice(1)}*\n\n${sections.join("\n\n")}`;
 }
 
+async function handleMp(): Promise<string> {
+  if (!mpConfigured()) {
+    return "Mercado Pago não configurado. Adicione MERCADOPAGO_ACCESS_TOKEN nas configurações.";
+  }
+
+  const fmt = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  try {
+    const [balance, moneyBoxes, payments] = await Promise.all([
+      getBalance(),
+      getMoneyBoxes(),
+      getRecentPayments(100),
+    ]);
+
+    const lines: string[] = ["🟡 *Mercado Pago*"];
+
+    if (balance) {
+      const available = Number(balance.available_balance ?? 0);
+      lines.push(`💳 Saldo disponível: ${fmt(available)}`);
+    }
+
+    if (moneyBoxes.length > 0) {
+      const total = moneyBoxes.reduce((s, b) => s + Number(b.current_amount ?? 0), 0);
+      lines.push(`\n🐷 *Cofrinhos* (total: ${fmt(total)})`);
+      for (const box of moneyBoxes) {
+        lines.push(`  • ${box.name}: ${fmt(Number(box.current_amount ?? 0))}`);
+      }
+    } else {
+      const cofrinhos = extractCofrinhos(payments);
+      if (cofrinhos.length > 0) {
+        const total = cofrinhos.reduce((s, c) => s + c.amount, 0);
+        lines.push(`\n🐷 *Cofrinhos* (total: ${fmt(total)})`);
+        for (const c of cofrinhos) {
+          lines.push(`  • ${c.name}: ${fmt(c.amount)}`);
+        }
+      } else {
+        lines.push(`🐷 Nenhum cofrinho encontrado`);
+      }
+    }
+
+    return lines.join("\n");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return `Erro ao buscar dados do Mercado Pago: ${msg}`;
+  }
+}
+
 const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
 
 /hoje — Resumo do dia (clima, agenda, tarefas, timer)
@@ -479,6 +527,7 @@ const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
 /meet [título] amanhã às 10h — Reunião amanhã
 /task [título] — Cria tarefa no kanban
 /grana — Resumo financeiro do mês
+/mp — Saldo e cofrinhos do Mercado Pago
 /timer start [projeto] — Inicia o timer
 /timer stop — Para o timer atual
 /lembrete [título] — Cria lembrete para amanhã às 10h`;
@@ -500,6 +549,10 @@ export async function runCommand(
       return handleTask(userId, args);
     case "grana":
       return handleGrana(userId);
+    case "mp":
+    case "mercadopago":
+    case "mercadolivre":
+      return handleMp();
     case "timer":
       return handleTimer(userId, args);
     case "lembrete":
