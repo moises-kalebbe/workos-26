@@ -3,6 +3,7 @@ import { buildTrainingPlan } from "@/lib/trainingPlan";
 import type {
   AthleteMeasurement,
   AthleteProfile,
+  ExerciseCatalogItem,
   MentalGameEntry,
   MentalGamePrompt,
   TrainingBlock,
@@ -86,6 +87,17 @@ export const treinoApi = {
   },
   async getMentalPrompts() {
     return db.from("mental_game_prompts").select("*").order("position") as Promise<{ data: MentalGamePrompt[] | null; error: { message: string } | null }>;
+  },
+  async getExercises() {
+    return db.from("exercises").select("*").order("name") as Promise<{ data: ExerciseCatalogItem[] | null; error: { message: string } | null }>;
+  },
+  async swapSessionExercise({ exerciseId, name, category }: { exerciseId: string; name: string; category: string }) {
+    return db
+      .from("training_session_exercises")
+      .update({ exercise_name: name, category })
+      .eq("id", exerciseId)
+      .select("*")
+      .single() as Promise<{ data: TrainingSessionExercise | null; error: { message: string } | null }>;
   },
   async getMentalEntries() {
     return db.from("mental_game_entries").select("*").order("entry_date", { ascending: false }) as Promise<{ data: MentalGameEntry[] | null; error: { message: string } | null }>;

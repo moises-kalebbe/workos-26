@@ -13,6 +13,7 @@ import type {
   TreinoSessionWithContext,
   TreinoSetDraft,
 } from "@/features/treino/types";
+import type { ExerciseCatalogItem } from "@/types";
 import { getDateKeyInTimezone, getMillisecondsUntilNextDateChangeInTimezone } from "@/lib/timeline";
 import { selectMentalGamePrompt } from "@/lib/trainingPlan";
 
@@ -136,6 +137,8 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
   const [measurements, setMeasurements] = useState<TreinoMeasurement[]>([]);
   const [mentalPrompts, setMentalPrompts] = useState<TreinoMentalPrompt[]>([]);
   const [mentalEntries, setMentalEntries] = useState<TreinoMentalEntry[]>([]);
+  const [exerciseCatalog, setExerciseCatalog] = useState<ExerciseCatalogItem[]>([]);
+  const [swappingExerciseId, setSwappingExerciseId] = useState<string | null>(null);
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -170,6 +173,7 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
       setMeasurements([]);
       setMentalPrompts([]);
       setMentalEntries([]);
+      setExerciseCatalog([]);
       setLoading(false);
       return;
     }
@@ -181,12 +185,13 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
       const timezoneRes = await treinoApi.getTimezone();
       setTimezone((timezoneRes.data as { timezone?: string } | null)?.timezone || "America/Sao_Paulo");
 
-      const [profileRes, programsRes, measurementsRes, promptsRes, mentalEntriesRes] = await Promise.all([
+      const [profileRes, programsRes, measurementsRes, promptsRes, mentalEntriesRes, catalogRes] = await Promise.all([
         treinoApi.getProfile(),
         treinoApi.getPrograms(),
         treinoApi.getMeasurements(),
         treinoApi.getMentalPrompts(),
         treinoApi.getMentalEntries(),
+        treinoApi.getExercises(),
       ]);
 
       if (profileRes.error) throw new Error(profileRes.error.message);
@@ -194,6 +199,7 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
       if (measurementsRes.error) throw new Error(measurementsRes.error.message);
       if (promptsRes.error) throw new Error(promptsRes.error.message);
       if (mentalEntriesRes.error) throw new Error(mentalEntriesRes.error.message);
+      setExerciseCatalog(normalizeList(catalogRes.data));
 
       const nextPrograms = normalizeList(programsRes.data);
       const activeProgram = nextPrograms.find((program) => program.status === "active") || nextPrograms[0] || null;
@@ -494,6 +500,26 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
     }
   }, [refresh, userId]);
 
+  const swapSessionExercise = useCallback(
+    async ({ exerciseId, name, category }: { exerciseId: string; name: string; category: string }) => {
+      if (!userId) return false;
+      setSwappingExerciseId(exerciseId);
+      try {
+        const response = await treinoApi.swapSessionExercise({ exerciseId, name, category });
+        if (response.error) throw new Error(response.error.message);
+        toast.success("Exercicio trocado.");
+        await refresh();
+        return true;
+      } catch (caughtError) {
+        toast.error(caughtError instanceof Error ? caughtError.message : "Falha ao trocar exercicio.");
+        return false;
+      } finally {
+        setSwappingExerciseId(null);
+      }
+    },
+    [refresh, userId],
+  );
+
   const toggleMentalApplied = useCallback(async (applied: boolean) => {
     if (!userId || !todayMentalPrompt) return;
     try {
@@ -591,5 +617,8 @@ export function useTreinoFeature({ userId }: { userId: string | null }) {
     todayMentalPrompt,
     todaySession,
     toggleMentalApplied,
+    exerciseCatalog,
+    swapSessionExercise,
+    swappingExerciseId,
   };
 }

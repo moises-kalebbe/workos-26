@@ -37,3 +37,6 @@ tsconfig.tsbuildinfo
 *.sln
 *.sw?
 
+
+# clerk configuration (can include secrets)
+/.clerk/

@@ -278,6 +278,9 @@ vi.mock("@/features/treino/hooks", async () => {
       todayMentalPrompt: null,
       todaySession: baseSession,
       toggleMentalApplied: vi.fn(),
+      exerciseCatalog: [],
+      swapSessionExercise: vi.fn(),
+      swappingExerciseId: null,
     }),
   };
 });

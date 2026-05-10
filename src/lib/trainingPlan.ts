@@ -173,103 +173,105 @@ function isDeloadWeek(weekNumber: number) {
   return weekNumber % 4 === 0;
 }
 
-function upperDayExercises(block: BlockDefinition, deload: boolean) {
+function lowerJumpDayExercises(block: BlockDefinition, deload: boolean): ExerciseDraft[] {
   const main =
     block.focus_key === "strength_one" || block.focus_key === "consolidation"
-      ? { press: "Supino com barra", row: "Remada apoiada", sets: 5, repMin: 4, repMax: 6 }
+      ? { squat: "Agachamento livre", sets: 5, repMin: 4, repMax: 6 }
       : block.focus_key === "strength_transfer"
-        ? { press: "Supino com halteres neutros", row: "Remada apoiada", sets: 4, repMin: 4, repMax: 5 }
+        ? { squat: "Front squat", sets: 4, repMin: 3, repMax: 5 }
         : block.focus_key === "power_rsa"
-          ? { press: "Landmine press", row: "Puxada vertical", sets: 4, repMin: 4, repMax: 6 }
+          ? { squat: "Trap-bar deadlift", sets: 4, repMin: 4, repMax: 5 }
           : block.focus_key === "functional_hypertrophy"
-            ? { press: "Supino com barra", row: "Remada unilateral no cabo", sets: 4, repMin: 6, repMax: 8 }
-            : { press: "Supino com halteres", row: "Remada apoiada", sets: 3, repMin: 6, repMax: 8 };
+            ? { squat: "Front squat", sets: 4, repMin: 6, repMax: 8 }
+            : { squat: "Agachamento livre", sets: 3, repMin: 6, repMax: 8 };
 
   return [
-    makeExercise({ exercise_name: main.press, category: "main", prescribed_sets: main.sets, target_rep_min: main.repMin, target_rep_max: main.repMax, rest_seconds: 150, tempo: "20X1", load_mode: "rpe", target_rpe: 8, target_rir: 2, progression_rule: mainLiftRule(main.press), notes: null }, deload, "main"),
-    makeExercise({ exercise_name: main.row, category: "main", prescribed_sets: Math.max(3, main.sets - 1), target_rep_min: main.repMin, target_rep_max: Math.max(main.repMax, main.repMin + 1), rest_seconds: 120, tempo: "21X1", load_mode: "rpe", target_rpe: 8, target_rir: 2, progression_rule: mainLiftRule(main.row), notes: null }, deload, "main"),
-    makeExercise({ exercise_name: "Puxada vertical", category: "secondary", prescribed_sets: 3, target_rep_min: 6, target_rep_max: 10, rest_seconds: 90, tempo: "21X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Subir quando sobrar folga técnica.", notes: null }, deload),
-    makeExercise({ exercise_name: "Face pull", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 45, tempo: "2112", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Qualidade de escápula primeiro.", notes: null }, deload, "accessory"),
-    makeExercise({ exercise_name: "Rotacao externa com cabo", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 45, tempo: "2112", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Manguito limpo e sem compensação.", notes: null }, deload, "accessory"),
-    makeExercise({ exercise_name: "Pronacao e supinacao de antebraco", category: "prehab", prescribed_sets: 2, target_rep_min: 10, target_rep_max: 15, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Subir progressivamente sem irritar cotovelo.", notes: null }, deload, "accessory"),
+    { exercise_name: "Mobilidade quadril, tornozelo e toracica", category: "mobility", prescribed_sets: 1, target_rep_min: 5, target_rep_max: 5, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 4, target_rir: null, progression_rule: "Qualidade de movimento; 5 minutos de aquecimento articular.", notes: null },
+    makeExercise({ exercise_name: "CMJ", category: "power", prescribed_sets: 4, target_rep_min: 3, target_rep_max: 3, rest_seconds: 75, tempo: "X", load_mode: "bodyweight", target_rpe: 7, target_rir: null, progression_rule: "Parar antes de perder altura no salto.", notes: null }, deload, "main"),
+    makeExercise({ exercise_name: "Lateral bound", category: "power", prescribed_sets: 3, target_rep_min: 4, target_rep_max: 4, rest_seconds: 60, tempo: "X", load_mode: "bodyweight", target_rpe: 7, target_rir: null, progression_rule: "Aumentar amplitude mantendo aterrissagem limpa.", notes: null }, deload),
+    makeExercise({ exercise_name: main.squat, category: "main", prescribed_sets: main.sets, target_rep_min: main.repMin, target_rep_max: main.repMax, rest_seconds: 180, tempo: "20X1", load_mode: "rpe", target_rpe: 8, target_rir: 2, progression_rule: mainLiftRule(main.squat), notes: null }, deload, "main"),
+    makeExercise({ exercise_name: "RDL", category: "main", prescribed_sets: 3, target_rep_min: 6, target_rep_max: 10, rest_seconds: 120, tempo: "30X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: mainLiftRule("RDL"), notes: "Cadeia posterior — proteger lombar com hip hinge limpo." }, deload, "main"),
+    makeExercise({ exercise_name: "Pallof press", category: "core", prescribed_sets: 3, target_rep_min: 8, target_rep_max: 10, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Estabilidade anti-rotacao acima de carga.", notes: null }, deload, "accessory"),
   ];
 }
 
-function powerDayExercises(block: BlockDefinition, deload: boolean) {
-  const sprintSets = block.focus_key === "power_rsa" ? 8 : block.focus_key === "reconditioning" ? 6 : 7;
+function upperPushDayExercises(block: BlockDefinition, deload: boolean): ExerciseDraft[] {
+  const press =
+    block.focus_key === "strength_one" || block.focus_key === "consolidation"
+      ? { name: "Supino com barra", sets: 5, repMin: 4, repMax: 6 }
+      : block.focus_key === "strength_transfer"
+        ? { name: "Supino com halteres neutros", sets: 4, repMin: 4, repMax: 6 }
+        : block.focus_key === "power_rsa"
+          ? { name: "Landmine press", sets: 4, repMin: 4, repMax: 6 }
+          : block.focus_key === "functional_hypertrophy"
+            ? { name: "Supino com barra", sets: 4, repMin: 6, repMax: 8 }
+            : { name: "Supino com halteres", sets: 3, repMin: 6, repMax: 8 };
+
+  return [
+    makeExercise({ exercise_name: "Rotacao externa com cabo", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 6.5, target_rir: 3, progression_rule: "Manguito limpo, sem compensacao.", notes: "Bloco de 5 min: Y/T/W + ER com banda + face pull." }, deload, "accessory"),
+    makeExercise({ exercise_name: "Jump shrug com barra", category: "power", prescribed_sets: 4, target_rep_min: 4, target_rep_max: 4, rest_seconds: 75, tempo: "X", load_mode: "rpe", target_rpe: 7, target_rir: null, progression_rule: "Explodir com barra leve sem transformar em levantamento pesado.", notes: "Barra leve ou com anilhas pequenas." }, deload),
+    makeExercise({ exercise_name: "Rotacao explosiva no cabo", category: "power", prescribed_sets: 4, target_rep_min: 6, target_rep_max: 6, rest_seconds: 60, tempo: "X", load_mode: "rpe", target_rpe: 7, target_rir: null, progression_rule: "Velocidade do quadril ate as maos, sem perder o eixo.", notes: "Alternar lados a cada serie." }, deload),
+    makeExercise({ exercise_name: press.name, category: "main", prescribed_sets: press.sets, target_rep_min: press.repMin, target_rep_max: press.repMax, rest_seconds: 150, tempo: "20X1", load_mode: "rpe", target_rpe: 8, target_rir: 2, progression_rule: mainLiftRule(press.name), notes: null }, deload, "main"),
+    makeExercise({ exercise_name: "Desenvolvimento com halteres", category: "secondary", prescribed_sets: 3, target_rep_min: 8, target_rep_max: 12, rest_seconds: 75, tempo: "20X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Subir quando manter cotovelo abaixo da orelha.", notes: null }, deload),
+    makeExercise({ exercise_name: "Triceps no cabo", category: "accessory", prescribed_sets: 3, target_rep_min: 10, target_rep_max: 12, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Foco em qualidade do bloqueio do cotovelo.", notes: null }, deload, "accessory"),
+    makeExercise({ exercise_name: "Face pull", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Qualidade de escapula primeiro.", notes: null }, deload, "accessory"),
+  ];
+}
+
+function lowerSprintDayExercises(block: BlockDefinition, deload: boolean): ExerciseDraft[] {
+  const sprintSets = block.focus_key === "power_rsa" ? 10 : block.focus_key === "reconditioning" ? 6 : 8;
   const bikeExtendedSets = block.focus_key === "power_rsa" ? 6 : 4;
   return [
-    makeExercise({ exercise_name: "CMJ", category: "power", prescribed_sets: 4, target_rep_min: 3, target_rep_max: 3, rest_seconds: 75, tempo: "X", load_mode: "bodyweight", target_rpe: 7, target_rir: null, progression_rule: "Parar antes de perder altura no salto.", notes: null }, deload, "main"),
-    makeExercise({ exercise_name: "Lateral bound", category: "power", prescribed_sets: 3, target_rep_min: 4, target_rep_max: 4, rest_seconds: 60, tempo: "X", load_mode: "bodyweight", target_rpe: 7, target_rir: null, progression_rule: "Aumentar amplitude só mantendo aterrissagem limpa.", notes: null }, deload),
-    makeExercise({ exercise_name: "Jump shrug com barra", category: "power", prescribed_sets: 4, target_rep_min: 4, target_rep_max: 4, rest_seconds: 75, tempo: "X", load_mode: "rpe", target_rpe: 7, target_rir: null, progression_rule: "Explodir com barra leve sem transformar em levantamento pesado.", notes: "Barra leve ou com anilhas pequenas." }, deload),
-    makeExercise({ exercise_name: "Rotacao explosiva no cabo", category: "power", prescribed_sets: 4, target_rep_min: 6, target_rep_max: 6, rest_seconds: 60, tempo: "X", load_mode: "rpe", target_rpe: 7, target_rir: null, progression_rule: "Velocidade do quadril até as mãos, sem perder o eixo.", notes: "Alternar lados a cada série." }, deload),
-    makeExercise({ exercise_name: "Bike sprint", category: "conditioning", prescribed_sets: sprintSets, target_rep_min: 10, target_rep_max: 10, rest_seconds: 50, tempo: null, load_mode: "time", target_rpe: 8, target_rir: null, progression_rule: "Manter potência alta em todos os tiros.", notes: "10 segundos forte / 50 fácil." }, deload),
-    makeExercise({ exercise_name: "Bike sprint estendido", category: "conditioning", prescribed_sets: bikeExtendedSets, target_rep_min: 15, target_rep_max: 15, rest_seconds: 45, tempo: null, load_mode: "time", target_rpe: 8, target_rir: null, progression_rule: "Sustentar cadência alta sem travar as pernas.", notes: "15 segundos forte / 45 fácil." }, deload),
-    makeExercise({ exercise_name: "Pallof press", category: "core", prescribed_sets: 3, target_rep_min: 8, target_rep_max: 10, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Estabilidade anti-rotação acima de carga.", notes: null }, deload, "accessory"),
+    { exercise_name: "Mobilidade quadril, tornozelo e toracica", category: "mobility", prescribed_sets: 1, target_rep_min: 5, target_rep_max: 5, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 4, target_rir: null, progression_rule: "Aquecimento articular antes de sprints.", notes: null },
+    makeExercise({ exercise_name: "Bike sprint", category: "conditioning", prescribed_sets: sprintSets, target_rep_min: 10, target_rep_max: 10, rest_seconds: 50, tempo: null, load_mode: "time", target_rpe: 8, target_rir: null, progression_rule: "Manter potencia alta em todos os tiros. Equivalente a sprint na areia 10-20m.", notes: "10 segundos forte / 50 facil." }, deload),
+    makeExercise({ exercise_name: "Bike sprint estendido", category: "conditioning", prescribed_sets: bikeExtendedSets, target_rep_min: 15, target_rep_max: 15, rest_seconds: 45, tempo: null, load_mode: "time", target_rpe: 8, target_rir: null, progression_rule: "Sustentar cadencia alta sem travar as pernas.", notes: "15 segundos forte / 45 facil." }, deload),
+    makeExercise({ exercise_name: "Leg press unilateral", category: "secondary", prescribed_sets: 4, target_rep_min: 10, target_rep_max: 12, rest_seconds: 75, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Eixo do joelho sobre o pe; sem inclinar a pelvis.", notes: null }, deload),
+    makeExercise({ exercise_name: "Bulgarian split squat", category: "secondary", prescribed_sets: 3, target_rep_min: 8, target_rep_max: 10, rest_seconds: 75, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Eixo e profundidade consistentes.", notes: null }, deload),
+    makeExercise({ exercise_name: "Hamstring curl", category: "accessory", prescribed_sets: 3, target_rep_min: 8, target_rep_max: 12, rest_seconds: 60, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Posterior forte sem roubar lombar.", notes: null }, deload, "accessory"),
+    makeExercise({ exercise_name: "Pallof press", category: "core", prescribed_sets: 2, target_rep_min: 8, target_rep_max: 10, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Controle anti-rotacao.", notes: null }, deload, "accessory"),
   ];
 }
 
-function recoveryDayExercises(_block: BlockDefinition, deload: boolean): ExerciseDraft[] {
+function upperPullDayExercises(block: BlockDefinition, deload: boolean): ExerciseDraft[] {
+  const main =
+    block.focus_key === "strength_one" || block.focus_key === "consolidation"
+      ? { row: "Remada apoiada", sets: 5, repMin: 4, repMax: 6 }
+      : block.focus_key === "strength_transfer"
+        ? { row: "Remada apoiada", sets: 4, repMin: 4, repMax: 6 }
+        : block.focus_key === "power_rsa"
+          ? { row: "Puxada vertical", sets: 4, repMin: 5, repMax: 6 }
+          : block.focus_key === "functional_hypertrophy"
+            ? { row: "Remada unilateral no cabo", sets: 4, repMin: 6, repMax: 8 }
+            : { row: "Remada apoiada", sets: 3, repMin: 6, repMax: 8 };
+
   return [
-    { exercise_name: "Zone 2 bike", category: "recovery", prescribed_sets: 1, target_rep_min: deload ? 20 : 30, target_rep_max: deload ? 20 : 30, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 5, target_rir: null, progression_rule: "Ritmo conversável.", notes: "Base aeróbia sem fadiga." },
-    { exercise_name: "Mobilidade quadril, tornozelo e toracica", category: "mobility", prescribed_sets: 1, target_rep_min: 10, target_rep_max: 10, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 4, target_rir: null, progression_rule: "Qualidade de movimento acima de volume.", notes: "Circuito de 10 minutos." },
-    makeExercise({ exercise_name: "Rotacao externa com cabo", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 6.5, target_rir: 3, progression_rule: "Sem compensação no tronco.", notes: null }, deload, "accessory"),
-    makeExercise({ exercise_name: "Trap-3 raise", category: "prehab", prescribed_sets: 2, target_rep_min: 10, target_rep_max: 12, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 6.5, target_rir: 3, progression_rule: "Escápula limpa do começo ao fim.", notes: null }, deload, "accessory"),
+    makeExercise({ exercise_name: "Rotacao externa com cabo", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 6.5, target_rir: 3, progression_rule: "Bloco prevencao de ombro: Y/T/W + face pull.", notes: null }, deload, "accessory"),
+    makeExercise({ exercise_name: "Pronacao e supinacao de antebraco", category: "prehab", prescribed_sets: 3, target_rep_min: 12, target_rep_max: 15, rest_seconds: 45, tempo: "30X0", load_mode: "rpe", target_rpe: 6.5, target_rir: 3, progression_rule: "Excentrico de punho 3x15 — protocolo Tyler/AAOS para epicondilite.", notes: "Foco no controle excentrico (3s descendo)." }, deload, "accessory"),
+    makeExercise({ exercise_name: main.row, category: "main", prescribed_sets: main.sets, target_rep_min: main.repMin, target_rep_max: main.repMax, rest_seconds: 120, tempo: "21X1", load_mode: "rpe", target_rpe: 8, target_rir: 2, progression_rule: mainLiftRule(main.row), notes: null }, deload, "main"),
+    makeExercise({ exercise_name: "Puxada vertical", category: "secondary", prescribed_sets: 3, target_rep_min: 8, target_rep_max: 10, rest_seconds: 90, tempo: "21X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Iniciar pela retracao escapular.", notes: null }, deload),
+    makeExercise({ exercise_name: "Remada unilateral no cabo", category: "secondary", prescribed_sets: 3, target_rep_min: 10, target_rep_max: 12, rest_seconds: 60, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Qualidade antes de carga.", notes: null }, deload),
+    makeExercise({ exercise_name: "Biceps com halteres", category: "accessory", prescribed_sets: 3, target_rep_min: 10, target_rep_max: 12, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Cotovelo fixo, sem balanco.", notes: null }, deload, "accessory"),
+    makeExercise({ exercise_name: "Face pull", category: "prehab", prescribed_sets: 2, target_rep_min: 12, target_rep_max: 15, rest_seconds: 30, tempo: "2112", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Acabamento de escapula.", notes: null }, deload, "accessory"),
+  ];
+}
+
+function saturdayFullBodyExercises(block: BlockDefinition, deload: boolean): ExerciseDraft[] {
+  return [
+    { exercise_name: "Mobilidade ombro e toracica", category: "mobility", prescribed_sets: 1, target_rep_min: 8, target_rep_max: 8, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 4, target_rir: null, progression_rule: "Qualidade de movimento; preparacao integral.", notes: "Bloco de mobilidade torácica e ombro." },
+    makeExercise({ exercise_name: "TGU parcial", category: "integrated", prescribed_sets: 3, target_rep_min: 5, target_rep_max: 5, rest_seconds: 60, tempo: "30X1", load_mode: "rpe", target_rpe: 7, target_rir: 2, progression_rule: "5 reps por lado; controle do peso acima da cabeca.", notes: "Foco em estabilidade do ombro." }, deload),
+    makeExercise({ exercise_name: "Step-up", category: "secondary", prescribed_sets: block.focus_key === "functional_hypertrophy" ? 3 : 2, target_rep_min: 8, target_rep_max: 10, rest_seconds: 60, tempo: "20X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Subir quando a pelvis estiver estavel.", notes: null }, deload),
+    makeExercise({ exercise_name: "Hip thrust", category: "secondary", prescribed_sets: 3, target_rep_min: 8, target_rep_max: 10, rest_seconds: 75, tempo: "20X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Explodir e segurar o topo.", notes: null }, deload),
+    makeExercise({ exercise_name: "Farmer carry", category: "carry", prescribed_sets: 3, target_rep_min: 30, target_rep_max: 30, rest_seconds: 45, tempo: null, load_mode: "distance", target_rpe: 7.5, target_rir: null, progression_rule: "Aumentar carga sem perder postura.", notes: "30 metros por repeticao." }, deload, "accessory"),
     makeExercise({ exercise_name: "Copenhagen plank", category: "core", prescribed_sets: 2, target_rep_min: 20, target_rep_max: 30, rest_seconds: 30, tempo: null, load_mode: "time", target_rpe: 7, target_rir: null, progression_rule: "Progredir primeiro pelo tempo.", notes: null }, deload, "accessory"),
   ];
 }
 
-function lowerDayExercises(block: BlockDefinition, deload: boolean) {
-  const main =
-    block.focus_key === "functional_hypertrophy"
-      ? { squat: "Front squat", hinge: "RDL", sets: 4, repMin: 6, repMax: 8 }
-      : block.focus_key === "strength_one"
-        ? { squat: "Safety bar squat", hinge: "Trap-bar deadlift", sets: 5, repMin: 4, repMax: 6 }
-        : block.focus_key === "strength_transfer"
-          ? { squat: "Front squat", hinge: "Trap-bar deadlift", sets: 4, repMin: 3, repMax: 5 }
-          : block.focus_key === "power_rsa"
-            ? { squat: "Trap-bar deadlift", hinge: "Box jump baixo", sets: 4, repMin: 3, repMax: 3 }
-            : block.focus_key === "consolidation"
-              ? { squat: "Front squat", hinge: "Hip thrust", sets: 3, repMin: 3, repMax: 5 }
-              : { squat: "Trap-bar deadlift", hinge: "Bulgarian split squat", sets: 3, repMin: 5, repMax: 6 };
-
-  return [
-    makeExercise({ exercise_name: main.squat, category: "main", prescribed_sets: main.sets, target_rep_min: main.repMin, target_rep_max: main.repMax, rest_seconds: 180, tempo: "20X1", load_mode: "rpe", target_rpe: 8, target_rir: 2, progression_rule: mainLiftRule(main.squat), notes: null }, deload, "main"),
-    makeExercise({ exercise_name: main.hinge, category: "main", prescribed_sets: Math.max(3, main.sets - 1), target_rep_min: main.repMin, target_rep_max: main.repMax, rest_seconds: 150, tempo: main.hinge === "Box jump baixo" ? "X" : "20X1", load_mode: main.hinge === "Box jump baixo" ? "bodyweight" : "rpe", target_rpe: 7.5, target_rir: main.hinge === "Box jump baixo" ? null : 2, progression_rule: mainLiftRule(main.hinge), notes: main.hinge === "Box jump baixo" ? "Aterrissagem leve." : null }, deload, "main"),
-    makeExercise({ exercise_name: "Bulgarian split squat", category: "secondary", prescribed_sets: 3, target_rep_min: 6, target_rep_max: 8, rest_seconds: 75, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Eixo e profundidade consistentes.", notes: null }, deload),
-    makeExercise({ exercise_name: "Hamstring curl", category: "accessory", prescribed_sets: 3, target_rep_min: 6, target_rep_max: 12, rest_seconds: 60, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Posterior forte sem roubar lombar.", notes: null }, deload, "accessory"),
-    makeExercise({ exercise_name: "Calf raise", category: "accessory", prescribed_sets: 2, target_rep_min: 10, target_rep_max: 15, rest_seconds: 45, tempo: "2211", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Amplitude total em toda repetição.", notes: null }, deload, "accessory"),
-    makeExercise({ exercise_name: "Pallof press", category: "core", prescribed_sets: 2, target_rep_min: 8, target_rep_max: 10, rest_seconds: 45, tempo: "2111", load_mode: "rpe", target_rpe: 7, target_rir: 3, progression_rule: "Controle anti-rotação.", notes: null }, deload, "accessory"),
-  ];
-}
-
-function fullBodyExercises(block: BlockDefinition, deload: boolean): ExerciseDraft[] {
-  return [
-    makeExercise({ exercise_name: "Step-up", category: "secondary", prescribed_sets: block.focus_key === "functional_hypertrophy" ? 3 : 2, target_rep_min: 8, target_rep_max: 10, rest_seconds: 60, tempo: "20X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Subir quando a pélvis estiver estável.", notes: null }, deload),
-    makeExercise({ exercise_name: "Supino inclinado com halteres", category: "secondary", prescribed_sets: 2, target_rep_min: 6, target_rep_max: 10, rest_seconds: 75, tempo: "20X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Subir gradualmente mantendo velocidade.", notes: null }, deload),
-    makeExercise({ exercise_name: "Remada unilateral no cabo", category: "secondary", prescribed_sets: 2, target_rep_min: 8, target_rep_max: 10, rest_seconds: 60, tempo: "2111", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Qualidade antes de carga.", notes: null }, deload),
-    makeExercise({ exercise_name: "Hip thrust", category: "secondary", prescribed_sets: 3, target_rep_min: 6, target_rep_max: 8, rest_seconds: 75, tempo: "20X1", load_mode: "rpe", target_rpe: 7.5, target_rir: 2, progression_rule: "Explodir e segurar o topo.", notes: null }, deload),
-    makeExercise({ exercise_name: "Farmer carry", category: "carry", prescribed_sets: 3, target_rep_min: 30, target_rep_max: 30, rest_seconds: 45, tempo: null, load_mode: "distance", target_rpe: 7.5, target_rir: null, progression_rule: "Aumentar carga sem perder postura.", notes: "30 metros por repetição." }, deload, "accessory"),
-    { exercise_name: "Bike finisher", category: "conditioning", prescribed_sets: deload ? 4 : 6, target_rep_min: 30, target_rep_max: 30, rest_seconds: 30, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 8, target_rir: null, progression_rule: "Cortar se a recuperação estiver ruim.", notes: "30 segundos forte / 30 leve." },
-  ];
-}
-
-function beachTennisSessionExercises(): ExerciseDraft[] {
-  return [
-    { exercise_name: "Beach tennis", category: "sport", prescribed_sets: 1, target_rep_min: 75, target_rep_max: 90, rest_seconds: null, tempo: null, load_mode: "time" as TrainingExerciseLoadMode, target_rpe: 7, target_rir: null, progression_rule: "Registrar duração real e sRPE para controlar a carga semanal.", notes: "Sessão específica de quadra." },
-  ];
-}
-
 const WEEKLY_TEMPLATES: SessionTemplate[] = [
-  { day_of_week: "monday", time_slot: "morning", session_type: "strength", title: "Força superior + escápula + antebraço", target_duration_minutes: 80, objective: (block, deload) => deload ? `Reduzir volume e manter qualidade de força superior no bloco ${block.focus_label}.` : `Construir força superior útil para golpes e estabilidade escapular no bloco ${block.focus_label}.`, exercises: upperDayExercises },
-  { day_of_week: "monday", time_slot: "night", session_type: "beach_tennis", title: "Beach tennis noturno", target_duration_minutes: 90, objective: (_block, deload) => deload ? "Sessão técnica com percepção de esforço controlada." : "Aplicar consistência, leitura de bola e execução sob fadiga moderada.", exercises: () => beachTennisSessionExercises() },
-  { day_of_week: "tuesday", time_slot: "morning", session_type: "power", title: "Potência + velocidade + rotação", target_duration_minutes: 75, objective: (block, deload) => deload ? `Lapidar potência e velocidade sem gerar fadiga residual no bloco ${block.focus_label}.` : `Desenvolver potência, rotação e repeated sprint ability no bloco ${block.focus_label}.`, exercises: powerDayExercises },
-  { day_of_week: "tuesday", time_slot: "night", session_type: "beach_tennis", title: "Beach tennis noturno", target_duration_minutes: 90, objective: () => "Sessão de quadra com foco em tomada de decisão, saque/retorno e transições.", exercises: () => beachTennisSessionExercises() },
-  { day_of_week: "wednesday", time_slot: "morning", session_type: "recovery", title: "Recuperação ativa + zone 2 + mobilidade", target_duration_minutes: 60, objective: (_block, deload) => deload ? "Checkpoint de recuperação, mobilidade e controle de carga na semana de deload." : "Acelerar recuperação, sustentar ombros saudáveis e manter base aeróbia.", exercises: recoveryDayExercises },
-  { day_of_week: "wednesday", time_slot: "night", session_type: "beach_tennis", title: "Beach tennis noturno", target_duration_minutes: 90, objective: () => "Sessão de quadra com foco em padrão técnico, comunicação e consistência.", exercises: () => beachTennisSessionExercises() },
-  { day_of_week: "thursday", time_slot: "morning", session_type: "strength", title: "Força inferior principal", target_duration_minutes: 80, objective: (block, deload) => deload ? "Manter força inferior com volume reduzido e sair inteiro para o restante da semana." : `Construir força de membros inferiores, desaceleração e transferência para areia no bloco ${block.focus_label}.`, exercises: lowerDayExercises },
-  { day_of_week: "friday", time_slot: "morning", session_type: "full_body", title: "Full body funcional + posterior + carries", target_duration_minutes: 75, objective: (_block, deload) => deload ? "Consolidar a semana, manter estímulo muscular e baixar fadiga sistêmica." : "Fechar a semana com full body funcional, posterior, carries e acabamento metabólico leve.", exercises: fullBodyExercises },
-  { day_of_week: "sunday", time_slot: "night", session_type: "beach_tennis", title: "Beach tennis dominical", target_duration_minutes: 90, objective: () => "Jogo/treino de quadra para manter volume específico e leitura tática.", exercises: () => beachTennisSessionExercises() },
+  { day_of_week: "monday", time_slot: "morning", session_type: "power", title: "Lower + saltos verticais", target_duration_minutes: 55, objective: (block, deload) => deload ? `Reduzir volume de pernas e manter qualidade de salto no bloco ${block.focus_label}.` : `Construir força inferior com saltos verticais e RDL no bloco ${block.focus_label}.`, exercises: lowerJumpDayExercises },
+  { day_of_week: "tuesday", time_slot: "morning", session_type: "strength", title: "Upper Push + rotacional + manguito", target_duration_minutes: 55, objective: (block, deload) => deload ? `Manter potencia rotacional e protecao de ombro com volume controlado no bloco ${block.focus_label}.` : `Desenvolver empurrar, potencia rotacional e prevencao de ombro no bloco ${block.focus_label}.`, exercises: upperPushDayExercises },
+  { day_of_week: "wednesday", time_slot: "morning", session_type: "power", title: "Lower + sprints (RSA)", target_duration_minutes: 55, objective: (block, deload) => deload ? `Diminuir volume de sprints e preservar pernas no bloco ${block.focus_label}.` : `Repeated sprint ability e hipertrofia de pernas para a areia no bloco ${block.focus_label}.`, exercises: lowerSprintDayExercises },
+  { day_of_week: "friday", time_slot: "morning", session_type: "strength", title: "Upper Pull + prevencao cotovelo", target_duration_minutes: 55, objective: (block, deload) => deload ? `Sustentar puxar e manguito sem fadiga residual no bloco ${block.focus_label}.` : `Construir puxar, bracos e prevenir epicondilite no bloco ${block.focus_label}.`, exercises: upperPullDayExercises },
+  { day_of_week: "saturday", time_slot: "morning", session_type: "full_body", title: "Full body funcional (opcional)", target_duration_minutes: 50, objective: (_block, deload) => deload ? "Sessao opcional de mobilidade e integracao no deload." : "Sessao opcional integrada: mobilidade, TGU, carries e core. Pular se a semana foi pesada.", exercises: saturdayFullBodyExercises },
 ];
 
 export function buildTrainingPlan({

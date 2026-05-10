@@ -453,6 +453,16 @@ export interface TrainingSession {
   updated_at: string;
 }
 
+export interface ExerciseCatalogItem {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  video_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TrainingSessionExercise {
   id: string;
   user_id: string;

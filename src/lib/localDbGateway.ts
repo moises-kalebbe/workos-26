@@ -33,6 +33,7 @@ export const LOCAL_DB_TABLES = new Set([
   "training_logs",
   "training_exercise_logs",
   "athlete_measurements",
+  "exercises",
   "mental_game_prompts",
   "mental_game_entries",
   "financial_entries",
@@ -72,7 +73,7 @@ function quoteIdentifier(value: string) {
 }
 
 function getOwnershipClause(table: string, userId: string, values: unknown[]) {
-  if (table === "daily_reflection_prompts" || table === "mental_game_prompts") {
+  if (table === "daily_reflection_prompts" || table === "mental_game_prompts" || table === "exercises") {
     return "1 = 1";
   }
 
@@ -260,7 +261,7 @@ export async function executeLocalDbQuery(table: string, userId: string, payload
     throw new Error("Table not allowed");
   }
 
-  if ((table === "daily_reflection_prompts" || table === "mental_game_prompts") && payload.action !== "select") {
+  if ((table === "daily_reflection_prompts" || table === "mental_game_prompts" || table === "exercises") && payload.action !== "select") {
     throw new Error("Prompt catalog is read-only");
   }
 

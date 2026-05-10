@@ -10,8 +10,10 @@ import {
   Dumbbell,
   Info,
   Pencil,
+  Repeat,
   RotateCcw,
   Scale,
+  Search,
   Target,
   Trash2,
   Zap,
@@ -27,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,6 +51,18 @@ const DAY_SEQUENCE = [
   { key: "saturday", label: "Sabado" },
   { key: "sunday", label: "Domingo" },
 ] as const;
+
+const EXERCISE_CATEGORY_LABELS: Record<string, string> = {
+  mobility: "Mobilidade",
+  push: "Empurrar",
+  pull: "Puxar",
+  integrated: "Integrado",
+  core_stability: "Core (estabilidade)",
+  core_strength: "Core (forca)",
+  power_plyometrics: "Potencia/Pliometria",
+  brachiation: "Braquiacao",
+  general_strengthening: "Fortalecimento geral",
+};
 
 function SmallStat({
   icon: Icon,
@@ -176,6 +191,9 @@ export default function TreinoPage() {
     todayMentalPrompt,
     todaySession,
     toggleMentalApplied,
+    exerciseCatalog,
+    swapSessionExercise,
+    swappingExerciseId,
   } = useTreinoFeature({ userId: user?.id || null });
 
   const [activeTab, setActiveTab] = useState("hoje");
@@ -192,6 +210,10 @@ export default function TreinoPage() {
   });
   const [sessionDeleteOpen, setSessionDeleteOpen] = useState(false);
   const [measurementPendingDelete, setMeasurementPendingDelete] = useState<(typeof measurements)[number] | null>(null);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryCategory, setLibraryCategory] = useState<string>("all");
+  const [swapTarget, setSwapTarget] = useState<{ id: string; name: string; category: string } | null>(null);
+  const [swapSearch, setSwapSearch] = useState("");
   const sessionTabRef = useRef<HTMLDivElement | null>(null);
   const previousTodaySessionIdRef = useRef<string | null>(null);
 
@@ -483,12 +505,13 @@ export default function TreinoPage() {
       </section>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-2xl bg-card/95 p-2 md:grid-cols-5">
+        <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-2xl bg-card/95 p-2 md:grid-cols-6">
           <TabsTrigger value="hoje">Hoje</TabsTrigger>
           <TabsTrigger value="semana">Semana</TabsTrigger>
           <TabsTrigger value="sessao">Sessao</TabsTrigger>
           <TabsTrigger value="evolucao">Evolucao</TabsTrigger>
           <TabsTrigger value="blocos">Blocos</TabsTrigger>
+          <TabsTrigger value="biblioteca">Biblioteca</TabsTrigger>
         </TabsList>
 
         <TabsContent value="hoje" className="space-y-4">
@@ -820,16 +843,31 @@ export default function TreinoPage() {
                               </div>
                               <div className="flex items-center justify-between gap-2">
                                 <CardTitle className="min-w-0 flex-1 break-words text-lg">{exercise.exercise_name}</CardTitle>
-                                {getExerciseInfo(exercise.exercise_name) ? (
+                                <div className="flex shrink-0 items-center gap-1">
                                   <button
                                     type="button"
-                                    onClick={() => setOpenInfoId(openInfoId === exercise.id ? null : exercise.id)}
-                                    className="shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                                    aria-label="Ver descricao do exercicio"
+                                    onClick={() => {
+                                      setSwapTarget({ id: exercise.id, name: exercise.exercise_name, category: exercise.category });
+                                      setSwapSearch("");
+                                    }}
+                                    disabled={swappingExerciseId === exercise.id}
+                                    className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                                    aria-label="Trocar exercicio"
+                                    title="Trocar exercicio"
                                   >
-                                    <Info className="h-4 w-4" />
+                                    <Repeat className="h-4 w-4" />
                                   </button>
-                                ) : null}
+                                  {getExerciseInfo(exercise.exercise_name) ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenInfoId(openInfoId === exercise.id ? null : exercise.id)}
+                                      className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                      aria-label="Ver descricao do exercicio"
+                                    >
+                                      <Info className="h-4 w-4" />
+                                    </button>
+                                  ) : null}
+                                </div>
                               </div>
                               <CardDescription>{exercise.progression_rule}</CardDescription>
                               {openInfoId === exercise.id ? (() => {
@@ -838,12 +876,12 @@ export default function TreinoPage() {
                                   <div className="mt-2 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
                                     <p className="mb-2 leading-relaxed">{info.description}</p>
                                     <a
-                                      href={info.youtubeSearch}
+                                      href={info.videoUrl ?? info.youtubeSearch}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center gap-1 text-xs font-medium text-primary/80 hover:text-primary hover:underline"
                                     >
-                                      Ver no YouTube ↗
+                                      {info.videoUrl ? "Ver vídeo ↗" : "Ver no YouTube ↗"}
                                     </a>
                                   </div>
                                 ) : null;
@@ -1193,7 +1231,174 @@ export default function TreinoPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="biblioteca" className="space-y-4">
+          <Card className="rounded-2xl border-border bg-card/95">
+            <CardHeader>
+              <CardTitle>Biblioteca de exercicios</CardTitle>
+              <CardDescription>
+                {exerciseCatalog.length} exercicios catalogados. Filtre por padrao de movimento ou busque por nome.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="relative md:flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={librarySearch}
+                    onChange={(event) => setLibrarySearch(event.target.value)}
+                    placeholder="Buscar exercicio..."
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={libraryCategory} onValueChange={setLibraryCategory}>
+                  <SelectTrigger className="md:w-60">
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
+                    {Array.from(new Set(exerciseCatalog.map((item) => item.category)))
+                      .sort()
+                      .map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {EXERCISE_CATEGORY_LABELS[category] ?? category}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(() => {
+                const term = librarySearch.trim().toLowerCase();
+                const filtered = exerciseCatalog.filter((item) => {
+                  const matchesCategory = libraryCategory === "all" || item.category === libraryCategory;
+                  const matchesSearch = !term || item.name.toLowerCase().includes(term);
+                  return matchesCategory && matchesSearch;
+                });
+
+                if (!filtered.length) {
+                  return (
+                    <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                      Nenhum exercicio encontrado. Ajuste o filtro ou a busca.
+                    </p>
+                  );
+                }
+
+                return (
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {filtered.map((item) => (
+                      <article key={item.id} className="rounded-xl border border-border bg-card/80 p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-sm font-semibold text-foreground">{item.name}</h3>
+                          <Badge variant="outline" className="shrink-0 text-xs">
+                            {EXERCISE_CATEGORY_LABELS[item.category] ?? item.category}
+                          </Badge>
+                        </div>
+                        <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">{item.description}</p>
+                        {item.video_url ? (
+                          <a
+                            href={item.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary/80 hover:text-primary hover:underline"
+                          >
+                            Ver video ↗
+                          </a>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={!!swapTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSwapTarget(null);
+            setSwapSearch("");
+          }
+        }}
+      >
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Trocar exercicio</DialogTitle>
+            <DialogDescription>
+              {swapTarget ? `Substituindo "${swapTarget.name}" (${EXERCISE_CATEGORY_LABELS[swapTarget.category] ?? swapTarget.category}).` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={swapSearch}
+              onChange={(event) => setSwapSearch(event.target.value)}
+              placeholder="Buscar exercicio compativel..."
+              className="pl-9"
+            />
+          </div>
+
+          <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
+            {(() => {
+              if (!swapTarget) return null;
+              const term = swapSearch.trim().toLowerCase();
+              const compatible = exerciseCatalog
+                .filter((item) => item.category === swapTarget.category && item.name !== swapTarget.name)
+                .filter((item) => !term || item.name.toLowerCase().includes(term));
+
+              if (!compatible.length) {
+                return (
+                  <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    Nenhum exercicio compativel encontrado.
+                  </p>
+                );
+              }
+
+              return compatible.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  disabled={swappingExerciseId === swapTarget.id}
+                  onClick={async () => {
+                    const ok = await swapSessionExercise({
+                      exerciseId: swapTarget.id,
+                      name: item.name,
+                      category: item.category,
+                    });
+                    if (ok) {
+                      setSwapTarget(null);
+                      setSwapSearch("");
+                    }
+                  }}
+                  className="flex w-full flex-col items-start gap-1 rounded-xl border border-border bg-card/80 p-3 text-left transition-colors hover:bg-accent disabled:opacity-50"
+                >
+                  <span className="text-sm font-semibold text-foreground">{item.name}</span>
+                  <span className="line-clamp-2 text-xs text-muted-foreground">{item.description}</span>
+                  {item.video_url ? (
+                    <span className="text-xs font-medium text-primary/80">Vídeo disponível</span>
+                  ) : null}
+                </button>
+              ));
+            })()}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSwapTarget(null);
+                setSwapSearch("");
+              }}
+            >
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <DeleteConfirmDialog
         open={sessionDeleteOpen}

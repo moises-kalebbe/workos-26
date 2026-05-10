@@ -25,7 +25,7 @@ const ATHLETE_PROFILE = {
 } as const;
 
 describe("training plan builder", () => {
-  it("generates exactly 24 weeks with 5 morning sessions and 4 beach tennis sessions per week", () => {
+  it("generates 24 weeks with 5 morning gym sessions (Mon/Tue/Wed/Fri/Sat) and no embedded beach tennis sessions", () => {
     const plan = buildTrainingPlan({
       athleteProfile: ATHLETE_PROFILE,
       now: new Date("2026-04-10T12:00:00.000Z"),
@@ -33,34 +33,36 @@ describe("training plan builder", () => {
 
     expect(plan.blocks).toHaveLength(6);
     expect(new Set(plan.sessions.map((session) => session.week_number)).size).toBe(24);
-    expect(plan.sessions).toHaveLength(24 * 9);
+    expect(plan.sessions).toHaveLength(24 * 5);
+
+    const trainingDays = new Set(["monday", "tuesday", "wednesday", "friday", "saturday"]);
 
     for (let week = 1; week <= 24; week += 1) {
       const weekSessions = plan.sessions.filter((session) => session.week_number === week);
-      expect(weekSessions.filter((session) => session.time_slot === "morning")).toHaveLength(5);
-      expect(weekSessions.filter((session) => session.session_type === "beach_tennis")).toHaveLength(4);
+      expect(weekSessions).toHaveLength(5);
+      for (const session of weekSessions) {
+        expect(session.time_slot).toBe("morning");
+        expect(trainingDays.has(session.day_of_week)).toBe(true);
+        expect(session.session_type).not.toBe("beach_tennis");
+      }
     }
   });
 
-  it("marks weeks 4, 8, 12, 16, 20 and 24 as deload weeks with reduced lower-body volume and checkpoint work", () => {
+  it("marks weeks 4, 8, 12, 16, 20 and 24 as deload weeks with reduced lower-body volume", () => {
     const plan = buildTrainingPlan({
       athleteProfile: ATHLETE_PROFILE,
       now: new Date("2026-04-10T12:00:00.000Z"),
     });
 
     const week3Lower = plan.sessions.find(
-      (session) => session.week_number === 3 && session.day_of_week === "thursday" && session.time_slot === "morning",
+      (session) => session.week_number === 3 && session.day_of_week === "monday" && session.time_slot === "morning",
     );
     const week4Lower = plan.sessions.find(
-      (session) => session.week_number === 4 && session.day_of_week === "thursday" && session.time_slot === "morning",
-    );
-    const week4Recovery = plan.sessions.find(
-      (session) => session.week_number === 4 && session.day_of_week === "wednesday" && session.time_slot === "morning",
+      (session) => session.week_number === 4 && session.day_of_week === "monday" && session.time_slot === "morning",
     );
 
     expect(week3Lower).toBeDefined();
     expect(week4Lower?.is_deload_week).toBe(true);
-    expect(week4Recovery?.objective).toMatch(/checkpoint/i);
 
     const week3SetCount = plan.sessionExercises
       .filter((exercise) => exercise.session_builder_key === week3Lower?.builder_key)
@@ -72,26 +74,34 @@ describe("training plan builder", () => {
     expect(week4SetCount).toBeLessThan(week3SetCount);
   });
 
-  it("uses gym-friendly power-day substitutions instead of wall throws and free sprints", () => {
+  it("places gym-friendly power and conditioning exercises in the Tuesday push and Wednesday sprint sessions", () => {
     const plan = buildTrainingPlan({
       athleteProfile: ATHLETE_PROFILE,
       now: new Date("2026-04-10T12:00:00.000Z"),
     });
 
-    const powerSession = plan.sessions.find(
+    const tuesdaySession = plan.sessions.find(
       (session) => session.week_number === 1 && session.day_of_week === "tuesday" && session.time_slot === "morning",
     );
+    const wednesdaySession = plan.sessions.find(
+      (session) => session.week_number === 1 && session.day_of_week === "wednesday" && session.time_slot === "morning",
+    );
 
-    const exerciseNames = plan.sessionExercises
-      .filter((exercise) => exercise.session_builder_key === powerSession?.builder_key)
+    const tuesdayExercises = plan.sessionExercises
+      .filter((exercise) => exercise.session_builder_key === tuesdaySession?.builder_key)
+      .map((exercise) => exercise.exercise_name);
+    const wednesdayExercises = plan.sessionExercises
+      .filter((exercise) => exercise.session_builder_key === wednesdaySession?.builder_key)
       .map((exercise) => exercise.exercise_name);
 
-    expect(exerciseNames).toContain("Jump shrug com barra");
-    expect(exerciseNames).toContain("Rotacao explosiva no cabo");
-    expect(exerciseNames).toContain("Bike sprint estendido");
-    expect(exerciseNames).not.toContain("Medicine ball scoop toss");
-    expect(exerciseNames).not.toContain("Rotational shot put throw");
-    expect(exerciseNames).not.toContain("Shuttle curto");
+    expect(tuesdayExercises).toContain("Jump shrug com barra");
+    expect(tuesdayExercises).toContain("Rotacao explosiva no cabo");
+    expect(wednesdayExercises).toContain("Bike sprint estendido");
+
+    const allNames = plan.sessionExercises.map((exercise) => exercise.exercise_name);
+    expect(allNames).not.toContain("Medicine ball scoop toss");
+    expect(allNames).not.toContain("Rotational shot put throw");
+    expect(allNames).not.toContain("Shuttle curto");
   });
 
   it("does not advance the mental prompt before local midnight even if UTC already changed", () => {
