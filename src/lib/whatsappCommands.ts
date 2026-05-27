@@ -105,6 +105,69 @@ async function handleMeet(userId: string, args: string[]): Promise<string> {
   }
 
   const tz = "America/Sao_Paulo";
+
+  // Formato DD/MM [HH:MM] Nome → compromisso (sem link de vídeo)
+  if (args.length > 0 && /^\d{1,2}\/\d{1,2}$/.test(args[0])) {
+    const [dayStr, monthStr] = args[0].split("/");
+    const day = parseInt(dayStr, 10);
+    const month = parseInt(monthStr, 10);
+
+    const nowBR = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+    let year = nowBR.getFullYear();
+    if (new Date(year, month - 1, day) < nowBR) year++;
+
+    const rest = args.slice(1);
+    const timeMatch = rest[0]?.match(/^(\d{1,2}):(\d{2})(?:-(\d{1,2}):(\d{2}))?$/);
+
+    let eventBody: Record<string, unknown>;
+    let timeInfo: string;
+
+    if (timeMatch) {
+      const hStart = parseInt(timeMatch[1], 10);
+      const mStart = parseInt(timeMatch[2], 10);
+      const hEnd = timeMatch[3] ? parseInt(timeMatch[3], 10) : hStart + 1;
+      const mEnd = timeMatch[4] ? parseInt(timeMatch[4], 10) : mStart;
+      const title = rest.slice(1).join(" ").trim() || "Compromisso";
+
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const dateStr = `${year}-${pad(month)}-${pad(day)}`;
+      eventBody = {
+        summary: title,
+        start: { dateTime: `${dateStr}T${pad(hStart)}:${pad(mStart)}:00`, timeZone: tz },
+        end: { dateTime: `${dateStr}T${pad(hEnd)}:${pad(mEnd)}:00`, timeZone: tz },
+      };
+      timeInfo = `${pad(hStart)}:${pad(mStart)}–${pad(hEnd)}:${pad(mEnd)}`;
+    } else {
+      const title = rest.join(" ").trim() || "Compromisso";
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const startDate = `${year}-${pad(month)}-${pad(day)}`;
+      const nextDay = new Date(year, month - 1, day + 1);
+      const endDate = `${nextDay.getFullYear()}-${pad(nextDay.getMonth() + 1)}-${pad(nextDay.getDate())}`;
+      eventBody = {
+        summary: title,
+        start: { date: startDate },
+        end: { date: endDate },
+      };
+      timeInfo = "dia inteiro";
+    }
+
+    const res = await googleJson(
+      tokenResult.accessToken,
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
+      { method: "POST", body: JSON.stringify(eventBody) },
+    );
+
+    if (!res.ok) {
+      return `Erro ao criar compromisso: ${res.text || "falha desconhecida"}`;
+    }
+
+    const summary = (eventBody.summary as string);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const dateLabel = `${pad(day)}/${pad(month)}/${year}`;
+    return `✅ *${summary}*\n📅 ${dateLabel} — ${timeInfo}\n📋 Compromisso criado na agenda`;
+  }
+
+  // Formato original: reunião com Google Meet
   const { title, start } = parseMeetTime(args);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
 
@@ -521,10 +584,10 @@ const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
 
 /hoje — Resumo do dia (clima, agenda, tarefas, timer)
 /clima — Temperatura e condição do tempo atual
-/meet [título] — Reunião na próxima hora cheia
-/meet [título] agora — Reunião instantânea
-/meet [título] às 15h30 — Reunião no horário
-/meet [título] amanhã às 10h — Reunião amanhã
+/meet DD/MM Nome — Compromisso dia inteiro
+/meet DD/MM HH:MM Nome — Compromisso com horário
+/meet [título] agora — Reunião instantânea (c/ Meet)
+/meet [título] às 15h30 — Reunião no horário (c/ Meet)
 /task [título] — Cria tarefa no kanban
 /grana — Resumo financeiro do mês
 /mp — Saldo e cofrinhos do Mercado Pago
