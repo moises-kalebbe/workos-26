@@ -28,7 +28,9 @@ tsconfig.tsbuildinfo
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.claude/
+.claude/settings.json
+.claude/settings.local.json
+.claude/worktrees/
 .idea
 .DS_Store
 *.suo
