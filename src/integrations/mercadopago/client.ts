@@ -112,42 +112,6 @@ export async function getMoneyBoxes(): Promise<MpMoneyBox[]> {
   }
 }
 
-export async function sendPixTransfer(
-  keyType: string,
-  keyValue: string,
-  amount: number,
-): Promise<{ id: number; status: string }> {
-  const token = getToken();
-  const body = {
-    amount,
-    currency_id: "BRL",
-    destination_account: {
-      key: { type: keyType, value: keyValue },
-    },
-  };
-
-  const res = await fetch(`${BASE_URL}/v1/account/bank-transfers`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-
-  if (!res.ok) {
-    const msg =
-      (data.message as string) ??
-      (data.error as string) ??
-      `Erro ${res.status}`;
-    throw new Error(msg);
-  }
-
-  return { id: data.id as number, status: (data.status as string) ?? "pending" };
-}
-
 export function isConfigured() {
   return Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN);
 }

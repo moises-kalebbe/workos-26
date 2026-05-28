@@ -1,6 +1,7 @@
 import { sql, ensureDatabaseConnection } from "@/lib/db";
 import { getValidAccessToken, googleJson } from "@/lib/googleCalendar";
-import { getBalance, getMoneyBoxes, getRecentPayments, extractCofrinhos, isConfigured as mpConfigured, sendPixTransfer } from "@/integrations/mercadopago/client";
+import { getBalance, getMoneyBoxes, getRecentPayments, extractCofrinhos, isConfigured as mpConfigured } from "@/integrations/mercadopago/client";
+import { sendPix as interSendPix, isConfigured as interConfigured } from "@/integrations/inter/client";
 
 const WEATHER_CODES: Record<number, { day: string; night: string }> = {
   0: { day: "Ensolarado", night: "Céu limpo" },
@@ -571,8 +572,8 @@ const PIX_KEY_LABELS: Record<string, string> = {
 };
 
 async function handlePix(_userId: string, args: string[]): Promise<string> {
-  if (!mpConfigured()) {
-    return "Mercado Pago não configurado.";
+  if (!interConfigured()) {
+    return "Banco Inter não configurado (faltam credenciais/certificado).";
   }
 
   const confirm = args[args.length - 1]?.toLowerCase() === "sim";
@@ -603,9 +604,13 @@ async function handlePix(_userId: string, args: string[]): Promise<string> {
   }
 
   try {
-    const result = await sendPixTransfer(key.type, key.value, amount);
-    const statusMsg = result.status === "approved" ? "aprovado" : result.status;
-    return `✅ *PIX enviado!*\n💸 ${fmt(amount)} → ${key.value}\n📋 ID: ${result.id} (${statusMsg})`;
+    const result = await interSendPix(key.value, amount, "PIX via WorkOS");
+    const statusMap: Record<string, string> = {
+      PROCESSADO: "processado",
+      AGENDADO: "agendado",
+    };
+    const statusMsg = statusMap[result.tipoRetorno] ?? result.tipoRetorno.toLowerCase();
+    return `✅ *PIX enviado!*\n💸 ${fmt(amount)} → ${key.value}\n📋 Cód: ${result.codigoSolicitacao}\n📌 Status: ${statusMsg}`;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return `❌ Erro ao enviar PIX: ${msg}`;

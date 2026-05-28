@@ -119,6 +119,11 @@ jobs:
       CLICKUP_CLIENT_ID: ${{ vars.CLICKUP_CLIENT_ID }}
       CLICKUP_CLIENT_SECRET: ${{ secrets.CLICKUP_CLIENT_SECRET }}
       CLICKUP_REDIRECT_URI: ${{ vars.CLICKUP_REDIRECT_URI }}
+      INTER_CLIENT_ID: ${{ secrets.INTER_CLIENT_ID }}
+      INTER_CLIENT_SECRET: ${{ secrets.INTER_CLIENT_SECRET }}
+      INTER_CERT_BASE64: ${{ secrets.INTER_CERT_BASE64 }}
+      INTER_KEY_BASE64: ${{ secrets.INTER_KEY_BASE64 }}
+      INTER_CONTA_CORRENTE: ${{ vars.INTER_CONTA_CORRENTE }}
       RUN_PUBLISH_INPUT: ${{ github.event.inputs.run_publish }}
       RUN_DEPLOY_INPUT: ${{ github.event.inputs.run_deploy }}
       DEPLOY_IMAGE_TAG_INPUT: ${{ github.event.inputs.deploy_image_tag }}
@@ -242,6 +247,11 @@ jobs:
             --env-add "CLICKUP_CLIENT_ID=${CLICKUP_CLIENT_ID:-}" \
             --env-add "CLICKUP_CLIENT_SECRET=${CLICKUP_CLIENT_SECRET:-}" \
             --env-add "CLICKUP_REDIRECT_URI=${CLICKUP_REDIRECT_URI:-https://workos.moiseskalebbe.cloud/api/clickup/callback}" \
+            --env-add "INTER_CLIENT_ID=${INTER_CLIENT_ID:-}" \
+            --env-add "INTER_CLIENT_SECRET=${INTER_CLIENT_SECRET:-}" \
+            --env-add "INTER_CERT_BASE64=${INTER_CERT_BASE64:-}" \
+            --env-add "INTER_KEY_BASE64=${INTER_KEY_BASE64:-}" \
+            --env-add "INTER_CONTA_CORRENTE=${INTER_CONTA_CORRENTE:-}" \
             workos_workos
 
       - name: Verify swarm rollout
