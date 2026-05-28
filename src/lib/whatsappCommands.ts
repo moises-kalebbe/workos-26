@@ -1,6 +1,6 @@
 import { sql, ensureDatabaseConnection } from "@/lib/db";
 import { getValidAccessToken, googleJson } from "@/lib/googleCalendar";
-import { getBalance, getMoneyBoxes, getRecentPayments, extractCofrinhos, isConfigured as mpConfigured } from "@/integrations/mercadopago/client";
+import { getBalance, getMoneyBoxes, getRecentPayments, extractCofrinhos, isConfigured as mpConfigured, sendPixTransfer } from "@/integrations/mercadopago/client";
 
 const WEATHER_CODES: Record<number, { day: string; night: string }> = {
   0: { day: "Ensolarado", night: "Céu limpo" },
@@ -532,6 +532,86 @@ async function handleHoje(userId: string): Promise<string> {
   return `*${today.charAt(0).toUpperCase() + today.slice(1)}*\n\n${sections.join("\n\n")}`;
 }
 
+function detectPixKeyType(raw: string): { type: string; value: string } | null {
+  const trimmed = raw.trim();
+
+  // Email
+  if (trimmed.includes("@")) return { type: "email", value: trimmed };
+
+  // EVP (UUID)
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+    return { type: "evp", value: trimmed };
+  }
+
+  // CPF formatado: XXX.XXX.XXX-XX
+  if (/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(trimmed)) {
+    return { type: "cpf", value: trimmed.replace(/\D/g, "") };
+  }
+
+  const digits = trimmed.replace(/\D/g, "");
+
+  // Telefone: 10-11 dígitos (DDD + número, com ou sem 9 na frente)
+  if (digits.length >= 10 && digits.length <= 11) {
+    return { type: "phone", value: "+55" + digits };
+  }
+
+  // Telefone com código de país: +55 + 11 dígitos = 13 dígitos
+  if (digits.length === 13 && digits.startsWith("55")) {
+    return { type: "phone", value: "+" + digits };
+  }
+
+  return null;
+}
+
+const PIX_KEY_LABELS: Record<string, string> = {
+  phone: "celular",
+  cpf: "CPF",
+  email: "e-mail",
+  evp: "chave aleatória",
+};
+
+async function handlePix(_userId: string, args: string[]): Promise<string> {
+  if (!mpConfigured()) {
+    return "Mercado Pago não configurado.";
+  }
+
+  const confirm = args[args.length - 1]?.toLowerCase() === "sim";
+  const effectiveArgs = confirm ? args.slice(0, -1) : args;
+
+  if (effectiveArgs.length < 2) {
+    return "Use: /pix <chave> <valor>\nEx: /pix 11999999999 50";
+  }
+
+  const rawKey = effectiveArgs[0];
+  const rawAmount = effectiveArgs[1];
+  const amount = parseFloat(rawAmount.replace(",", "."));
+
+  if (isNaN(amount) || amount <= 0) {
+    return "Valor inválido. Ex: /pix 11999999999 50";
+  }
+
+  const key = detectPixKeyType(rawKey);
+  if (!key) {
+    return `Chave PIX não reconhecida: *${rawKey}*\nFormatos aceitos: celular, CPF, e-mail ou chave aleatória.`;
+  }
+
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const label = PIX_KEY_LABELS[key.type] ?? key.type;
+
+  if (!confirm) {
+    return `💸 *Confirmar PIX?*\n📤 Valor: ${fmt(amount)}\n🔑 Chave (${label}): ${key.value}\n\nPara enviar: /pix ${rawKey} ${rawAmount} sim`;
+  }
+
+  try {
+    const result = await sendPixTransfer(key.type, key.value, amount);
+    const statusMsg = result.status === "approved" ? "aprovado" : result.status;
+    return `✅ *PIX enviado!*\n💸 ${fmt(amount)} → ${key.value}\n📋 ID: ${result.id} (${statusMsg})`;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return `❌ Erro ao enviar PIX: ${msg}`;
+  }
+}
+
 async function handleMp(): Promise<string> {
   if (!mpConfigured()) {
     return "Mercado Pago não configurado. Adicione MERCADOPAGO_ACCESS_TOKEN nas configurações.";
@@ -593,7 +673,9 @@ const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
 /mp — Saldo e cofrinhos do Mercado Pago
 /timer start [projeto] — Inicia o timer
 /timer stop — Para o timer atual
-/lembrete [título] — Cria lembrete para amanhã às 10h`;
+/lembrete [título] — Cria lembrete para amanhã às 10h
+/pix <chave> <valor> — Preview do PIX
+/pix <chave> <valor> sim — Confirma e envia o PIX`;
 
 export async function runCommand(
   userId: string,
@@ -620,6 +702,8 @@ export async function runCommand(
       return handleTimer(userId, args);
     case "lembrete":
       return handleLembrete(userId, args);
+    case "pix":
+      return handlePix(userId, args);
     case "help":
     case "ajuda":
       return HELP_TEXT;
