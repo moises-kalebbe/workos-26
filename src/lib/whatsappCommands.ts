@@ -665,22 +665,32 @@ async function handleMp(): Promise<string> {
   }
 }
 
-const HELP_TEXT = `*WorkOS Bot* — Comandos disponíveis:
+const HELP_TEXT = `🤖 *WorkOS Bot*
+_seu assistente no WhatsApp_
 
-/hoje — Resumo do dia (clima, agenda, tarefas, timer)
-/clima — Temperatura e condição do tempo atual
-/meet DD/MM Nome — Compromisso dia inteiro
-/meet DD/MM HH:MM Nome — Compromisso com horário
-/meet [título] agora — Reunião instantânea (c/ Meet)
-/meet [título] às 15h30 — Reunião no horário (c/ Meet)
-/task [título] — Cria tarefa no kanban
-/grana — Resumo financeiro do mês
-/mp — Saldo e cofrinhos do Mercado Pago
-/timer start [projeto] — Inicia o timer
-/timer stop — Para o timer atual
-/lembrete [título] — Cria lembrete para amanhã às 10h
-/pix <chave> <valor> — Preview do PIX
-/pix <chave> <valor> sim — Confirma e envia o PIX`;
+📅 *AGENDA & DIA*
+☀️ */hoje* — _resumo do dia: clima, agenda, tarefas e timer_
+🌡️ */clima* — _tempo agora_
+📌 */meet* _DD/MM Nome_ — _compromisso dia inteiro_
+🕒 */meet* _DD/MM HH:MM Nome_ — _compromisso com horário_
+🔔 */lembrete* _título_ — _lembrete amanhã às 10h_
+
+🎥 *REUNIÕES* _(com link do Meet)_
+▶️ */meet* _título_ *agora* — _reunião na hora_
+⏰ */meet* _título_ *às 15h30* — _reunião no horário_
+
+💸 *FINANCEIRO*
+💰 */grana* — _resumo financeiro do mês_
+🟡 */mp* — _saldo e cofrinhos do Mercado Pago_
+📤 */pix* _chave valor_ — _mostra o preview_
+✅ */pix* _chave valor_ *sim* — _envia o PIX_
+
+✔️ *PRODUTIVIDADE*
+📝 */task* _título_ — _nova tarefa no kanban_
+⏱️ */timer start* _projeto_ — _inicia o cronômetro_
+⏹️ */timer stop* — _para o cronômetro_
+
+💡 _Dica: digite_ */hoje* _pra começar o dia._`;
 
 export async function runCommand(
   userId: string,
@@ -713,6 +723,6 @@ export async function runCommand(
     case "ajuda":
       return HELP_TEXT;
     default:
-      return `Comando /${command} não reconhecido.\n\n${HELP_TEXT}`;
+      return `❓ Não conheço o comando */${command}*.\n\n${HELP_TEXT}`;
   }
 }
