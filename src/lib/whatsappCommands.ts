@@ -743,6 +743,9 @@ export async function runCommand(
       return handlePix(userId, args);
     case "help":
     case "ajuda":
+    case "menu":
+    case "comandos":
+    case "start":
       return HELP_TEXT;
     default:
       return `❓ Não conheço o comando */${command}*.\n\n${HELP_TEXT}`;
