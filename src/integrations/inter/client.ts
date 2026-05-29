@@ -29,8 +29,8 @@ type PixTransferResult = {
   dataOperacao?: string;
 };
 
-// Cache do token em memória do processo (expira em ~1h)
-let cachedToken: { value: string; expiresAt: number } | null = null;
+// Cache de token por scope (expira em ~1h)
+const tokenCache = new Map<string, { value: string; expiresAt: number }>();
 let cachedAgent: Agent | null = null;
 
 function getEnv() {
@@ -57,10 +57,11 @@ function getAgent(cert: string, key: string): Agent {
   return cachedAgent;
 }
 
-async function getAccessToken(): Promise<string> {
+async function getAccessToken(scope: string): Promise<string> {
   const now = Date.now();
-  if (cachedToken && cachedToken.expiresAt > now + 30_000) {
-    return cachedToken.value;
+  const cached = tokenCache.get(scope);
+  if (cached && cached.expiresAt > now + 30_000) {
+    return cached.value;
   }
 
   const { clientId, clientSecret, cert, key } = getEnv();
@@ -70,7 +71,7 @@ async function getAccessToken(): Promise<string> {
     client_id: clientId,
     client_secret: clientSecret,
     grant_type: "client_credentials",
-    scope: SCOPE_PIX_WRITE,
+    scope,
   });
 
   const res = await fetch(`${BASE_URL}/oauth/v2/token`, {
@@ -86,10 +87,10 @@ async function getAccessToken(): Promise<string> {
   }
 
   const token = (await res.json()) as InterToken;
-  cachedToken = {
+  tokenCache.set(scope, {
     value: token.access_token,
     expiresAt: now + token.expires_in * 1000,
-  };
+  });
   return token.access_token;
 }
 
@@ -106,7 +107,7 @@ export async function sendPix(
 ): Promise<PixTransferResult> {
   const { cert, key, contaCorrente } = getEnv();
   const agent = getAgent(cert, key);
-  const token = await getAccessToken();
+  const token = await getAccessToken(SCOPE_PIX_WRITE);
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
